@@ -9,4 +9,4 @@ locales:
 prompts:
   classify-signal:
     file: prompts/classify-signal.md
-    version: 2                    # bump when the prompt changes; becomes part of Signals.AnalysisKey
+    version: 3                    # bump when the prompt changes; becomes part of Signals.AnalysisKey

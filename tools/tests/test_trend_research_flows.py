@@ -107,6 +107,83 @@ class ProcessDocumentsTests(unittest.TestCase):
             self.assertIn(name, [w.get("Name") for w in xml.iter("Workflow")])
         self.assertIn('Name="VT Procesar Documentos"', built_text("es", "customizations.xml"))
 
+CLASSIFY = "Workflows/TRClassifyItems-F73F937F-667A-8EDC-33BF-30CDDB0276B6.json"
+ALERT_CODES = ["CompetitorLaunch", "RegulatoryAlert", "NewTechnology"]
+OBJECTIVE_CODES = ["Anticipate", "MinimizeRisks", "Compare", "Innovate", "Cooperate"]
+
+
+class ClassifierV3Tests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", CLASSIFY)
+
+    def _schema(self):
+        agent = params(self.doc, "Classify_TR_Signal")["body/definition"]
+        return json.loads(agent["entity"]["configuration"]["agentSettings"]["output"]["schema"])
+
+    def test_prompt_v3_has_product_dimension(self):
+        msg = params(self.doc, "Classify_TR_Signal")["body/message"]
+        self.assertIn("Product: @{items('Loop_2')?['Product']}", msg)
+        self.assertIn("Dimension: @{items('Loop_2')?['Dimension']}", msg)
+        schema = self._schema()
+        for name in ("AlertTags", "Objectives"):
+            self.assertEqual({"type": "array", "items": {"type": "string"}}, schema["properties"][name])
+            self.assertIn(name, schema["required"])
+        for code in ALERT_CODES + OBJECTIVE_CODES:
+            self.assertIn(code, msg)
+
+    def test_alert_tags_filtered_to_allowed(self):
+        for action, codes, prop in (("Filter_AlertTags", ALERT_CODES, "AlertTags"),
+                                    ("Filter_Objectives", OBJECTIVE_CODES, "Objectives")):
+            f = find_action(self.doc, action)
+            self.assertEqual("Query", f["type"])
+            self.assertEqual("@coalesce(body('Classify_TR_Signal')?['structuredOutput/%s'], json('[]'))" % prop,
+                             f["inputs"]["from"])
+            self.assertEqual("@contains(createArray(%s), item())" % ", ".join("'%s'" % c for c in codes),
+                             f["inputs"]["where"])
+            self.assertEqual({"Classify_TR_Signal": ["Succeeded"]} if action == "Filter_AlertTags"
+                             else {"Filter_AlertTags": ["Succeeded"]}, f["runAfter"])
+        p = params(self.doc, "Create_Signal")
+        self.assertEqual("@body('Filter_AlertTags')", p["item/AlertTags"])
+        self.assertEqual("@body('Filter_Objectives')", p["item/Objectives"])
+        for prop in ("item/AlertTags", "item/Objectives"):
+            self.assertNotIn("structuredOutput", p[prop])  # raw model output is never written as-is
+        self.assertIn("Filter_Objectives", find_action(self.doc, "Create_Signal")["runAfter"])
+
+    def test_invalid_tags_route_to_review(self):
+        p = params(self.doc, "Create_Signal")
+        status = p["item/field_11"]
+        self.assertIn("NeedsReview", status)
+        for raw, filt in (("AlertTags", "Filter_AlertTags"), ("Objectives", "Filter_Objectives")):
+            self.assertIn("structuredOutput/%s" % raw, status)
+            self.assertIn("body('%s')" % filt, status)
+        self.assertIn("Invalid tags:", p["item/field_10"])
+        self.assertIn("Supporting evidence:", p["item/field_10"])
+        # a Rejected/Monitor/Digest outcome is still computed when tags are valid
+        for v in ("Rejected", "Monitor", "Digest"):
+            self.assertIn(v, status)
+
+    def test_analysis_key_uses_prompt_v3(self):
+        key = find_action(self.doc, "Build_AnalysisKey")["inputs"]["value"]
+        self.assertTrue(key.endswith("|3"), key)
+        self.assertEqual(3, params(self.doc, "Create_Signal")["item/field_5"])
+
+    def test_failed_brief_not_marked_classified(self):
+        a = find_action(self.doc, "Mark_SourceItem_Classified")
+        # Mark waits for Filter_Failed_Briefs, which itself runs after Loop_2 whatever its outcome
+        self.assertEqual({"Filter_Failed_Briefs": ["Succeeded"]}, a["runAfter"])
+        status = a["inputs"]["parameters"]["item/field_9"]
+        self.assertIn("'Failed'", status)
+        self.assertIn("'Classified'", status)
+        self.assertIn("Filter_Failed_Briefs", status)
+        f = find_action(self.doc, "Filter_Failed_Briefs")
+        self.assertIn("result('Loop_2')", f["inputs"]["from"])
+        self.assertIn("'Failed'", f["inputs"]["where"])
+        self.assertEqual({"Loop_2": ["Succeeded", "Failed"]}, f["runAfter"])
+
+    def test_loop_2_stays_sequential(self):
+        self.assertEqual(1, find_action(self.doc, "Loop_2")["runtimeConfiguration"]["concurrency"]["repetitions"])
+
 
 if __name__ == "__main__":
     unittest.main()

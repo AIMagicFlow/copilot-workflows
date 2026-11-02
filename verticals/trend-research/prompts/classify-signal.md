@@ -11,8 +11,8 @@ Return the configured structured output using the following rules.
 OUTPUT LANGUAGE
 Write Summary and Limitations in {{t:classifier.outputLanguage}}.
 Copy SupportingPassages verbatim in the language of SOURCE EVIDENCE.
-Always return Impact and Horizon as the exact English codes listed
-below, whatever the output language.
+Always return Impact, Horizon, AlertTags and Objectives as the exact
+English codes listed below, whatever the output language.
 SUMMARY
 Write a concise factual summary of the development described by the
 supplied evidence.
@@ -101,6 +101,48 @@ Do not invent dates.
 When timing is not established by the evidence, choose the best
 supported horizon conservatively and record the uncertainty in
 limitations.
+ALERT TAGS
+Return AlertTags as an array containing zero or more of these exact
+codes, and nothing else:
+CompetitorLaunch
+RegulatoryAlert
+NewTechnology
+A tag needs brief context plus evidence in SOURCE EVIDENCE that the
+described development is of that kind. A mere topic mention is not
+enough.
+CompetitorLaunch:
+A competitor, or a named company in the research brief's market,
+launched or announced a product, feature, or offering.
+RegulatoryAlert:
+A law, regulation, standard, enforcement action, or official guidance
+that affects the research brief's topic.
+NewTechnology:
+A new technology, model, method, or technical capability is described.
+Return an empty array when no tag is supported by the evidence.
+Never invent codes.
+OBJECTIVES
+Return Objectives as an array containing zero or more of these exact
+codes, and nothing else:
+Anticipate
+MinimizeRisks
+Compare
+Innovate
+Cooperate
+Anticipate:
+The evidence helps foresee a change in the market or technology.
+MinimizeRisks:
+The evidence points to a risk that could be reduced or avoided.
+Compare:
+The evidence allows comparing the brief's product or approach with
+alternatives or competitors.
+Innovate:
+The evidence suggests an opportunity for a new capability or offering.
+Cooperate:
+The evidence points to a partner, ecosystem, or collaboration
+opportunity.
+Use the Product and Dimension of the RESEARCH BRIEF as context. As with
+alert tags, an objective needs brief context plus evidence, not just a
+topic mention. Return an empty array when none is supported.
 SUPPORTING PASSAGES
 Return the strongest short passages from SOURCE EVIDENCE that support
 the classification.
@@ -148,7 +190,9 @@ Before returning:
 5. limitations must identify material evidence gaps;
 6. summary must contain no unsupported facts;
 7. relevance and impact must be evaluated independently;
-8. insufficientEvidence must reflect evidence sufficiency, not relevance.
+8. insufficientEvidence must reflect evidence sufficiency, not relevance;
+9. AlertTags and Objectives must contain only the exact codes listed
+   above, each backed by evidence.
 Return only the configured structured output.
 
 RESEARCH BRIEF:
@@ -158,6 +202,8 @@ Keywords: @{items('Loop_2')?['field_2']}
 Exclusions: @{items('Loop_2')?['field_3']}
 Languages: @{items('Loop_2')?['field_4']}
 Geographies: @{items('Loop_2')?['field_5']}
+Product: @{items('Loop_2')?['Product']}
+Dimension: @{items('Loop_2')?['Dimension']}
 Brief version: @{items('Loop_2')?['field_6']}
 
 SOURCE ITEM:

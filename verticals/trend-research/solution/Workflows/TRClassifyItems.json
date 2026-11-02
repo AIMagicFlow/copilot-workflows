@@ -275,7 +275,7 @@
                                   },
                                   "output": {
                                     "diagnostics": [],
-                                    "schema": "{\"type\":\"object\",\"properties\":{\"Summary\":{\"type\":\"string\"},\"Relevance\":{\"type\":\"number\"},\"Impact\":{\"type\":\"string\"},\"SupportingPassages\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Limitations\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"InsufficientEvidence\":{\"type\":\"boolean\"},\"Horizon\":{\"type\":\"string\"}},\"required\":[\"Summary\",\"Relevance\",\"Impact\",\"SupportingPassages\",\"Limitations\",\"InsufficientEvidence\",\"Horizon\"]}",
+                                    "schema": "{\"type\":\"object\",\"properties\":{\"Summary\":{\"type\":\"string\"},\"Relevance\":{\"type\":\"number\"},\"Impact\":{\"type\":\"string\"},\"SupportingPassages\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Limitations\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"InsufficientEvidence\":{\"type\":\"boolean\"},\"Horizon\":{\"type\":\"string\"},\"AlertTags\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Objectives\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"Summary\",\"Relevance\",\"Impact\",\"SupportingPassages\",\"Limitations\",\"InsufficientEvidence\",\"Horizon\",\"AlertTags\",\"Objectives\"]}",
                                     "$kind": "StructuredAgentOutput"
                                   },
                                   "$kind": "AgentSettings"
@@ -304,6 +304,36 @@
                         "nodeId": "agent-3bccd2e6-d267-4b00-a153-fe8bc5f94710"
                       }
                     },
+                    "Filter_AlertTags": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))",
+                        "where": "@contains(createArray('CompetitorLaunch', 'RegulatoryAlert', 'NewTechnology'), item())"
+                      },
+                      "runAfter": {
+                        "Classify_TR_Signal": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Filter AlertTags"
+                      }
+                    },
+                    "Filter_Objectives": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))",
+                        "where": "@contains(createArray('Anticipate', 'MinimizeRisks', 'Compare', 'Innovate', 'Cooperate'), item())"
+                      },
+                      "runAfter": {
+                        "Filter_AlertTags": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Filter Objectives"
+                      }
+                    },
                     "Create_Signal": {
                       "type": "OpenApiConnection",
                       "inputs": {
@@ -320,8 +350,10 @@
                           "item/field_7": "@body('Classify_TR_Signal')?['structuredOutput/Relevance']",
                           "item/field_8": "@body('Classify_TR_Signal')?['structuredOutput/Impact']",
                           "item/field_9": "@body('Classify_TR_Signal')?['structuredOutput/Horizon']",
-                          "item/field_10": "Supporting evidence: @{body('Classify_TR_Signal')?['structuredOutput/SupportingPassages']}; Limitations: @{body('Classify_TR_Signal')?['structuredOutput/Limitations']}",
-                          "item/field_11": "@if(\n  less(\n    body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n    40\n  ),\n  'Rejected',\n  if(\n    less(\n      body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n      70\n    ),\n    'Monitor',\n    'Digest'\n  )\n)"
+                          "item/field_10": "Supporting evidence: @{body('Classify_TR_Signal')?['structuredOutput/SupportingPassages']}; Limitations: @{body('Classify_TR_Signal')?['structuredOutput/Limitations']}@{if(or(not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), length(body('Filter_AlertTags')))), not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))), length(body('Filter_Objectives'))))), concat('; Invalid tags: ', string(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), ' ', string(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]')))), '')}",
+                          "item/field_11": "@if(\n  or(\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), length(body('Filter_AlertTags')))),\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))), length(body('Filter_Objectives'))))\n  ),\n  'NeedsReview',\n  if(\n  less(\n    body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n    40\n  ),\n  'Rejected',\n  if(\n    less(\n      body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n      70\n    ),\n    'Monitor',\n    'Digest'\n  )\n)\n)",
+                          "item/AlertTags": "@body('Filter_AlertTags')",
+                          "item/Objectives": "@body('Filter_Objectives')"
                         },
                         "host": {
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -330,7 +362,7 @@
                         }
                       },
                       "runAfter": {
-                        "Classify_TR_Signal": [
+                        "Filter_Objectives": [
                           "Succeeded"
                         ]
                       },
@@ -364,6 +396,22 @@
                 ]
               }
             },
+            "Filter_Failed_Briefs": {
+              "type": "Query",
+              "inputs": {
+                "from": "@result('Loop_2')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              },
+              "runAfter": {
+                "Loop_2": [
+                  "Succeeded",
+                  "Failed"
+                ]
+              },
+              "metadata": {
+                "description": "Filter Failed Briefs"
+              }
+            },
             "Mark_SourceItem_Classified": {
               "type": "OpenApiConnection",
               "inputs": {
@@ -371,7 +419,7 @@
                   "dataset": "@parameters('Site URL (tr_SiteURL)')",
                   "table": "@parameters('Source Items list (tr_SourceItemsList)')",
                   "id": "@items('Loop')?['ID']",
-                  "item/field_9": "Classified"
+                  "item/field_9": "@if(empty(body('Filter_Failed_Briefs')), 'Classified', 'Failed')"
                 },
                 "host": {
                   "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -380,7 +428,7 @@
                 }
               },
               "runAfter": {
-                "Loop_2": [
+                "Filter_Failed_Briefs": [
                   "Succeeded"
                 ]
               },
