@@ -300,6 +300,8 @@ def field_xml(field, display):
         flags = ' CustomFormatter="" Required="FALSE" EnforceUniqueValues="TRUE" Indexed="TRUE" MaxLength="255"'
     elif field.get("indexed"):
         flags = ' Indexed="TRUE"'
+    if field.get("required") and not field.get("unique"):
+        flags += ' Required="TRUE"'
     if t == "Text":
         return f'<Field Type="Text" DisplayName={d} Name="{n}" ID="{fid}" StaticName="{n}"{flags} />'
     if t == "Number":
@@ -315,10 +317,15 @@ def field_xml(field, display):
     if t == "Boolean":
         return (f'<Field Type="Boolean" DisplayName={d} EnforceUniqueValues="FALSE" Indexed="FALSE" '
                 f'ID="{fid}" StaticName="{n}" Name="{n}"><Default>{int(field.get("default", 0))}</Default></Field>')
-    if t == "Choice":
+    if t in ("Choice", "MultiChoice"):
         choices = "".join(f"<CHOICE>{escape(c)}</CHOICE>" for c in field.get("choices", []))
-        return (f'<Field Type="Choice" DisplayName={d} Format="Dropdown" FillInChoice="FALSE" Name="{n}" '
-                f'ID="{fid}" StaticName="{n}"{flags}><CHOICES>{choices}</CHOICES></Field>')
+        default = f"<Default>{escape(str(field['default']))}</Default>" if "default" in field else ""
+        if t == "Choice":
+            head = f'Type="Choice" DisplayName={d} Format="Dropdown" FillInChoice="FALSE"'
+        else:
+            head = f'Type="MultiChoice" DisplayName={d} FillInChoice="FALSE"'
+        return (f'<Field {head} Name="{n}" ID="{fid}" StaticName="{n}"{flags}>'
+                f'<CHOICES>{choices}</CHOICES>{default}</Field>')
     raise BuildError(f"field {n}: unsupported type {t}")
 
 
@@ -457,11 +464,48 @@ def render_sharepoint_kit(vertical, locale):
     files["pnp/sharepoint-template.pnp.xml"] = render_pnp_template(vertical, locale)
     files["pnp/expected-schema.json"] = render_expected_schema(vertical, locale)
     files["pnp/provision.ps1"] = render_provision_script(vertical, locale)
+    notes = render_upgrade_notes(vertical, locale)
+    if notes:
+        files[f"upgrade-{vertical.version}.{locale}.md"] = notes
     for doc in ("docs/quickstart.{loc}.md", "settings/deployment-settings.example.json"):
         path = vertical.dir / doc.format(loc=locale)
         if path.exists():
             files[path.name] = path.read_bytes()
     return files
+
+
+def upgrade_entries(vertical, locale):
+    """Lists and fields whose 'since' equals the current version, as rows for the upgrade notes."""
+    rows = []
+    for lst in vertical.lists:
+        title = lst["title"][locale]
+        new_list = str(lst.get("since", "")) == vertical.version
+        for f in lst["fields"]:
+            if f.get("builtin"):
+                continue
+            if new_list or str(f.get("since", "")) == vertical.version:
+                rows.append((title, f, new_list))
+    return rows
+
+
+def render_upgrade_notes(vertical, locale):
+    """Per-release notes for CSV-path customers: which columns to add by hand. Empty when nothing is new."""
+    rows = upgrade_entries(vertical, locale)
+    if not rows:
+        return b""
+    t = vertical.strings(locale)
+    out = [f"# {t['upgrade.title'].format(version=vertical.version)}", "", t["upgrade.intro"], "",
+           f"**{t['upgrade.renameRule']}**", ""]
+    new_lists = [lst["title"][locale] for lst in vertical.lists if str(lst.get("since", "")) == vertical.version]
+    if new_lists:
+        out += [t["upgrade.newLists"], ""] + [f"- {name}" for name in new_lists] + [""]
+    cols = ("list", "internalName", "type", "choices", "displayName")
+    out.append("| " + " | ".join(t[f"upgrade.col.{c}"] for c in cols) + " |")
+    out.append("|" + " --- |" * len(cols))
+    for title, f, _ in rows:
+        cells = [title, f"`{f['name']}`", f["type"], ", ".join(f.get("choices", [])), f["display"][locale]]
+        out.append("| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |")
+    return ("\n".join(out) + "\n").encode("utf-8")
 
 
 # --------------------------------------------------------------------------- packaging

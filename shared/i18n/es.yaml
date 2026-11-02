@@ -29,3 +29,14 @@ provision:
   notUnique: debe exigir valores únicos
   failed: El sitio no coincide con el esquema esperado. Corrija los puntos anteriores antes de importar o ejecutar la solución.
   ok: Todas las listas, bibliotecas y columnas coinciden con el esquema esperado.
+upgrade:
+  title: "Notas de actualización de la versión {version}"
+  intro: Esta versión agrega las listas y columnas siguientes. Si aprovisionó con PnP, vuelva a ejecutar pnp/provision.ps1 de este kit y no necesita nada más. Si creó las listas desde los archivos CSV, agréguelas a mano como se describe aquí.
+  renameRule: Al crear cada columna, escriba primero el nombre interno, guárdela y solo después cambie el nombre al nombre para mostrar. SharePoint fija el nombre interno con el primer nombre que se escribe.
+  newLists: "Listas nuevas (cree cada una desde su archivo CSV en lists/):"
+  col:
+    list: Lista
+    internalName: Nombre interno
+    type: Tipo
+    choices: Opciones
+    displayName: Nombre para mostrar

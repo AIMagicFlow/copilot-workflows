@@ -29,3 +29,14 @@ provision:
   notUnique: must enforce unique values
   failed: The site does not match the expected schema. Fix the items above before importing or running the solution.
   ok: All lists, libraries and columns match the expected schema.
+upgrade:
+  title: "Upgrade notes for version {version}"
+  intro: This release adds the lists and columns below. If you provisioned with PnP, re-run pnp/provision.ps1 from this kit and nothing else is needed. If you created the lists from the CSV files, add them by hand as described here.
+  renameRule: Type the internal name first when you create each column, save it, and only then rename the column to the display name. SharePoint fixes the internal name from the first name you type.
+  newLists: "New lists (create each one from its CSV file in lists/):"
+  col:
+    list: List
+    internalName: Internal name
+    type: Type
+    choices: Choices
+    displayName: Display name

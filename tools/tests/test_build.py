@@ -219,6 +219,31 @@ class SharePointKitTests(unittest.TestCase):
         item_key = next(f for f in fields if f.get("Name") == "field_3")
         self.assertEqual(("TRUE", "TRUE"), (item_key.get("EnforceUniqueValues"), item_key.get("Indexed")))
 
+    def test_multichoice_field_xml(self):
+        xml = build.field_xml({"name": "AlertTags", "type": "MultiChoice",
+                               "choices": ["CompetitorLaunch", "RegulatoryAlert", "NewTechnology"]}, "Tags")
+        el = ET.fromstring(xml)
+        self.assertEqual("MultiChoice", el.get("Type"))
+        self.assertEqual(["CompetitorLaunch", "RegulatoryAlert", "NewTechnology"],
+                         [c.text for c in el.iter("CHOICE")])
+
+    def test_required_and_default(self):
+        el = ET.fromstring(build.field_xml({"name": "Status", "type": "Choice", "choices": ["Draft", "Done"],
+                                            "required": True, "default": "Draft"}, "Status"))
+        self.assertEqual("TRUE", el.get("Required"))
+        self.assertEqual("Draft", el.findtext("Default"))
+
+    def test_upgrade_notes_list_new_fields(self):
+        v = build.Vertical(ROOT, TR)
+        self.assertFalse([n for n in build.render_sharepoint_kit(v, "es") if n.startswith("upgrade-")])
+        lst = v.lists[0]
+        lst["fields"] = lst["fields"] + [{"name": "Stage", "type": "Choice", "choices": ["Open", "Closed"],
+                                          "since": v.version, "display": {"en": "Stage", "es": "Etapa"}}]
+        kit = build.render_sharepoint_kit(v, "es")
+        notes = kit[f"upgrade-{v.version}.es.md"].decode("utf-8")
+        for expected in ("Stage", "Choice", "Etapa", "Open, Closed"):
+            self.assertIn(expected, notes)
+
     def test_seed_rows_follow_sharepoint_quoting(self):
         _, rows = self.parse(self.kit["en"]["lists/Sources.csv"])
         self.assertEqual('"OpenAI News","https://openai.com/news/rss.xml","RSS","1",,', rows[1])
