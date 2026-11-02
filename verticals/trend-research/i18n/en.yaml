@@ -80,6 +80,9 @@ env:
   tr_MaxUploadBytes:
     name: Maximum upload size (bytes)
     description: Uploaded files larger than this are recorded as metadata only and their content is not read.
+  tr_BusinessCaseMaxInputChars:
+    name: Business case maximum input (characters)
+    description: Maximum characters of digest text sent to the AI for one business case, all input digests together. A request over the limit is set to Failed before the AI is called.
   tr_PublishingEnabled:
     name: Publishing Enabled
     description: Reserved publication switch. Not used by the current flows.
@@ -117,6 +120,42 @@ businessCase:
     claimFailed: The business case request could not be claimed for generation. Try again later.
     invalidInputIds: InputPublicationIds must hold 1 to 5 distinct positive whole-number IDs separated by commas.
     invalidDigests: An input publication does not exist, is not a digest, belongs to another product, or has no report URL.
+    digestContent: An input digest file could not be read, is not an HTML or text file, is empty, or the digests together exceed the maximum input size (tr_BusinessCaseMaxInputChars).
+    invalidCase: The generated business case was rejected twice. A required section was empty, a citation did not match an input digest, or costs were not reported as Unknown without financial inputs.
+    recheckFailed: The business case request could not be re-checked before writing the draft. No draft was written.
+    storageFailed: The business case draft or its Publication record could not be written.
+  outputLanguage: English
+  publicationTitle: Business case
+  html:
+    title: Business case
+    draftNotice: Draft for review. Not approved and not for distribution.
+    request: Request
+    requestId: Request ID
+    version: Version
+    product: Product
+    decisionQuestion: Decision question
+    geographies: Geographies
+    timeHorizon: Time horizon
+    alternatives: Alternatives
+    strategicObjectives: Strategic objectives
+    financialInputs: Financial inputs
+    constraints: Constraints
+    inputDigests: Input digests
+    citations: Citations
+    digestCitation: Digest
+    sourceCitation: Original source
+  sections:
+    Decision: Decision
+    Context: Context
+    Alternatives: Alternatives
+    StrategicFit: Strategic fit
+    Evidence: Evidence
+    ExpectedBenefits: Expected benefits
+    CostsResources: Costs and resources
+    Risks: Risks
+    Assumptions: Assumptions
+    Gaps: Gaps
+    RecommendedNextStep: Recommended next step
 
 codes:
   dimension: {Market: Market, Technology: Technology, Regulatory: Regulatory, Competition: Competition}

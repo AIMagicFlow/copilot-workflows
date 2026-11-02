@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_BusinessCaseMaxInputChars">
+  <defaultvalue>60000</defaultvalue>
+  <description default="{{t:env.tr_BusinessCaseMaxInputChars.description}}">
+    <label description="{{t:env.tr_BusinessCaseMaxInputChars.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_BusinessCaseMaxInputChars.name}}">
+    <label description="{{t:env.tr_BusinessCaseMaxInputChars.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.3.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>

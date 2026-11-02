@@ -9,6 +9,15 @@
           "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
         },
         "runtimeSource": "embedded"
+      },
+      "shared_agentnode": {
+        "api": {
+          "name": "shared_agentnode"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedagentnode_673fe64a"
+        },
+        "runtimeSource": "embedded"
       }
     },
     "definition": {
@@ -56,6 +65,13 @@
           "type": "String",
           "metadata": {
             "schemaName": "tr_ApprovedAudiences"
+          }
+        },
+        "Business case maximum input (characters) (tr_BusinessCaseMaxInputChars)": {
+          "defaultValue": 60000,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_BusinessCaseMaxInputChars"
           }
         }
       },
@@ -105,6 +121,91 @@
             ]
           }
         },
+        "Initialize_Digests": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Digests",
+                "type": "array",
+                "value": []
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_InputIdsValid": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_DigestBundle": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DigestBundle",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_Digests": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_DigestMap": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DigestMap",
+                "type": "object",
+                "value": {}
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_DigestBundle": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_CaseValid": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CaseValid",
+                "type": "boolean",
+                "value": false
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_DigestMap": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_CaseAttempts": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CaseAttempts",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_CaseValid": [
+              "Succeeded"
+            ]
+          }
+        },
         "Get_Request": {
           "type": "OpenApiConnection",
           "inputs": {
@@ -120,7 +221,7 @@
             }
           },
           "runAfter": {
-            "Initialize_InputIdsValid": [
+            "Initialize_CaseAttempts": [
               "Succeeded"
             ]
           },
@@ -530,22 +631,36 @@
                           "metadata": {
                             "description": "If digest invalid"
                           }
+                        },
+                        "Append_Digest": {
+                          "type": "AppendToArrayVariable",
+                          "inputs": {
+                            "name": "Digests",
+                            "value": {
+                              "id": "@{items('Validate_Each_Digest')}",
+                              "title": "@{body('Get_Digest')?['Title']}",
+                              "period": "@{body('Get_Digest')?['Created']}",
+                              "path": "@{trim(body('Get_Digest')?['field_3'])}",
+                              "url": "@{parameters('Site URL (tr_SiteURL)')}@{trim(body('Get_Digest')?['field_3'])}"
+                            }
+                          },
+                          "runAfter": {
+                            "If_Digest_Invalid": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Record the validated digest (ID, title, period, path, absolute URL)"
+                          }
                         }
                       },
                       "metadata": {
                         "description": "Validate each input digest"
-                      }
-                    },
-                    "Generate_Case": {
-                      "type": "Compose",
-                      "inputs": "@body('Parse_Input_Ids')",
-                      "runAfter": {
-                        "Validate_Each_Digest": [
-                          "Succeeded"
-                        ]
                       },
-                      "metadata": {
-                        "description": "Stub: Task B5 replaces this with the agent node"
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
                       }
                     },
                     "Set_Failed_Digests": {
@@ -594,6 +709,748 @@
                           "Failed",
                           "TimedOut"
                         ]
+                      }
+                    },
+                    "Loop_Digest_Contents": {
+                      "type": "Foreach",
+                      "foreach": "@variables('Digests')",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Check_Digest_File": {
+                          "type": "If",
+                          "expression": {
+                            "or": [
+                              {
+                                "not": {
+                                  "startsWith": [
+                                    "@toLower(items('Loop_Digest_Contents')?['path'])",
+                                    "/publishedreports/"
+                                  ]
+                                }
+                              },
+                              {
+                                "contains": [
+                                  "@items('Loop_Digest_Contents')?['path']",
+                                  ".."
+                                ]
+                              },
+                              {
+                                "not": {
+                                  "or": [
+                                    {
+                                      "endsWith": [
+                                        "@toLower(items('Loop_Digest_Contents')?['path'])",
+                                        ".html"
+                                      ]
+                                    },
+                                    {
+                                      "endsWith": [
+                                        "@toLower(items('Loop_Digest_Contents')?['path'])",
+                                        ".htm"
+                                      ]
+                                    },
+                                    {
+                                      "endsWith": [
+                                        "@toLower(items('Loop_Digest_Contents')?['path'])",
+                                        ".txt"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Reject_Digest_File": {
+                              "type": "Compose",
+                              "inputs": "@int('digest-file-not-supported')",
+                              "metadata": {
+                                "description": "Fail this iteration on purpose: not an HTML or text file in PublishedReports"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "metadata": {
+                            "description": "If the digest file is not a published HTML or text file"
+                          }
+                        },
+                        "Get_Digest_Contents": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "inferContentType": false,
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "path": "@items('Loop_Digest_Contents')?['path']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetFileContentByPath"
+                            }
+                          },
+                          "runAfter": {
+                            "Check_Digest_File": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Get digest file by its ReportUrl path"
+                          }
+                        },
+                        "Compose_Digest_Text": {
+                          "type": "Compose",
+                          "inputs": "@base64ToString(body('Get_Digest_Contents')?['$content'])",
+                          "runAfter": {
+                            "Get_Digest_Contents": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Digest text"
+                          }
+                        },
+                        "If_Digest_Content_Invalid": {
+                          "type": "If",
+                          "expression": {
+                            "or": [
+                              {
+                                "greater": [
+                                  "@add(length(variables('DigestBundle')), length(outputs('Compose_Digest_Text')))",
+                                  "@parameters('Business case maximum input (characters) (tr_BusinessCaseMaxInputChars)')"
+                                ]
+                              },
+                              {
+                                "empty": [
+                                  "@trim(outputs('Compose_Digest_Text'))"
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Reject_Digest_Content": {
+                              "type": "Compose",
+                              "inputs": "@int('digest-content-not-usable')",
+                              "metadata": {
+                                "description": "Fail this iteration on purpose: empty, or the bundle would exceed the input budget"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {
+                            "Compose_Digest_Text": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "If the digest is empty or over the input budget"
+                          }
+                        },
+                        "Append_Digest_Bundle": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestBundle",
+                            "value": "[DIGEST @{items('Loop_Digest_Contents')?['id']}]\nTitle: @{replace(replace(replace(string(items('Loop_Digest_Contents')?['title']), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\nPeriod: @{items('Loop_Digest_Contents')?['period']}\nURL: @{items('Loop_Digest_Contents')?['url']}\nText:\n@{replace(replace(replace(outputs('Compose_Digest_Text'), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\n[END DIGEST @{items('Loop_Digest_Contents')?['id']}]\n\n"
+                          },
+                          "runAfter": {
+                            "If_Digest_Content_Invalid": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Append the labeled digest block"
+                          }
+                        },
+                        "Compose_Digest_Map": {
+                          "type": "Compose",
+                          "inputs": "@setProperty(variables('DigestMap'), items('Loop_Digest_Contents')?['id'], addProperty(addProperty(json('{}'), 'url', items('Loop_Digest_Contents')?['url']), 'text', outputs('Compose_Digest_Text')))",
+                          "runAfter": {
+                            "Append_Digest_Bundle": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Digest ID -> URL and text, for citation checks"
+                          }
+                        },
+                        "Set_DigestMap": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "DigestMap",
+                            "value": "@outputs('Compose_Digest_Map')"
+                          },
+                          "runAfter": {
+                            "Compose_Digest_Map": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Set DigestMap"
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Validate_Each_Digest": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Get digest contents"
+                      }
+                    },
+                    "Set_Failed_Contents": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "parameters/method": "POST",
+                          "parameters/uri": "_api/web/lists/GetByTitle('@{parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')}')/items(@{body('Get_Request')?['ID']})",
+                          "parameters/headers": {
+                            "Accept": "application/json;odata=nometadata",
+                            "Content-Type": "application/json;odata=nometadata",
+                            "IF-MATCH": "*",
+                            "X-HTTP-Method": "MERGE"
+                          },
+                          "parameters/body": "{\"Status\": \"Failed\", \"LastError\": \"{{t:businessCase.errors.digestContent}}\"}"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "HttpRequest"
+                        }
+                      },
+                      "runAfter": {
+                        "Loop_Digest_Contents": [
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Set request Failed with a safe error (owning run, IF-MATCH *)"
+                      }
+                    },
+                    "Terminate_Invalid_Content": {
+                      "type": "Terminate",
+                      "inputs": {
+                        "runStatus": "Failed",
+                        "runError": {
+                          "code": "InvalidDigestContent",
+                          "message": "{{t:businessCase.errors.digestContent}}"
+                        }
+                      },
+                      "runAfter": {
+                        "Set_Failed_Contents": [
+                          "Succeeded",
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      }
+                    },
+                    "Build_Case_Prompt": {
+                      "type": "Compose",
+                      "inputs": "{{prompt:business-case}}",
+                      "runAfter": {
+                        "Loop_Digest_Contents": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Build case prompt"
+                      }
+                    },
+                    "Generate_Until_Valid": {
+                      "type": "Until",
+                      "expression": "@or(equals(variables('CaseValid'), true), greaterOrEquals(variables('CaseAttempts'), 2))",
+                      "limit": {
+                        "count": 2,
+                        "timeout": "PT1H"
+                      },
+                      "actions": {
+                        "Generate_Case": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "body/definition": {
+                                "components": [],
+                                "environmentVariables": [],
+                                "flows": [],
+                                "dataverseTableSearchs": [],
+                                "dataverseTableSearchGlossaryConfigurations": [],
+                                "dataverseTableSearchEntityConfigurations": [],
+                                "dataverseTableSearchEntityColumnSynonyms": [],
+                                "connectionReferences": [],
+                                "connectorDefinitions": [],
+                                "aIModelDefinitions": [],
+                                "aIPluginOperations": [],
+                                "connectedAgentDefinitions": [],
+                                "componentCollections": [],
+                                "connectedBots": [],
+                                "diagnostics": [],
+                                "entity": {
+                                  "authorizedSecurityGroupIds": [],
+                                  "supportedLanguages": [],
+                                  "diagnostics": [],
+                                  "schemaName": "workflow_agentnode",
+                                  "language": 1033,
+                                  "accessControlPolicy": "Any",
+                                  "authenticationMode": "Integrated",
+                                  "authenticationTrigger": "Always",
+                                  "synchronizationStatus": {
+                                    "graphDriveItems": [],
+                                    "diagnostics": [],
+                                    "lastPublishedDetails": {
+                                      "diagnosticDetails": [],
+                                      "diagnostics": [],
+                                      "authenticationMode": "Integrated",
+                                      "$kind": "SuccessfulPublishResultDetails"
+                                    },
+                                    "$kind": "BotSynchronizationDetails"
+                                  },
+                                  "configuration": {
+                                    "categories": [],
+                                    "channels": [],
+                                    "settings": {},
+                                    "memoryParameters": [],
+                                    "diagnostics": [],
+                                    "recognizer": {
+                                      "diagnostics": [],
+                                      "$kind": "CLICopilotRecognizer"
+                                    },
+                                    "agentSettings": {
+                                      "conversationStarters": [],
+                                      "diagnostics": [],
+                                      "model": {
+                                        "diagnostics": [],
+                                        "series": "GPT5Chat",
+                                        "$kind": "ModelConfig"
+                                      },
+                                      "instructions": {
+                                        "segments": [],
+                                        "diagnostics": [],
+                                        "$kind": "Instructions"
+                                      },
+                                      "output": {
+                                        "diagnostics": [],
+                                        "schema": "{\"type\":\"object\",\"properties\":{\"Decision\":{\"type\":\"string\"},\"Context\":{\"type\":\"string\"},\"Alternatives\":{\"type\":\"string\"},\"StrategicFit\":{\"type\":\"string\"},\"Evidence\":{\"type\":\"string\"},\"ExpectedBenefits\":{\"type\":\"string\"},\"CostsResources\":{\"type\":\"string\"},\"Risks\":{\"type\":\"string\"},\"Assumptions\":{\"type\":\"string\"},\"Gaps\":{\"type\":\"string\"},\"RecommendedNextStep\":{\"type\":\"string\"},\"Citations\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"},\"url\":{\"type\":\"string\"}},\"required\":[\"id\",\"url\"]}}},\"required\":[\"Decision\",\"Context\",\"Alternatives\",\"StrategicFit\",\"Evidence\",\"ExpectedBenefits\",\"CostsResources\",\"Risks\",\"Assumptions\",\"Gaps\",\"RecommendedNextStep\",\"Citations\"]}",
+                                        "$kind": "StructuredAgentOutput"
+                                      },
+                                      "$kind": "AgentSettings"
+                                    },
+                                    "$kind": "BotConfiguration"
+                                  },
+                                  "$kind": "BotEntity"
+                                },
+                                "$kind": "BotDefinition"
+                              },
+                              "body/message": "@outputs('Build_Case_Prompt')"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_agentnode",
+                              "connectionName": "shared_agentnode",
+                              "operationId": "InvokeDefinition"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Generate business case"
+                          }
+                        },
+                        "Validate_Case": {
+                          "type": "Scope",
+                          "actions": {
+                            "Filter_Invalid_Citations": {
+                              "type": "Query",
+                              "inputs": {
+                                "from": "@coalesce(body('Generate_Case')?['structuredOutput/Citations'], json('[]'))",
+                                "where": "@not(and(contains(body('Parse_Input_Ids'), string(item()?['id'])), startsWith(toLower(string(coalesce(item()?['url'], ''))), 'https://'), or(equals(string(coalesce(item()?['url'], '')), string(coalesce(variables('DigestMap')?[string(item()?['id'])]?['url'], ''))), contains(string(coalesce(variables('DigestMap')?[string(item()?['id'])]?['text'], '')), string(coalesce(item()?['url'], ''))))))"
+                              },
+                              "metadata": {
+                                "description": "Citations whose id is not an input digest, or whose url is not https and not found in that digest"
+                              }
+                            },
+                            "Set_CaseValid": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "CaseValid",
+                                "value": "@and(not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Decision'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Context'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Alternatives'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/StrategicFit'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Evidence'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/ExpectedBenefits'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/CostsResources'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Risks'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Assumptions'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/Gaps'], ''))))), not(empty(trim(string(coalesce(body('Generate_Case')?['structuredOutput/RecommendedNextStep'], ''))))), greater(length(coalesce(body('Generate_Case')?['structuredOutput/Citations'], json('[]'))), 0), empty(body('Filter_Invalid_Citations')), or(not(empty(trim(coalesce(body('Get_Request')?['FinancialInputs'], '')))), contains(string(coalesce(body('Generate_Case')?['structuredOutput/CostsResources'], '')), 'Unknown')))"
+                              },
+                              "runAfter": {
+                                "Filter_Invalid_Citations": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "description": "Sections non-empty, citations valid, Unknown costs without financial inputs"
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Generate_Case": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Validate case"
+                          }
+                        },
+                        "Count_Case_Attempt": {
+                          "type": "IncrementVariable",
+                          "inputs": {
+                            "name": "CaseAttempts",
+                            "value": 1
+                          },
+                          "runAfter": {
+                            "Validate_Case": [
+                              "Succeeded",
+                              "Failed",
+                              "Skipped",
+                              "TimedOut"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Count the attempt whatever its outcome, so the retry runs"
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Build_Case_Prompt": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Generate and validate, one retry"
+                      }
+                    },
+                    "If_Case_Valid": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@variables('CaseValid')",
+                              true
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Escape_Html": {
+                          "type": "Compose",
+                          "inputs": {
+                            "Decision": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Decision'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Context": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Context'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Alternatives": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Alternatives'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "StrategicFit": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/StrategicFit'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Evidence": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Evidence'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "ExpectedBenefits": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/ExpectedBenefits'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "CostsResources": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/CostsResources'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Risks": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Risks'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Assumptions": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Assumptions'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Gaps": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/Gaps'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RecommendedNextStep": "@replace(replace(replace(replace(string(coalesce(body('Generate_Case')?['structuredOutput/RecommendedNextStep'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestTitle": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Title'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestProduct": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Product'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestDecisionQuestion": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['DecisionQuestion'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestGeographies": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Geographies'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestTimeHorizon": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['TimeHorizon'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestAlternatives": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Alternatives'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestStrategicObjectives": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['StrategicObjectives'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestConstraints": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Constraints'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestFinancialInputs": "@replace(replace(replace(replace(string(coalesce(if(empty(trim(coalesce(body('Get_Request')?['FinancialInputs'], ''))), 'Unknown', body('Get_Request')?['FinancialInputs']), '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "RequestId": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['ID'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "Version": "@replace(replace(replace(replace(string(coalesce(body('Get_Request')?['Version'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')",
+                            "InputIds": "@replace(replace(replace(replace(string(coalesce(join(body('Parse_Input_Ids'), ', '), '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')"
+                          },
+                          "metadata": {
+                            "description": "Escape every model and user text (& < > \" in that order)"
+                          }
+                        },
+                        "Escape_Citations": {
+                          "type": "Select",
+                          "inputs": {
+                            "from": "@coalesce(body('Generate_Case')?['structuredOutput/Citations'], json('[]'))",
+                            "select": "<li>[@{replace(replace(replace(replace(string(coalesce(item()?['id'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}] @{if(equals(string(coalesce(item()?['url'], '')), string(coalesce(variables('DigestMap')?[string(item()?['id'])]?['url'], ''))), '{{t:businessCase.html.digestCitation}}', '{{t:businessCase.html.sourceCitation}}')}: <a href=\"@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}\">@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}</a></li>"
+                          },
+                          "runAfter": {
+                            "Escape_Html": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Validated citations as escaped list items"
+                          }
+                        },
+                        "Render_Case_Html": {
+                          "type": "Compose",
+                          "inputs": "<!DOCTYPE html>\n<html lang=\"{{locale}}\">\n<head>\n<meta charset=\"utf-8\">\n<title>{{t:businessCase.html.title}}: @{outputs('Escape_Html')?['RequestTitle']}</title>\n<style>body{font-family:Segoe UI,Arial,sans-serif;max-width:960px;margin:2em auto;line-height:1.5} .notice{background:#fff4ce;padding:.5em 1em} .text{white-space:pre-wrap} th{text-align:left;vertical-align:top;padding-right:1em}</style>\n</head>\n<body>\n<h1>{{t:businessCase.html.title}}: @{outputs('Escape_Html')?['RequestTitle']}</h1>\n<p class=\"notice\"><strong>{{t:businessCase.html.draftNotice}}</strong></p>\n<h2>{{t:businessCase.html.request}}</h2>\n<table>\n<tr><th>{{t:businessCase.html.requestId}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestId']}</td></tr>\n<tr><th>{{t:businessCase.html.version}}</th><td class=\"text\">@{outputs('Escape_Html')?['Version']}</td></tr>\n<tr><th>{{t:businessCase.html.product}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestProduct']}</td></tr>\n<tr><th>{{t:businessCase.html.decisionQuestion}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestDecisionQuestion']}</td></tr>\n<tr><th>{{t:businessCase.html.geographies}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestGeographies']}</td></tr>\n<tr><th>{{t:businessCase.html.timeHorizon}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestTimeHorizon']}</td></tr>\n<tr><th>{{t:businessCase.html.alternatives}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestAlternatives']}</td></tr>\n<tr><th>{{t:businessCase.html.strategicObjectives}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestStrategicObjectives']}</td></tr>\n<tr><th>{{t:businessCase.html.financialInputs}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestFinancialInputs']}</td></tr>\n<tr><th>{{t:businessCase.html.constraints}}</th><td class=\"text\">@{outputs('Escape_Html')?['RequestConstraints']}</td></tr>\n<tr><th>{{t:businessCase.html.inputDigests}}</th><td class=\"text\">@{outputs('Escape_Html')?['InputIds']}</td></tr>\n</table>\n<h2>{{t:businessCase.sections.Decision}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Decision']}</div>\n<h2>{{t:businessCase.sections.Context}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Context']}</div>\n<h2>{{t:businessCase.sections.Alternatives}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Alternatives']}</div>\n<h2>{{t:businessCase.sections.StrategicFit}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['StrategicFit']}</div>\n<h2>{{t:businessCase.sections.Evidence}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Evidence']}</div>\n<h2>{{t:businessCase.sections.ExpectedBenefits}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['ExpectedBenefits']}</div>\n<h2>{{t:businessCase.sections.CostsResources}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['CostsResources']}</div>\n<h2>{{t:businessCase.sections.Risks}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Risks']}</div>\n<h2>{{t:businessCase.sections.Assumptions}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Assumptions']}</div>\n<h2>{{t:businessCase.sections.Gaps}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['Gaps']}</div>\n<h2>{{t:businessCase.sections.RecommendedNextStep}}</h2>\n<div class=\"text\">@{outputs('Escape_Html')?['RecommendedNextStep']}</div>\n<h2>{{t:businessCase.html.citations}}</h2>\n<ul>\n@{join(body('Escape_Citations'), '')}\n</ul>\n</body>\n</html>\n",
+                          "runAfter": {
+                            "Escape_Citations": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Render case HTML from escaped values only"
+                          }
+                        },
+                        "Recheck_Claim": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "parameters/method": "POST",
+                              "parameters/uri": "_api/web/lists/GetByTitle('@{parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')}')/items(@{body('Get_Request')?['ID']})",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=nometadata",
+                                "Content-Type": "application/json;odata=nometadata",
+                                "IF-MATCH": "@{coalesce(outputs('Claim_Request')?['headers']?['ETag'], '\"no-claim-etag\"')}",
+                                "X-HTTP-Method": "MERGE"
+                              },
+                              "parameters/body": "{\"Status\": \"Generating\"}"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            },
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runAfter": {
+                            "Render_Case_Html": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Re-check the claim: still Generating and unchanged since this run claimed it (claim ETag)"
+                          }
+                        },
+                        "If_Recheck_Conflict": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@outputs('Recheck_Claim')?['statusCode']",
+                                  412
+                                ]
+                              },
+                              {
+                                "not": {
+                                  "empty": [
+                                    "@coalesce(outputs('Claim_Request')?['headers']?['ETag'], '')"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Terminate_Recheck_Conflict": {
+                              "type": "Terminate",
+                              "inputs": {
+                                "runStatus": "Cancelled"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Terminate_Recheck_Failed": {
+                                "type": "Terminate",
+                                "inputs": {
+                                  "runStatus": "Failed",
+                                  "runError": {
+                                    "code": "RecheckFailed",
+                                    "message": "{{t:businessCase.errors.recheckFailed}}"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Recheck_Claim": [
+                              "Failed",
+                              "TimedOut"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "If the request changed since the claim (412): another owner, write nothing"
+                          }
+                        },
+                        "Store_Case": {
+                          "type": "Scope",
+                          "actions": {
+                            "Create_Draft_File": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                  "folderPath": "/ResearchDrafts",
+                                  "name": "businesscase-@{body('Get_Request')?['ID']}-v@{body('Get_Request')?['Version']}.html",
+                                  "body": "@outputs('Render_Case_Html')"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "CreateFile"
+                                }
+                              },
+                              "metadata": {
+                                "description": "Create draft file (deterministic name; a retry overwrites it)"
+                              }
+                            },
+                            "Create_Case_Publication": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                  "table": "@parameters('Publications list (tr_PublicationsList)')",
+                                  "item/Title": "{{t:businessCase.publicationTitle}} - @{body('Get_Request')?['Title']} - v@{body('Get_Request')?['Version']}",
+                                  "item/field_1": "@outputs('Build_Publication_Key')",
+                                  "item/field_3": "@outputs('Create_Draft_File')?['body/Path']",
+                                  "item/field_4": "@trim(coalesce(body('Get_Request')?['AudienceKey'], ''))",
+                                  "item/field_5": "Pending",
+                                  "item/Product": "@trim(coalesce(body('Get_Request')?['Product'], ''))",
+                                  "item/PublicationType": "BusinessCase",
+                                  "item/BusinessCaseRequestId": "@body('Get_Request')?['ID']",
+                                  "item/InputPublicationIds": "@{join(body('Parse_Input_Ids'), ',')}",
+                                  "item/Version": "@body('Get_Request')?['Version']",
+                                  "item/ReviewStatus": "Draft"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "PostItem"
+                                }
+                              },
+                              "runAfter": {
+                                "Create_Draft_File": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "description": "Create case Publication (unique PublicationKey)"
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Recheck_Claim": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Store draft and Publication"
+                          }
+                        },
+                        "Set_Failed_Storage": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "parameters/method": "POST",
+                              "parameters/uri": "_api/web/lists/GetByTitle('@{parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')}')/items(@{body('Get_Request')?['ID']})",
+                              "parameters/headers": {
+                                "Accept": "application/json;odata=nometadata",
+                                "Content-Type": "application/json;odata=nometadata",
+                                "IF-MATCH": "*",
+                                "X-HTTP-Method": "MERGE"
+                              },
+                              "parameters/body": "{\"Status\": \"Failed\", \"LastError\": \"{{t:businessCase.errors.storageFailed}}\"}"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "HttpRequest"
+                            }
+                          },
+                          "runAfter": {
+                            "Store_Case": [
+                              "Failed",
+                              "TimedOut"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Set request Failed with a safe error (owning run, IF-MATCH *)"
+                          }
+                        },
+                        "Terminate_Storage_Failed": {
+                          "type": "Terminate",
+                          "inputs": {
+                            "runStatus": "Failed",
+                            "runError": {
+                              "code": "StorageFailed",
+                              "message": "{{t:businessCase.errors.storageFailed}}"
+                            }
+                          },
+                          "runAfter": {
+                            "Set_Failed_Storage": [
+                              "Succeeded",
+                              "Failed",
+                              "TimedOut"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_Failed_Case": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "parameters": {
+                                "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                "parameters/method": "POST",
+                                "parameters/uri": "_api/web/lists/GetByTitle('@{parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')}')/items(@{body('Get_Request')?['ID']})",
+                                "parameters/headers": {
+                                  "Accept": "application/json;odata=nometadata",
+                                  "Content-Type": "application/json;odata=nometadata",
+                                  "IF-MATCH": "*",
+                                  "X-HTTP-Method": "MERGE"
+                                },
+                                "parameters/body": "{\"Status\": \"Failed\", \"LastError\": \"{{t:businessCase.errors.invalidCase}}\"}"
+                              },
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "HttpRequest"
+                              }
+                            },
+                            "metadata": {
+                              "description": "Set request Failed with a safe error (owning run, IF-MATCH *)"
+                            }
+                          },
+                          "Terminate_Invalid_Case": {
+                            "type": "Terminate",
+                            "inputs": {
+                              "runStatus": "Failed",
+                              "runError": {
+                                "code": "InvalidCase",
+                                "message": "{{t:businessCase.errors.invalidCase}}"
+                              }
+                            },
+                            "runAfter": {
+                              "Set_Failed_Case": [
+                                "Succeeded",
+                                "Failed",
+                                "TimedOut"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Generate_Until_Valid": [
+                          "Succeeded",
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "If the generated case is valid"
                       }
                     }
                   },

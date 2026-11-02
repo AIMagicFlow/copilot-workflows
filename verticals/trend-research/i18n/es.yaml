@@ -81,6 +81,9 @@ env:
   tr_MaxUploadBytes:
     name: Tamaño máximo de carga (bytes)
     description: Los archivos cargados que superen este tamaño se registran solo con metadatos y no se lee su contenido.
+  tr_BusinessCaseMaxInputChars:
+    name: Entrada máxima del caso de negocio (caracteres)
+    description: Máximo de caracteres de texto de resúmenes que se envían a la IA para un caso de negocio, sumando todos los resúmenes de entrada. Una solicitud que supere el límite pasa a Failed antes de llamar a la IA.
   tr_PublishingEnabled:
     name: Publicación habilitada
     description: Interruptor de publicación reservado. No lo usan los flujos actuales.
@@ -118,6 +121,42 @@ businessCase:
     claimFailed: No se pudo reservar la solicitud de caso de negocio para su generación. Inténtelo de nuevo más tarde.
     invalidInputIds: InputPublicationIds debe contener de 1 a 5 ID distintos, enteros positivos, separados por comas.
     invalidDigests: Una publicación de entrada no existe, no es un resumen, pertenece a otro producto o no tiene URL del informe.
+    digestContent: No se pudo leer el archivo de un resumen de entrada, no es un archivo HTML o de texto, está vacío, o los resúmenes juntos superan el tamaño máximo de entrada (tr_BusinessCaseMaxInputChars).
+    invalidCase: El caso de negocio generado se rechazó dos veces. Una sección obligatoria estaba vacía, una cita no coincidía con un resumen de entrada, o los costos no se indicaron como Unknown sin datos financieros.
+    recheckFailed: No se pudo volver a comprobar la solicitud de caso de negocio antes de escribir el borrador. No se escribió ningún borrador.
+    storageFailed: No se pudo escribir el borrador del caso de negocio o su registro en Publicaciones.
+  outputLanguage: Spanish (español neutro latinoamericano)
+  publicationTitle: Caso de negocio
+  html:
+    title: Caso de negocio
+    draftNotice: Borrador para revisión. No está aprobado y no debe distribuirse.
+    request: Solicitud
+    requestId: ID de solicitud
+    version: Versión
+    product: Producto
+    decisionQuestion: Pregunta de decisión
+    geographies: Geografías
+    timeHorizon: Horizonte temporal
+    alternatives: Alternativas
+    strategicObjectives: Objetivos estratégicos
+    financialInputs: Datos financieros
+    constraints: Restricciones
+    inputDigests: Resúmenes de entrada
+    citations: Citas
+    digestCitation: Resumen
+    sourceCitation: Fuente original
+  sections:
+    Decision: Decisión
+    Context: Contexto
+    Alternatives: Alternativas
+    StrategicFit: Encaje estratégico
+    Evidence: Evidencia
+    ExpectedBenefits: Beneficios esperados
+    CostsResources: Costos y recursos
+    Risks: Riesgos
+    Assumptions: Supuestos
+    Gaps: Vacíos
+    RecommendedNextStep: Siguiente paso recomendado
 
 codes:
   dimension: {Market: Mercado, Technology: Tecnología, Regulatory: Regulación, Competition: Competencia}

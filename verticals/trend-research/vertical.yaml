@@ -10,3 +10,6 @@ prompts:
   classify-signal:
     file: prompts/classify-signal.md
     version: 3                    # bump when the prompt changes; becomes part of Signals.AnalysisKey
+  business-case:
+    file: prompts/business-case.md
+    version: 1                    # bump when the prompt changes
