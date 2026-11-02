@@ -206,6 +206,26 @@
             ]
           }
         },
+        "Initialize_EvidenceNonce": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "EvidenceNonce",
+                "type": "string",
+                "value": "@{guid()}"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_CaseAttempts": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Per-run fence code for the evidence blocks (a digest cannot know it)"
+          }
+        },
         "Get_Request": {
           "type": "OpenApiConnection",
           "inputs": {
@@ -221,7 +241,7 @@
             }
           },
           "runAfter": {
-            "Initialize_CaseAttempts": [
+            "Initialize_EvidenceNonce": [
               "Succeeded"
             ]
           },
@@ -857,7 +877,7 @@
                           "type": "AppendToStringVariable",
                           "inputs": {
                             "name": "DigestBundle",
-                            "value": "[DIGEST @{items('Loop_Digest_Contents')?['id']}]\nTitle: @{replace(replace(replace(string(items('Loop_Digest_Contents')?['title']), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\nPeriod: @{items('Loop_Digest_Contents')?['period']}\nURL: @{items('Loop_Digest_Contents')?['url']}\nText:\n@{replace(replace(replace(outputs('Compose_Digest_Text'), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\n[END DIGEST @{items('Loop_Digest_Contents')?['id']}]\n\n"
+                            "value": "[DIGEST @{items('Loop_Digest_Contents')?['id']} @{variables('EvidenceNonce')}]\nTitle: @{replace(replace(replace(string(items('Loop_Digest_Contents')?['title']), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\nPeriod: @{items('Loop_Digest_Contents')?['period']}\nURL: @{items('Loop_Digest_Contents')?['url']}\nText:\n@{replace(replace(replace(outputs('Compose_Digest_Text'), '[DIGEST', '(DIGEST'), '[END DIGEST', '(END DIGEST'), 'END OF SOURCE EVIDENCE', 'END-OF-SOURCE-EVIDENCE')}\n[END DIGEST @{items('Loop_Digest_Contents')?['id']} @{variables('EvidenceNonce')}]\n\n"
                           },
                           "runAfter": {
                             "If_Digest_Content_Invalid": [
@@ -1140,6 +1160,16 @@
                         ]
                       },
                       "actions": {
+                        "Citation_Labels": {
+                          "type": "Compose",
+                          "inputs": {
+                            "digest": "{{t:businessCase.html.digestCitation}}",
+                            "source": "{{t:businessCase.html.sourceCitation}}"
+                          },
+                          "metadata": {
+                            "description": "Citation labels as plain values, never inside expression text"
+                          }
+                        },
                         "Escape_Html": {
                           "type": "Compose",
                           "inputs": {
@@ -1169,13 +1199,18 @@
                           },
                           "metadata": {
                             "description": "Escape every model and user text (& < > \" in that order)"
+                          },
+                          "runAfter": {
+                            "Citation_Labels": [
+                              "Succeeded"
+                            ]
                           }
                         },
                         "Escape_Citations": {
                           "type": "Select",
                           "inputs": {
                             "from": "@coalesce(body('Generate_Case')?['structuredOutput/Citations'], json('[]'))",
-                            "select": "<li>[@{replace(replace(replace(replace(string(coalesce(item()?['id'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}] @{if(equals(string(coalesce(item()?['url'], '')), string(coalesce(variables('DigestMap')?[string(item()?['id'])]?['url'], ''))), '{{t:businessCase.html.digestCitation}}', '{{t:businessCase.html.sourceCitation}}')}: <a href=\"@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}\">@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}</a></li>"
+                            "select": "<li>[@{replace(replace(replace(replace(string(coalesce(item()?['id'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}] @{if(equals(string(coalesce(item()?['url'], '')), string(coalesce(variables('DigestMap')?[string(item()?['id'])]?['url'], ''))), outputs('Citation_Labels')?['digest'], outputs('Citation_Labels')?['source'])}: <a href=\"@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}\">@{replace(replace(replace(replace(string(coalesce(item()?['url'], '')), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '\"', '&quot;')}</a></li>"
                           },
                           "runAfter": {
                             "Escape_Html": [
@@ -1208,7 +1243,7 @@
                               "parameters/headers": {
                                 "Accept": "application/json;odata=nometadata",
                                 "Content-Type": "application/json;odata=nometadata",
-                                "IF-MATCH": "@{coalesce(outputs('Claim_Request')?['headers']?['ETag'], '\"no-claim-etag\"')}",
+                                "IF-MATCH": "@{if(empty(outputs('Claim_Request')?['headers']?['ETag']), '\"no-claim-etag\"', outputs('Claim_Request')?['headers']?['ETag'])}",
                                 "X-HTTP-Method": "MERGE"
                               },
                               "parameters/body": "{\"Status\": \"Generating\"}"
@@ -1244,7 +1279,7 @@
                               {
                                 "not": {
                                   "empty": [
-                                    "@coalesce(outputs('Claim_Request')?['headers']?['ETag'], '')"
+                                    "@outputs('Claim_Request')?['headers']?['ETag']"
                                   ]
                                 }
                               }
