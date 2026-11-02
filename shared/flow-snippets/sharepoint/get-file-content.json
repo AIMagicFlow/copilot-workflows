@@ -1,0 +1,30 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "GetFileContent",
+  "source": "tenant-export",
+  "verified": true,
+  "notes": [
+    "The export used inferContentType: true, which can return text files as a plain string. This snippet uses false.",
+    "With false the body is always {\"$content-type\", \"$content\"}, so base64ToString(body('<action>')?['$content']) is safe.",
+    "The 1.2.0.0 acceptance run confirms the choice.",
+    "id comes from the trigger's {Identifier}."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "inferContentType": false,
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "id": "@triggerOutputs()?['body/{Identifier}']"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "GetFileContent"
+      }
+    },
+    "metadata": {
+      "description": "Get file content"
+    }
+  }
+}

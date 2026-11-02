@@ -1,0 +1,34 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "GetOnUpdatedFileItems",
+  "source": "tenant-export",
+  "verified": true,
+  "notes": [
+    "Fires for files created or modified in a library (properties only, no content).",
+    "Replace table with the library env var parameter, for example @parameters('Source Uploads library (tr_SourceUploadsLibrary)').",
+    "{Identifier} feeds the id of GetFileMetadata and GetFileContent. ID is the file's list item ID and survives renames.",
+    "Add runtimeConfiguration.concurrency.runs: 1 on the trigger when runs must not overlap.",
+    "Never write to the trigger's own library from the same flow: each write fires the trigger again."
+  ],
+  "trigger": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "table": "<list-or-library-parameter>"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "GetOnUpdatedFileItems"
+      },
+      "authentication": "@parameters('$authentication')"
+    },
+    "recurrence": {
+      "frequency": "Minute",
+      "interval": 5
+    },
+    "splitOn": "@triggerOutputs()?['body/value']",
+    "metadata": {}
+  }
+}

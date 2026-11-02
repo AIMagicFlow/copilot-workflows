@@ -1,6 +1,7 @@
 """Tests for tools/build.py. Run: python3 -m unittest discover -s tools/tests"""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,7 @@ ROOT = build.ROOT
 TR = "trend-research"
 CLASSIFY = "Workflows/TRClassifyItems-F73F937F-667A-8EDC-33BF-30CDDB0276B6.json"
 DIGEST = "Workflows/TRWeeklyDigest-D630FC9C-EA1F-8FBE-B44A-2DFEC38D631C.json"
+COLLECT = "Workflows/TRCollectRSS-6FD33E4C-10A9-A672-DC14-C2B643CAF8AD.json"
 
 
 def flow(files, name):
@@ -158,6 +160,67 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(build.BuildError, "connectionName"):
             build.validate_solution(self.v, self.mutate_flow(CLASSIFY, add))
 
+    def find_action(self, doc, name):
+        return dict(build.flow_actions(doc["properties"]["definition"]["actions"]))[name]
+
+    def test_trigger_with_literal_site_fails(self):
+        def add(doc):
+            trigger = next(iter(doc["properties"]["definition"]["triggers"].values()))
+            trigger["inputs"] = {"parameters": {"dataset": "https://x"}}
+        with self.assertRaisesRegex(build.BuildError, "trigger"):
+            build.validate_solution(self.v, self.mutate_flow(CLASSIFY, add))
+
+    def test_unknown_library_path_fails(self):
+        def add(doc):
+            self.find_action(doc, "Save_RSS_Evidence")["inputs"]["parameters"]["folderPath"] = "/Nope"
+        with self.assertRaisesRegex(build.BuildError, "/Nope"):
+            build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
+
+    def test_trigger_library_written_by_same_flow_fails(self):
+        def add(doc):
+            definition = doc["properties"]["definition"]
+            definition["parameters"]["Fixture library (tr_FixtureLibrary)"] = {
+                "type": "String", "metadata": {"schemaName": "tr_FixtureLibrary"}}
+            definition["triggers"]["When_a_file_is_created"] = {
+                "type": "OpenApiConnection",
+                "inputs": {"parameters": {"dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                          "table": "@parameters('Fixture library (tr_FixtureLibrary)')"},
+                           "host": {"operationId": "GetOnUpdatedFileItems"}}}
+        files = self.mutate_flow(COLLECT, add)
+        files["environmentvariabledefinitions/tr_FixtureLibrary/environmentvariabledefinition.xml"] = b"<x/>"
+        self.v.env_library_map = lambda: {"tr_FixtureLibrary": "Evidence"}
+        with self.assertRaisesRegex(build.BuildError, "Save_RSS_Evidence writes to /Evidence"):
+            build.validate_solution(self.v, files)
+
+    def test_set_variable_self_reference_fails(self):
+        def add(doc):
+            self.find_action(doc, "Build_ItemKey")["inputs"]["value"] = "@{variables('ItemKey')}x"
+        with self.assertRaisesRegex(build.BuildError, "Build_ItemKey"):
+            build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
+
+    def test_parallel_loop_setting_variable_fails(self):
+        def add(doc):
+            self.find_action(doc, "Apply_to_each").pop("runtimeConfiguration", None)
+        with self.assertRaisesRegex(build.BuildError, "Apply_to_each"):
+            build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
+
+    def test_trailing_newline_fails(self):
+        def add(doc):
+            self.find_action(doc, "Get_Ready_SourceItems")["inputs"]["parameters"]["$filter"] = "field_9 eq 'Ready'\n"
+        with self.assertRaisesRegex(build.BuildError, "line break"):
+            build.validate_solution(self.v, self.mutate_flow(CLASSIFY, add))
+
+    def test_multi_line_values_are_allowed(self):
+        def add(doc):
+            self.find_action(doc, "Build_ItemKey")["inputs"]["value"] = "a\nb\n"
+        build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
+
+    def test_patch_item_fields_are_checked(self):
+        def add(doc):
+            self.find_action(doc, "Update_Source_Checkpoint")["inputs"]["parameters"]["item/field_77"] = "x"
+        with self.assertRaisesRegex(build.BuildError, "field_77"):
+            build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
+
     def test_unresolved_token_fails(self):
         files = dict(self.files)
         files["solution.xml"] = files["solution.xml"].replace(b"</SolutionManifest>", b"{{t:x}}</SolutionManifest>")
@@ -178,6 +241,29 @@ class ValidationTests(unittest.TestCase):
             for key, value in self.v.strings(locale).items():
                 if key.startswith("provision."):
                     self.assertFalse(set(value) & set("'\"$`"), f"{locale}:{key}")
+
+
+class SnippetTests(unittest.TestCase):
+    def test_snippets_are_tenant_free(self):
+        files = sorted((ROOT / "shared" / "flow-snippets").rglob("*.json"))
+        self.assertGreaterEqual(len(files), 9)
+        guid = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+        for path in files:
+            text = path.read_text(encoding="utf-8")
+            doc = json.loads(text)
+            block = doc.get("trigger") or doc["action"]
+            self.assertNotIn("sharepoint.com", text, path.name)
+            self.assertNotIn("nodeId", text, path.name)
+            self.assertNotRegex(str(block["inputs"]["parameters"].get("table", "")), guid, path.name)
+            self.assertNotRegex(block["inputs"]["host"]["connectionName"], r"[0-9a-f]{32}", path.name)
+            self.assertRegex(block["inputs"]["host"]["connectionName"], r"^shared_[a-z]+$", path.name)
+            self.assertIn(doc["source"], ("tenant-export", "coe-starter-kit", "pnp-samples", "connector-docs"))
+            self.assertIsInstance(doc["verified"], bool)
+
+    def test_only_copy_file_is_unverified(self):
+        unverified = sorted(p.name for p in (ROOT / "shared" / "flow-snippets").rglob("*.json")
+                            if not json.loads(p.read_text(encoding="utf-8"))["verified"])
+        self.assertEqual(["copy-file.json"], unverified)
 
 
 class SharePointKitTests(unittest.TestCase):

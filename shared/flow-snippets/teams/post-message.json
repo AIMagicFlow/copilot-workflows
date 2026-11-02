@@ -1,0 +1,30 @@
+{
+  "connector": "shared_teams",
+  "operationId": "PostMessageToConversation",
+  "source": "coe-starter-kit",
+  "verified": true,
+  "notes": [
+    "Posts to a channel as the Flow bot. groupId is the team ID and channelId the channel ID, kept in an env var as teamId|channelId.",
+    "Fall back to PostMessageToSelf when the audience is not configured."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "poster": "Flow bot",
+        "location": "Channel",
+        "body/recipient/groupId": "<team-id-parameter>",
+        "body/recipient/channelId": "<channel-id-parameter>",
+        "body/messageBody": "<message>"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+        "connectionName": "shared_teams",
+        "operationId": "PostMessageToConversation"
+      }
+    },
+    "metadata": {
+      "description": "Post message in a chat or channel"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "CreateFile",
+  "source": "tenant-export",
+  "verified": true,
+  "notes": [
+    "folderPath starts with a library urlName from libraries.yaml.",
+    "Do not press Enter in the name field in the designer: it adds a trailing line break. The validator rejects it.",
+    "Do not write into the library the same flow's file trigger watches."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "folderPath": "/<library-url-name>",
+        "name": "<file-name>",
+        "body": "<file-content>"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "CreateFile"
+      }
+    },
+    "metadata": {
+      "description": "Create file"
+    }
+  }
+}

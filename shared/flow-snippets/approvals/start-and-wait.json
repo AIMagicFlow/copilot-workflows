@@ -1,0 +1,35 @@
+{
+  "connector": "shared_approvals",
+  "operationId": "StartAndWaitForAnApproval",
+  "source": "coe-starter-kit",
+  "verified": true,
+  "notes": [
+    "Basic approval with Approve/Reject options; first to respond finishes it.",
+    "Set limit.timeout on the action (ISO 8601, for example P14D) so an unanswered approval ends.",
+    "Persist the approval ID before waiting if later steps need it."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "approvalType": "Basic",
+        "ApprovalCreationInput/title": "<title>",
+        "ApprovalCreationInput/assignedTo": "<reviewer-email>",
+        "ApprovalCreationInput/details": "<details>",
+        "ApprovalCreationInput/enableNotifications": true,
+        "ApprovalCreationInput/enableReassignment": false
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals",
+        "connectionName": "shared_approvals",
+        "operationId": "StartAndWaitForAnApproval"
+      }
+    },
+    "limit": {
+      "timeout": "P14D"
+    },
+    "metadata": {
+      "description": "Start and wait for an approval"
+    }
+  }
+}

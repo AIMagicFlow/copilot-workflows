@@ -1,0 +1,38 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "GetOnUpdatedItems",
+  "source": "pnp-samples",
+  "verified": true,
+  "notes": [
+    "Fires for items created or modified in a list.",
+    "Use this with a trigger condition instead of 'For a selected item', which only appears in SharePoint's Automate menu for flows in the default environment.",
+    "Replace the condition expression with the one the flow needs. The example fires only for Status 'Submitted'.",
+    "Writes the flow itself makes to the item must not match the condition, or the flow retriggers."
+  ],
+  "trigger": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "table": "<list-or-library-parameter>"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "GetOnUpdatedItems"
+      },
+      "authentication": "@parameters('$authentication')"
+    },
+    "recurrence": {
+      "frequency": "Minute",
+      "interval": 5
+    },
+    "splitOn": "@triggerOutputs()?['body/value']",
+    "conditions": [
+      {
+        "expression": "@equals(triggerOutputs()?['body/Status/Value'], 'Submitted')"
+      }
+    ],
+    "metadata": {}
+  }
+}

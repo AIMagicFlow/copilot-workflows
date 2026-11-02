@@ -1,0 +1,33 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "HttpRequest",
+  "source": "coe-starter-kit",
+  "verified": true,
+  "notes": [
+    "Calls the SharePoint REST API with the connection's identity.",
+    "For a conditional update, send IF-MATCH with the item's @odata.etag and X-HTTP-Method: MERGE. A 412 response means another run changed the item first."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "parameters/method": "POST",
+        "parameters/uri": "_api/web/lists/GetByTitle('<list-title>')/items(<item-id>)",
+        "parameters/headers": {
+          "Accept": "application/json;odata=nometadata",
+          "Content-Type": "application/json;odata=nometadata"
+        },
+        "parameters/body": "<json-body>"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "HttpRequest"
+      }
+    },
+    "metadata": {
+      "description": "Send an HTTP request to SharePoint"
+    }
+  }
+}

@@ -102,6 +102,17 @@ class Vertical:
                 out[el.get("schemaname")] = m.group(1)
         return out
 
+    def env_library_map(self):
+        """Env var schema name -> library urlName, derived from '{{library:X}}' default values."""
+        out = {}
+        for path in (self.dir / "solution" / "environmentvariabledefinitions").glob("*/environmentvariabledefinition.xml"):
+            el = ET.parse(path).getroot()
+            default = el.findtext("defaultvalue") or ""
+            m = re.fullmatch(r"\{\{library:([^{}]+)\}\}", default.strip())
+            if m:
+                out[el.get("schemaname")] = m.group(1)
+        return out
+
     def file_tag(self, locale):
         return f"{self.unique_name}_{self.version.replace('.', '_')}_{locale}"
 
@@ -221,6 +232,85 @@ def flow_actions(actions):
         yield from flow_actions(action.get("default", {}).get("actions", {}))
 
 
+VARIABLE_ACTIONS = {"SetVariable", "AppendToStringVariable", "AppendToArrayVariable", "IncrementVariable",
+                    "DecrementVariable"}
+FILE_WRITE_OPERATIONS = {"CreateFile", "CopyFileAsync"}
+PARAMETER_REF = re.compile(r"@parameters\('[^']*'\)")
+
+
+def flow_strings(node):
+    """Yield every string value in a JSON document."""
+    if isinstance(node, dict):
+        for value in node.values():
+            yield from flow_strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from flow_strings(value)
+    elif isinstance(node, str):
+        yield node
+
+
+def action_parameters(node):
+    inputs = node.get("inputs")
+    return inputs.get("parameters", {}) if isinstance(inputs, dict) else {}
+
+
+def action_operation(node):
+    inputs = node.get("inputs")
+    return inputs.get("host", {}).get("operationId") if isinstance(inputs, dict) else None
+
+
+def lint_flow(name, definition, params, library_for_env, url_names):
+    """Flow rules for designer artifacts and unsafe shapes. Returns a list of error strings."""
+    errors = []
+
+    # Triggers read the site and list from environment variables, never literals.
+    trigger_libraries = []
+    for trigger_name, trigger in definition.get("triggers", {}).items():
+        tp = action_parameters(trigger)
+        for key in ("dataset", "table"):
+            if key in tp and not PARAMETER_REF.fullmatch(str(tp[key])):
+                errors.append(f"{name}: trigger {trigger_name} has a literal {key}; use @parameters(...)")
+        if PARAMETER_REF.fullmatch(str(tp.get("table", ""))):
+            schema = params.get(tp["table"][13:-2], {}).get("metadata", {}).get("schemaName")
+            if schema in library_for_env:
+                trigger_libraries.append((trigger_name, library_for_env[schema]))
+
+    for action_name, action in flow_actions(definition.get("actions", {})):
+        p = action_parameters(action)
+        # A path that starts with '/' must start with a library urlName.
+        for key in ("folderPath", "path", "destinationFolderPath"):
+            value = p.get(key)
+            if isinstance(value, str) and value.startswith("/") and value.split("/")[1] not in url_names:
+                errors.append(f"{name}: {action_name} {key} '{value}' does not start with a library urlName "
+                              f"({', '.join(sorted(url_names))})")
+        # Writing into the library a file trigger watches starts the flow again.
+        operation = action_operation(action)
+        if operation in FILE_WRITE_OPERATIONS:
+            target = p.get("destinationFolderPath" if operation == "CopyFileAsync" else "folderPath")
+            for trigger_name, library in trigger_libraries:
+                if isinstance(target, str) and target.split("/")[1:2] == [library]:
+                    errors.append(f"{name}: {action_name} writes to /{library}, the library trigger "
+                                  f"{trigger_name} watches; every write would start the flow again")
+        if action.get("type") == "SetVariable":
+            own = action.get("inputs", {}).get("name")
+            value = json.dumps(action.get("inputs", {}).get("value"))
+            if own and re.search(r"variables\('%s'\)" % re.escape(own), value):
+                errors.append(f"{name}: {action_name} sets variable '{own}' from itself; use Compose, then Set variable")
+        if action.get("type") == "Foreach":
+            inner = [n for n, a in flow_actions(action.get("actions", {})) if a.get("type") in VARIABLE_ACTIONS]
+            repetitions = action.get("runtimeConfiguration", {}).get("concurrency", {}).get("repetitions")
+            if inner and repetitions != 1:
+                errors.append(f"{name}: loop {action_name} changes variables ({', '.join(inner)}) but does not "
+                              "run sequentially (runtimeConfiguration.concurrency.repetitions: 1)")
+
+    # Exactly one line break, at the end: the designer adds it when Enter is pressed in a field.
+    for text in flow_strings(definition):
+        if text.count("\n") == 1 and text.endswith("\n"):
+            errors.append(f"{name}: value ends in a stray line break (designer artifact): {text.strip()[:60]!r}")
+    return errors
+
+
 FILTER_FIELD = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s+(?:eq|ne|gt|ge|lt|le)\s")
 
 
@@ -241,6 +331,8 @@ def validate_solution(vertical, files):
     conn_refs = {c.get("connectionreferencelogicalname") for c in customizations.iter("connectionreference")}
     env_vars = {n.split("/")[1] for n in files if n.startswith("environmentvariabledefinitions/")}
     list_for_env = vertical.env_list_map()
+    library_for_env = vertical.env_library_map()
+    url_names = {lib["urlName"] for lib in vertical.libraries}
 
     for wf in customizations.iter("Workflow"):
         json_name = wf.findtext("JsonFileName").lstrip("/")
@@ -267,6 +359,7 @@ def validate_solution(vertical, files):
                 errors.append(f"{name}: @parameters('{key}') has no definition.parameters entry")
             elif schema not in env_vars:
                 errors.append(f"{name}: parameter '{key}' points to missing env var '{schema}'")
+        errors.extend(lint_flow(name, definition, params, library_for_env, url_names))
         for action_name, action in flow_actions(definition.get("actions", {})):
             p = action.get("inputs", {}).get("parameters", {})
             m = re.fullmatch(r"@parameters\('[^']*'\)", str(p.get("table", "")))

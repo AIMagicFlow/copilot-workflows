@@ -1,0 +1,27 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "GetFileMetadata",
+  "source": "tenant-export",
+  "verified": true,
+  "notes": [
+    "id comes from the trigger's {Identifier}.",
+    "Output body/Name is the file name, body/Path the server-relative path, body/Size the size in bytes."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "id": "@triggerOutputs()?['body/{Identifier}']"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "GetFileMetadata"
+      }
+    },
+    "metadata": {
+      "description": "Get file metadata"
+    }
+  }
+}
