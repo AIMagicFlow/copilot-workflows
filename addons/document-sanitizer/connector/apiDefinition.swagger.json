@@ -1,0 +1,115 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Document Sanitizer",
+    "description": "Extracts text from a document and redacts sensitive data. Hosted in the customer's Azure subscription; see the quickstart.",
+    "version": "1.0.0"
+  },
+  "host": "your-sanitizer.azurewebsites.net",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "x-functions-key"
+    }
+  },
+  "security": [
+    {"api_key": []}
+  ],
+  "definitions": {
+    "Error": {
+      "type": "object",
+      "properties": {
+        "status": {"type": "string"},
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {"type": "string"},
+            "message": {"type": "string"}
+          }
+        },
+        "correlationId": {"type": "string"}
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/documents/sanitize": {
+      "post": {
+        "operationId": "SanitizeDocument",
+        "summary": "Sanitize a document",
+        "description": "Returns the document as sanitized Markdown or text, with counts of what was redacted. Never returns the matched values.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["fileName", "contentBase64"],
+              "properties": {
+                "fileName": {"type": "string", "description": "Original file name, used only as a hint."},
+                "contentType": {"type": "string", "description": "MIME type, used only as a hint."},
+                "contentBase64": {"type": "string", "description": "The file content, Base64 encoded."},
+                "outputFormat": {"type": "string", "enum": ["markdown", "text"], "default": "markdown"},
+                "profile": {"type": "string", "default": "default-pii"},
+                "terms": {
+                  "type": "array",
+                  "maxItems": 500,
+                  "description": "Literal strings to redact, case-insensitively and on word boundaries.",
+                  "items": {
+                    "type": "object",
+                    "required": ["term"],
+                    "properties": {
+                      "term": {"type": "string", "maxLength": 200},
+                      "replacement": {"type": "string", "maxLength": 50, "default": "[REDACTED_TERM]"}
+                    }
+                  }
+                },
+                "correlationId": {"type": "string", "description": "The flow run name, for diagnostics."}
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanitized content and counts.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {"type": "string"},
+                "outputContentType": {"type": "string"},
+                "sanitizedContentBase64": {"type": "string"},
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "detectedType": {"type": "string"},
+                    "extractor": {"type": "string"},
+                    "pageCount": {"type": "integer"},
+                    "redactionCounts": {"type": "object"},
+                    "warnings": {"type": "array", "items": {"type": "string"}}
+                  }
+                },
+                "correlationId": {"type": "string"}
+              }
+            }
+          },
+          "400": {"description": "Malformed request or invalid Base64.", "schema": {"$ref": "#/definitions/Error"}},
+          "401": {"description": "Function key missing.", "schema": {"$ref": "#/definitions/Error"}},
+          "403": {"description": "Function key invalid.", "schema": {"$ref": "#/definitions/Error"}},
+          "413": {"description": "File or extracted text over the limit.", "schema": {"$ref": "#/definitions/Error"}},
+          "415": {"description": "File type not supported.", "schema": {"$ref": "#/definitions/Error"}},
+          "422": {"description": "Not extractable, or redaction incomplete. Fail closed.", "schema": {"$ref": "#/definitions/Error"}},
+          "429": {"description": "Throttled; honor Retry-After.", "schema": {"$ref": "#/definitions/Error"}},
+          "500": {"description": "Unexpected error.", "schema": {"$ref": "#/definitions/Error"}},
+          "502": {"description": "A dependency failed.", "schema": {"$ref": "#/definitions/Error"}},
+          "503": {"description": "A dependency is unavailable.", "schema": {"$ref": "#/definitions/Error"}},
+          "504": {"description": "A dependency timed out.", "schema": {"$ref": "#/definitions/Error"}}
+        }
+      }
+    }
+  }
+}

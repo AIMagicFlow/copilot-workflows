@@ -14,3 +14,6 @@ verticals/*/settings/*.json
 
 # Raw working material (exports, screenshots) kept outside source
 brainstorm/
+
+# Per-plan execution workspaces (ledger, briefs, review packages)
+.superpowers/

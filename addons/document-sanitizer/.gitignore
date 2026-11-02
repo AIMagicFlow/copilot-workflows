@@ -1,0 +1,6 @@
+# Local settings hold per-developer values; only local.settings.example.json is committed
+local.settings.json
+.python_packages/
+.venv/
+__pycache__/
+*.pyc
