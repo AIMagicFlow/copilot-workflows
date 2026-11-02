@@ -112,6 +112,11 @@
         "Loop_Brief": {
           "type": "Foreach",
           "foreach": "@coalesce(body('Get_Enabled_Briefs')?['value'], json('[]'))",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
           "actions": {
             "Build_WindowStart": {
               "type": "SetVariable",
@@ -186,7 +191,7 @@
                 "parameters": {
                   "dataset": "@parameters('Site URL (tr_SiteURL)')",
                   "table": "@parameters('Publications list (tr_PublicationsList)')",
-                  "$filter": "field_1 eq '@{variables('PublicationKey')}'\n",
+                  "$filter": "field_1 eq '@{variables('PublicationKey')}'",
                   "$top": 1
                 },
                 "host": {
@@ -266,6 +271,11 @@
                     "Loop": {
                       "type": "Foreach",
                       "foreach": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
                       "actions": {
                         "Get_Signal_SourceItem": {
                           "type": "OpenApiConnection",

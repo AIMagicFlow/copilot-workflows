@@ -110,6 +110,11 @@
         "Loop": {
           "type": "Foreach",
           "foreach": "@coalesce(body('Get_Ready_SourceItems')?['value'], json('[]'))",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
           "actions": {
             "Get_Enabled_Briefs": {
               "type": "OpenApiConnection",
@@ -133,6 +138,11 @@
             "Loop_2": {
               "type": "Foreach",
               "foreach": "@coalesce(body('Get_Enabled_Briefs')?['value'], json('[]'))",
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
               "actions": {
                 "Build_AnalysisKey": {
                   "type": "SetVariable",

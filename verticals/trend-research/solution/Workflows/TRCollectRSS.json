@@ -95,6 +95,11 @@
         "Loop": {
           "type": "Foreach",
           "foreach": "@coalesce(body('Get_RSS_Sources')?['value'], json('[]'))",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
           "actions": {
             "List_all_RSS_feed_items": {
               "type": "OpenApiConnection",
@@ -118,12 +123,17 @@
             "Apply_to_each": {
               "type": "Foreach",
               "foreach": "@coalesce(body('List_all_RSS_feed_items'), json('[]'))",
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
               "actions": {
                 "Build_ItemKey": {
                   "type": "SetVariable",
                   "inputs": {
                     "name": "ItemKey",
-                    "value": "@{items('Loop')?['ID']}|@{items('Apply_to_each')?['id']}\n"
+                    "value": "@{items('Loop')?['ID']}|@{items('Apply_to_each')?['id']}"
                   },
                   "metadata": {
                     "description": "Build ItemKey",
