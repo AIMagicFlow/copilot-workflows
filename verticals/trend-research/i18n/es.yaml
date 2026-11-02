@@ -97,3 +97,13 @@ digest:
     evidencia e informes anteriores.
   publicationTitle: Resumen semanal
   teamsMessage: Resumen del Vigilante de Tendencias listo
+  product: Producto
+  dimension: Dimensión
+  question: Pregunta de investigación
+  noFindings: Sin hallazgos para este objetivo en el periodo del informe.
+  alertTags: Etiquetas de alerta
+
+codes:
+  dimension: {Market: Mercado, Technology: Tecnología, Regulatory: Regulación, Competition: Competencia}
+  objective: {Anticipate: Anticipar, MinimizeRisks: Minimizar riesgos, Compare: Comparar, Innovate: Innovar, Cooperate: Cooperar}
+  alertTag: {CompetitorLaunch: Lanzamiento de competidor, RegulatoryAlert: Alerta regulatoria, NewTechnology: Nueva tecnología}

@@ -261,29 +261,101 @@
                       "type": "SetVariable",
                       "inputs": {
                         "name": "DigestHTML",
-                        "value": "<html lang=\"{{locale}}\">\n<head>\n<meta charset=\"utf-8\">\n<title>{{t:digest.title}}</title>\n</head>\n<body>\n<h1>{{t:digest.title}}</h1>\n<h2>{{t:digest.briefHeading}}</h2>\n<p>@{items('Loop_Brief')?['Title']}</p>\n<p>\n<strong>{{t:digest.reportingWindow}}:</strong>\n@{variables('WindowStartDate')} {{t:digest.through}} @{variables('WindowEndDate')}\n</p>\n<h2>{{t:digest.pipelineSummary}}</h2>\n<ul>\n<li>{{t:digest.digestSignalsIncluded}}: @{length(body('Get_Digest_Signals')?['value'])}</li>\n</ul>\n<h2>{{t:digest.topFindings}}</h2>"
+                        "value": "<html lang=\"{{locale}}\">\n<head>\n<meta charset=\"utf-8\">\n<title>{{t:digest.title}}</title>\n</head>\n<body>\n<h1>{{t:digest.title}}</h1>\n<h2>{{t:digest.briefHeading}}</h2>\n<p>@{items('Loop_Brief')?['Title']}</p>\n<p>\n<strong>{{t:digest.product}}:</strong> @{items('Loop_Brief')?['Product']}<br>\n<strong>{{t:digest.dimension}}:</strong> @{if(equals(items('Loop_Brief')?['Dimension']?['Value'], 'Market'), '{{t:codes.dimension.Market}}', if(equals(items('Loop_Brief')?['Dimension']?['Value'], 'Technology'), '{{t:codes.dimension.Technology}}', if(equals(items('Loop_Brief')?['Dimension']?['Value'], 'Regulatory'), '{{t:codes.dimension.Regulatory}}', if(equals(items('Loop_Brief')?['Dimension']?['Value'], 'Competition'), '{{t:codes.dimension.Competition}}', items('Loop_Brief')?['Dimension']?['Value']))))}<br>\n<strong>{{t:digest.question}}:</strong> @{items('Loop_Brief')?['field_1']}<br>\n<strong>{{t:digest.reportingWindow}}:</strong>\n@{variables('WindowStartDate')} {{t:digest.through}} @{variables('WindowEndDate')}\n</p>\n<h2>{{t:digest.pipelineSummary}}</h2>\n<ul>\n<li>{{t:digest.digestSignalsIncluded}}: @{length(body('Get_Digest_Signals')?['value'])}</li>\n</ul>\n<h2>{{t:digest.topFindings}}</h2>"
                       },
                       "metadata": {
                         "description": "Digest HTML",
                         "nodeId": "variable-1762c5d8-ebf4-4f69-937d-73bd03aad3e9"
                       }
                     },
-                    "Loop": {
+                    "Filter_Digest_Anticipate": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                        "where": "@contains(string(coalesce(item()?['Objectives'], json('[]'))), '\"Value\":\"Anticipate\"')"
+                      },
+                      "runAfter": {
+                        "Digest_HTML": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Filter_Digest_MinimizeRisks": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                        "where": "@contains(string(coalesce(item()?['Objectives'], json('[]'))), '\"Value\":\"MinimizeRisks\"')"
+                      },
+                      "runAfter": {
+                        "Filter_Digest_Anticipate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Filter_Digest_Compare": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                        "where": "@contains(string(coalesce(item()?['Objectives'], json('[]'))), '\"Value\":\"Compare\"')"
+                      },
+                      "runAfter": {
+                        "Filter_Digest_MinimizeRisks": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Filter_Digest_Innovate": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                        "where": "@contains(string(coalesce(item()?['Objectives'], json('[]'))), '\"Value\":\"Innovate\"')"
+                      },
+                      "runAfter": {
+                        "Filter_Digest_Compare": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Filter_Digest_Cooperate": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                        "where": "@contains(string(coalesce(item()?['Objectives'], json('[]'))), '\"Value\":\"Cooperate\"')"
+                      },
+                      "runAfter": {
+                        "Filter_Digest_Innovate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Heading_Anticipate": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "\n<h2>{{t:codes.objective.Anticipate}}</h2>@{if(empty(body('Filter_Digest_Anticipate')), '\n<p>{{t:digest.noFindings}}</p>', '')}"
+                      },
+                      "runAfter": {
+                        "Filter_Digest_Cooperate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Loop_Anticipate": {
                       "type": "Foreach",
-                      "foreach": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                      "foreach": "@body('Filter_Digest_Anticipate')",
                       "runtimeConfiguration": {
                         "concurrency": {
                           "repetitions": 1
                         }
                       },
                       "actions": {
-                        "Get_Signal_SourceItem": {
+                        "Get_Signal_SourceItem_Anticipate": {
                           "type": "OpenApiConnection",
                           "inputs": {
                             "parameters": {
                               "dataset": "@parameters('Site URL (tr_SiteURL)')",
                               "table": "@parameters('Source Items list (tr_SourceItemsList)')",
-                              "id": "@items('Loop')?['field_1']"
+                              "id": "@items('Loop_Anticipate')?['field_1']"
                             },
                             "host": {
                               "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -292,33 +364,306 @@
                             }
                           },
                           "metadata": {
-                            "description": "Get Signal SourceItem",
-                            "nodeId": "connector-2f8000e9-c163-43ff-a920-9b4fe131b74b"
+                            "description": "Get Signal SourceItem Anticipate",
+                            "nodeId": "connector-c9f35768-6878-44ca-853e-4963a4d4a5f6"
                           }
                         },
-                        "Append_Signal_HTML": {
+                        "Build_Tags_Anticipate": {
+                          "type": "Compose",
+                          "inputs": "@concat(if(contains(string(coalesce(items('Loop_Anticipate')?['AlertTags'], json('[]'))), '\"Value\":\"CompetitorLaunch\"'), '<span class=\"tag\">{{t:codes.alertTag.CompetitorLaunch}}</span> ', ''), if(contains(string(coalesce(items('Loop_Anticipate')?['AlertTags'], json('[]'))), '\"Value\":\"RegulatoryAlert\"'), '<span class=\"tag\">{{t:codes.alertTag.RegulatoryAlert}}</span> ', ''), if(contains(string(coalesce(items('Loop_Anticipate')?['AlertTags'], json('[]'))), '\"Value\":\"NewTechnology\"'), '<span class=\"tag\">{{t:codes.alertTag.NewTechnology}}</span> ', ''))",
+                          "runAfter": {
+                            "Get_Signal_SourceItem_Anticipate": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Append_Signal_HTML_Anticipate": {
                           "type": "AppendToStringVariable",
                           "inputs": {
                             "name": "DigestHTML",
-                            "value": "<hr>\n<h3>@{outputs('Get_Signal_SourceItem')?['body/Title']}</h3>\n<p>\n<strong>{{t:digest.relevance}}:</strong> @{items('Loop')?['field_7']}/100<br>\n<strong>{{t:digest.impact}}:</strong> @{if(equals(items('Loop')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop')?['field_8'])))}<br>\n<strong>{{t:digest.horizon}}:</strong> @{if(equals(items('Loop')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop')?['field_9'])))}<br>\n<strong>{{t:digest.published}}:</strong> @{outputs('Get_Signal_SourceItem')?['body/PublishedAt']}<br>\n<strong>{{t:digest.evidence}}:</strong> @{outputs('Get_Signal_SourceItem')?['body/field_7']}\n<br>\n<strong>{{t:digest.notes}}:</strong> @{items('Loop')?['field_10']}\n</p>\n<p>@{items('Loop')?['field_6']}</p>\n<p>\n<a href=\"@{outputs('Get_Signal_SourceItem')?['body/field_4']}\">{{t:digest.openSource}}</a>\n</p>"
+                            "value": "@{replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables('SignalTemplate'), '[[TITLE]]', outputs('Get_Signal_SourceItem_Anticipate')?['body/Title']), '[[TAGS]]', if(empty(outputs('Build_Tags_Anticipate')), '', concat('<strong>{{t:digest.alertTags}}:</strong> ', outputs('Build_Tags_Anticipate'), '<br>'))), '[[RELEVANCE]]', string(items('Loop_Anticipate')?['field_7'])), '[[IMPACT]]', if(equals(items('Loop_Anticipate')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop_Anticipate')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop_Anticipate')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop_Anticipate')?['field_8'])))), '[[HORIZON]]', if(equals(items('Loop_Anticipate')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop_Anticipate')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop_Anticipate')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop_Anticipate')?['field_9'])))), '[[PUBLISHED]]', string(outputs('Get_Signal_SourceItem_Anticipate')?['body/PublishedAt'])), '[[EVIDENCE]]', string(outputs('Get_Signal_SourceItem_Anticipate')?['body/field_7'])), '[[NOTES]]', string(items('Loop_Anticipate')?['field_10'])), '[[SUMMARY]]', string(items('Loop_Anticipate')?['field_6'])), '[[URL]]', string(outputs('Get_Signal_SourceItem_Anticipate')?['body/field_4']))}"
                           },
                           "runAfter": {
-                            "Get_Signal_SourceItem": [
+                            "Build_Tags_Anticipate": [
                               "Succeeded"
                             ]
-                          },
-                          "metadata": {
-                            "description": "Append Signal HTML",
-                            "nodeId": "variable-ec311c42-db2f-4cfa-8bf2-19459b511cdc"
                           }
                         }
                       },
-                      "metadata": {
-                        "description": "Loop",
-                        "nodeId": "loop-69447925-9efe-40fb-9062-2b3d614c2e78"
+                      "runAfter": {
+                        "Heading_Anticipate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Heading_MinimizeRisks": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "\n<h2>{{t:codes.objective.MinimizeRisks}}</h2>@{if(empty(body('Filter_Digest_MinimizeRisks')), '\n<p>{{t:digest.noFindings}}</p>', '')}"
                       },
                       "runAfter": {
-                        "Digest_HTML": [
+                        "Loop_Anticipate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Loop_MinimizeRisks": {
+                      "type": "Foreach",
+                      "foreach": "@body('Filter_Digest_MinimizeRisks')",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Get_Signal_SourceItem_MinimizeRisks": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "id": "@items('Loop_MinimizeRisks')?['field_1']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get Signal SourceItem MinimizeRisks",
+                            "nodeId": "connector-a4721ad7-25ef-4692-b1d9-45c4245c6f28"
+                          }
+                        },
+                        "Build_Tags_MinimizeRisks": {
+                          "type": "Compose",
+                          "inputs": "@concat(if(contains(string(coalesce(items('Loop_MinimizeRisks')?['AlertTags'], json('[]'))), '\"Value\":\"CompetitorLaunch\"'), '<span class=\"tag\">{{t:codes.alertTag.CompetitorLaunch}}</span> ', ''), if(contains(string(coalesce(items('Loop_MinimizeRisks')?['AlertTags'], json('[]'))), '\"Value\":\"RegulatoryAlert\"'), '<span class=\"tag\">{{t:codes.alertTag.RegulatoryAlert}}</span> ', ''), if(contains(string(coalesce(items('Loop_MinimizeRisks')?['AlertTags'], json('[]'))), '\"Value\":\"NewTechnology\"'), '<span class=\"tag\">{{t:codes.alertTag.NewTechnology}}</span> ', ''))",
+                          "runAfter": {
+                            "Get_Signal_SourceItem_MinimizeRisks": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Append_Signal_HTML_MinimizeRisks": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestHTML",
+                            "value": "@{replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables('SignalTemplate'), '[[TITLE]]', outputs('Get_Signal_SourceItem_MinimizeRisks')?['body/Title']), '[[TAGS]]', if(empty(outputs('Build_Tags_MinimizeRisks')), '', concat('<strong>{{t:digest.alertTags}}:</strong> ', outputs('Build_Tags_MinimizeRisks'), '<br>'))), '[[RELEVANCE]]', string(items('Loop_MinimizeRisks')?['field_7'])), '[[IMPACT]]', if(equals(items('Loop_MinimizeRisks')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop_MinimizeRisks')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop_MinimizeRisks')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop_MinimizeRisks')?['field_8'])))), '[[HORIZON]]', if(equals(items('Loop_MinimizeRisks')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop_MinimizeRisks')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop_MinimizeRisks')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop_MinimizeRisks')?['field_9'])))), '[[PUBLISHED]]', string(outputs('Get_Signal_SourceItem_MinimizeRisks')?['body/PublishedAt'])), '[[EVIDENCE]]', string(outputs('Get_Signal_SourceItem_MinimizeRisks')?['body/field_7'])), '[[NOTES]]', string(items('Loop_MinimizeRisks')?['field_10'])), '[[SUMMARY]]', string(items('Loop_MinimizeRisks')?['field_6'])), '[[URL]]', string(outputs('Get_Signal_SourceItem_MinimizeRisks')?['body/field_4']))}"
+                          },
+                          "runAfter": {
+                            "Build_Tags_MinimizeRisks": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Heading_MinimizeRisks": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Heading_Compare": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "\n<h2>{{t:codes.objective.Compare}}</h2>@{if(empty(body('Filter_Digest_Compare')), '\n<p>{{t:digest.noFindings}}</p>', '')}"
+                      },
+                      "runAfter": {
+                        "Loop_MinimizeRisks": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Loop_Compare": {
+                      "type": "Foreach",
+                      "foreach": "@body('Filter_Digest_Compare')",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Get_Signal_SourceItem_Compare": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "id": "@items('Loop_Compare')?['field_1']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get Signal SourceItem Compare",
+                            "nodeId": "connector-6f6fa170-6b01-46f2-bf20-675522aca6b9"
+                          }
+                        },
+                        "Build_Tags_Compare": {
+                          "type": "Compose",
+                          "inputs": "@concat(if(contains(string(coalesce(items('Loop_Compare')?['AlertTags'], json('[]'))), '\"Value\":\"CompetitorLaunch\"'), '<span class=\"tag\">{{t:codes.alertTag.CompetitorLaunch}}</span> ', ''), if(contains(string(coalesce(items('Loop_Compare')?['AlertTags'], json('[]'))), '\"Value\":\"RegulatoryAlert\"'), '<span class=\"tag\">{{t:codes.alertTag.RegulatoryAlert}}</span> ', ''), if(contains(string(coalesce(items('Loop_Compare')?['AlertTags'], json('[]'))), '\"Value\":\"NewTechnology\"'), '<span class=\"tag\">{{t:codes.alertTag.NewTechnology}}</span> ', ''))",
+                          "runAfter": {
+                            "Get_Signal_SourceItem_Compare": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Append_Signal_HTML_Compare": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestHTML",
+                            "value": "@{replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables('SignalTemplate'), '[[TITLE]]', outputs('Get_Signal_SourceItem_Compare')?['body/Title']), '[[TAGS]]', if(empty(outputs('Build_Tags_Compare')), '', concat('<strong>{{t:digest.alertTags}}:</strong> ', outputs('Build_Tags_Compare'), '<br>'))), '[[RELEVANCE]]', string(items('Loop_Compare')?['field_7'])), '[[IMPACT]]', if(equals(items('Loop_Compare')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop_Compare')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop_Compare')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop_Compare')?['field_8'])))), '[[HORIZON]]', if(equals(items('Loop_Compare')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop_Compare')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop_Compare')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop_Compare')?['field_9'])))), '[[PUBLISHED]]', string(outputs('Get_Signal_SourceItem_Compare')?['body/PublishedAt'])), '[[EVIDENCE]]', string(outputs('Get_Signal_SourceItem_Compare')?['body/field_7'])), '[[NOTES]]', string(items('Loop_Compare')?['field_10'])), '[[SUMMARY]]', string(items('Loop_Compare')?['field_6'])), '[[URL]]', string(outputs('Get_Signal_SourceItem_Compare')?['body/field_4']))}"
+                          },
+                          "runAfter": {
+                            "Build_Tags_Compare": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Heading_Compare": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Heading_Innovate": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "\n<h2>{{t:codes.objective.Innovate}}</h2>@{if(empty(body('Filter_Digest_Innovate')), '\n<p>{{t:digest.noFindings}}</p>', '')}"
+                      },
+                      "runAfter": {
+                        "Loop_Compare": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Loop_Innovate": {
+                      "type": "Foreach",
+                      "foreach": "@body('Filter_Digest_Innovate')",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Get_Signal_SourceItem_Innovate": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "id": "@items('Loop_Innovate')?['field_1']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get Signal SourceItem Innovate",
+                            "nodeId": "connector-b2a681ee-05f3-4fc1-b33a-a265ceeba924"
+                          }
+                        },
+                        "Build_Tags_Innovate": {
+                          "type": "Compose",
+                          "inputs": "@concat(if(contains(string(coalesce(items('Loop_Innovate')?['AlertTags'], json('[]'))), '\"Value\":\"CompetitorLaunch\"'), '<span class=\"tag\">{{t:codes.alertTag.CompetitorLaunch}}</span> ', ''), if(contains(string(coalesce(items('Loop_Innovate')?['AlertTags'], json('[]'))), '\"Value\":\"RegulatoryAlert\"'), '<span class=\"tag\">{{t:codes.alertTag.RegulatoryAlert}}</span> ', ''), if(contains(string(coalesce(items('Loop_Innovate')?['AlertTags'], json('[]'))), '\"Value\":\"NewTechnology\"'), '<span class=\"tag\">{{t:codes.alertTag.NewTechnology}}</span> ', ''))",
+                          "runAfter": {
+                            "Get_Signal_SourceItem_Innovate": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Append_Signal_HTML_Innovate": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestHTML",
+                            "value": "@{replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables('SignalTemplate'), '[[TITLE]]', outputs('Get_Signal_SourceItem_Innovate')?['body/Title']), '[[TAGS]]', if(empty(outputs('Build_Tags_Innovate')), '', concat('<strong>{{t:digest.alertTags}}:</strong> ', outputs('Build_Tags_Innovate'), '<br>'))), '[[RELEVANCE]]', string(items('Loop_Innovate')?['field_7'])), '[[IMPACT]]', if(equals(items('Loop_Innovate')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop_Innovate')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop_Innovate')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop_Innovate')?['field_8'])))), '[[HORIZON]]', if(equals(items('Loop_Innovate')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop_Innovate')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop_Innovate')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop_Innovate')?['field_9'])))), '[[PUBLISHED]]', string(outputs('Get_Signal_SourceItem_Innovate')?['body/PublishedAt'])), '[[EVIDENCE]]', string(outputs('Get_Signal_SourceItem_Innovate')?['body/field_7'])), '[[NOTES]]', string(items('Loop_Innovate')?['field_10'])), '[[SUMMARY]]', string(items('Loop_Innovate')?['field_6'])), '[[URL]]', string(outputs('Get_Signal_SourceItem_Innovate')?['body/field_4']))}"
+                          },
+                          "runAfter": {
+                            "Build_Tags_Innovate": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Heading_Innovate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Heading_Cooperate": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "\n<h2>{{t:codes.objective.Cooperate}}</h2>@{if(empty(body('Filter_Digest_Cooperate')), '\n<p>{{t:digest.noFindings}}</p>', '')}"
+                      },
+                      "runAfter": {
+                        "Loop_Innovate": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Loop_Cooperate": {
+                      "type": "Foreach",
+                      "foreach": "@body('Filter_Digest_Cooperate')",
+                      "runtimeConfiguration": {
+                        "concurrency": {
+                          "repetitions": 1
+                        }
+                      },
+                      "actions": {
+                        "Get_Signal_SourceItem_Cooperate": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "id": "@items('Loop_Cooperate')?['field_1']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get Signal SourceItem Cooperate",
+                            "nodeId": "connector-1b105a76-b0f9-449d-8d8c-4bd52849217b"
+                          }
+                        },
+                        "Build_Tags_Cooperate": {
+                          "type": "Compose",
+                          "inputs": "@concat(if(contains(string(coalesce(items('Loop_Cooperate')?['AlertTags'], json('[]'))), '\"Value\":\"CompetitorLaunch\"'), '<span class=\"tag\">{{t:codes.alertTag.CompetitorLaunch}}</span> ', ''), if(contains(string(coalesce(items('Loop_Cooperate')?['AlertTags'], json('[]'))), '\"Value\":\"RegulatoryAlert\"'), '<span class=\"tag\">{{t:codes.alertTag.RegulatoryAlert}}</span> ', ''), if(contains(string(coalesce(items('Loop_Cooperate')?['AlertTags'], json('[]'))), '\"Value\":\"NewTechnology\"'), '<span class=\"tag\">{{t:codes.alertTag.NewTechnology}}</span> ', ''))",
+                          "runAfter": {
+                            "Get_Signal_SourceItem_Cooperate": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Append_Signal_HTML_Cooperate": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestHTML",
+                            "value": "@{replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(variables('SignalTemplate'), '[[TITLE]]', outputs('Get_Signal_SourceItem_Cooperate')?['body/Title']), '[[TAGS]]', if(empty(outputs('Build_Tags_Cooperate')), '', concat('<strong>{{t:digest.alertTags}}:</strong> ', outputs('Build_Tags_Cooperate'), '<br>'))), '[[RELEVANCE]]', string(items('Loop_Cooperate')?['field_7'])), '[[IMPACT]]', if(equals(items('Loop_Cooperate')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop_Cooperate')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop_Cooperate')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop_Cooperate')?['field_8'])))), '[[HORIZON]]', if(equals(items('Loop_Cooperate')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop_Cooperate')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop_Cooperate')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop_Cooperate')?['field_9'])))), '[[PUBLISHED]]', string(outputs('Get_Signal_SourceItem_Cooperate')?['body/PublishedAt'])), '[[EVIDENCE]]', string(outputs('Get_Signal_SourceItem_Cooperate')?['body/field_7'])), '[[NOTES]]', string(items('Loop_Cooperate')?['field_10'])), '[[SUMMARY]]', string(items('Loop_Cooperate')?['field_6'])), '[[URL]]', string(outputs('Get_Signal_SourceItem_Cooperate')?['body/field_4']))}"
+                          },
+                          "runAfter": {
+                            "Build_Tags_Cooperate": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Heading_Cooperate": [
                           "Succeeded"
                         ]
                       }
@@ -330,7 +675,7 @@
                         "value": "<hr>\n<p>\n{{t:digest.footer}}\n</p>\n</body>\n</html>"
                       },
                       "runAfter": {
-                        "Loop": [
+                        "Loop_Cooperate": [
                           "Succeeded"
                         ]
                       },
@@ -374,7 +719,11 @@
                           "item/field_1": "@variables('PublicationKey')",
                           "item/field_3": "@outputs('Create_Published_Report')?['body/Path']",
                           "item/field_4": "sharepoint",
-                          "item/field_5": "Sent"
+                          "item/field_5": "Sent",
+                          "item/BriefId": "@items('Loop_Brief')?['ID']",
+                          "item/Product": "@items('Loop_Brief')?['Product']",
+                          "item/Dimension": "@items('Loop_Brief')?['Dimension']?['Value']",
+                          "item/PublicationType": "Digest"
                         },
                         "host": {
                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -469,6 +818,9 @@
             ],
             "Initialize_variable_DigestHTML": [
               "Succeeded"
+            ],
+            "Initialize_variable_SignalTemplate": [
+              "Succeeded"
             ]
           }
         },
@@ -534,6 +886,18 @@
               {
                 "name": "DigestHTML",
                 "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_SignalTemplate": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "SignalTemplate",
+                "type": "String",
+                "value": "<hr>\n<h3>[[TITLE]]</h3>\n<p>\n[[TAGS]]<strong>{{t:digest.relevance}}:</strong> [[RELEVANCE]]/100<br>\n<strong>{{t:digest.impact}}:</strong> [[IMPACT]]<br>\n<strong>{{t:digest.horizon}}:</strong> [[HORIZON]]<br>\n<strong>{{t:digest.published}}:</strong> [[PUBLISHED]]<br>\n<strong>{{t:digest.evidence}}:</strong> [[EVIDENCE]]\n<br>\n<strong>{{t:digest.notes}}:</strong> [[NOTES]]\n</p>\n<p>[[SUMMARY]]</p>\n<p>\n<a href=\"[[URL]]\">{{t:digest.openSource}}</a>\n</p>"
               }
             ]
           }

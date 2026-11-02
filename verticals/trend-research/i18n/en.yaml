@@ -96,3 +96,13 @@ digest:
     sources, evidence, and previous reports.
   publicationTitle: Weekly Digest
   teamsMessage: Trend Researcher digest ready
+  product: Product
+  dimension: Dimension
+  question: Research question
+  noFindings: No findings for this objective in the reporting window.
+  alertTags: Alert tags
+
+codes:
+  dimension: {Market: Market, Technology: Technology, Regulatory: Regulatory, Competition: Competition}
+  objective: {Anticipate: Anticipate, MinimizeRisks: Minimize risks, Compare: Compare, Innovate: Innovate, Cooperate: Cooperate}
+  alertTag: {CompetitorLaunch: Competitor launch, RegulatoryAlert: Regulatory alert, NewTechnology: New technology}

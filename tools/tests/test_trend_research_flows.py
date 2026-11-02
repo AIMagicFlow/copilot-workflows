@@ -185,5 +185,62 @@ class ClassifierV3Tests(unittest.TestCase):
         self.assertEqual(1, find_action(self.doc, "Loop_2")["runtimeConfiguration"]["concurrency"]["repetitions"])
 
 
+DIGEST = "Workflows/TRWeeklyDigest-D630FC9C-EA1F-8FBE-B44A-2DFEC38D631C.json"
+OBJ_ES = ["Anticipar", "Minimizar riesgos", "Comparar", "Innovar", "Cooperar"]
+
+
+class DigestTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", DIGEST)
+
+    def test_digest_publication_metadata(self):
+        p = params(self.doc, "Create_Publication_Record")
+        self.assertEqual("@items('Loop_Brief')?['ID']", p["item/BriefId"])
+        self.assertEqual("@items('Loop_Brief')?['Product']", p["item/Product"])
+        self.assertEqual("@items('Loop_Brief')?['Dimension']?['Value']", p["item/Dimension"])
+        self.assertEqual("Digest", p["item/PublicationType"])
+        header = find_action(self.doc, "Digest_HTML")["inputs"]["value"]
+        self.assertIn("items('Loop_Brief')?['Product']", header)
+        self.assertIn("items('Loop_Brief')?['Dimension']?['Value']", header)
+        self.assertIn("items('Loop_Brief')?['field_1']", header)
+        self.assertIn("variables('WindowEndDate')", header)
+        self.assertIn("equals(items('Loop_Brief')?['Dimension']?['Value'], 'Market')", header)
+        self.assertIn("Market", json.dumps(load_built("es", DIGEST)))
+
+    def test_digest_has_five_objective_sections_in_order(self):
+        for locale, names in (("es", OBJ_ES),):
+            doc = load_built(locale, DIGEST)
+            text = json.dumps(doc)
+            pos = [text.index("<h2>%s</h2>" % n) for n in names]
+            self.assertEqual(sorted(pos), pos)
+        for code in OBJECTIVE_CODES:
+            f = find_action(self.doc, "Filter_Digest_" + code)
+            self.assertEqual("Query", f["type"])
+            self.assertEqual("@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))", f["inputs"]["from"])
+            self.assertIn("'\"Value\":\"%s\"'" % code, f["inputs"]["where"])
+            loop = find_action(self.doc, "Loop_" + code)
+            self.assertEqual("Foreach", loop["type"])
+            self.assertEqual("@body('Filter_Digest_%s')" % code, loop["foreach"])
+            self.assertEqual(1, loop["runtimeConfiguration"]["concurrency"]["repetitions"])
+        self.assertEqual(5, len([1 for c in OBJECTIVE_CODES if find_action(self.doc, "Loop_" + c)]))
+
+    def test_empty_objective_prints_no_findings(self):
+        for code in OBJECTIVE_CODES:
+            h = find_action(self.doc, "Heading_" + code)["inputs"]["value"]
+            self.assertIn("empty(body('Filter_Digest_%s'))" % code, h)
+            self.assertIn("No findings", h)
+        self.assertIn("Sin hallazgos", json.dumps(load_built("es", DIGEST)))
+
+    def test_alert_tags_caption_and_single_template(self):
+        tpl = find_action(self.doc, "Initialize_variable_SignalTemplate")["inputs"]["variables"][0]["value"]
+        self.assertIn("[[TAGS]]", tpl)
+        text = json.dumps(self.doc)
+        self.assertEqual(1, text.count("Open original source"))  # signal HTML lives in one template only
+        self.assertIn("Alert tags", text)
+        self.assertNotIn("alert sent", text.lower())
+        self.assertNotIn("notified", text.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
