@@ -2,10 +2,11 @@
   "connector": "shared_sharepointonline",
   "operationId": "HttpRequest",
   "source": "coe-starter-kit",
-  "verified": true,
+  "verified": false,
   "notes": [
     "Calls the SharePoint REST API with the connection's identity.",
-    "For a conditional update, send IF-MATCH with the item's @odata.etag and X-HTTP-Method: MERGE. A 412 response means another run changed the item first."
+    "For a conditional update, send IF-MATCH with the item's @odata.etag and X-HTTP-Method: MERGE. A 412 response means another run changed the item first.",
+    "Written from connector knowledge; not checked against the cited source; verify parameter names in acceptance."
   ],
   "action": {
     "type": "OpenApiConnection",

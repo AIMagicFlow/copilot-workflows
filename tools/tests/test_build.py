@@ -195,7 +195,7 @@ class ValidationTests(unittest.TestCase):
     def test_set_variable_self_reference_fails(self):
         def add(doc):
             self.find_action(doc, "Build_ItemKey")["inputs"]["value"] = "@{variables('ItemKey')}x"
-        with self.assertRaisesRegex(build.BuildError, "Build_ItemKey"):
+        with self.assertRaisesRegex(build.BuildError, "Build_ItemKey sets variable 'ItemKey'"):
             build.validate_solution(self.v, self.mutate_flow(COLLECT, add))
 
     def test_parallel_loop_setting_variable_fails(self):
@@ -260,10 +260,11 @@ class SnippetTests(unittest.TestCase):
             self.assertIn(doc["source"], ("tenant-export", "coe-starter-kit", "pnp-samples", "connector-docs"))
             self.assertIsInstance(doc["verified"], bool)
 
-    def test_only_copy_file_is_unverified(self):
+    def test_memory_written_snippets_are_unverified(self):
         unverified = sorted(p.name for p in (ROOT / "shared" / "flow-snippets").rglob("*.json")
                             if not json.loads(p.read_text(encoding="utf-8"))["verified"])
-        self.assertEqual(["copy-file.json"], unverified)
+        self.assertEqual(["copy-file.json", "post-message.json", "send-http-request.json",
+                          "start-and-wait.json", "trigger-item-created-or-modified.json"], unverified)
 
 
 class SharePointKitTests(unittest.TestCase):

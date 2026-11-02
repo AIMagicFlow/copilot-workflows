@@ -2,12 +2,13 @@
   "connector": "shared_sharepointonline",
   "operationId": "GetOnUpdatedItems",
   "source": "pnp-samples",
-  "verified": true,
+  "verified": false,
   "notes": [
     "Fires for items created or modified in a list.",
     "Use this with a trigger condition instead of 'For a selected item', which only appears in SharePoint's Automate menu for flows in the default environment.",
     "Replace the condition expression with the one the flow needs. The example fires only for Status 'Submitted'.",
-    "Writes the flow itself makes to the item must not match the condition, or the flow retriggers."
+    "Writes the flow itself makes to the item must not match the condition, or the flow retriggers.",
+    "Written from connector knowledge; not checked against the cited source; verify parameter names in acceptance."
   ],
   "trigger": {
     "type": "OpenApiConnection",

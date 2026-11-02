@@ -2,10 +2,11 @@
   "connector": "shared_teams",
   "operationId": "PostMessageToConversation",
   "source": "coe-starter-kit",
-  "verified": true,
+  "verified": false,
   "notes": [
     "Posts to a channel as the Flow bot. groupId is the team ID and channelId the channel ID, kept in an env var as teamId|channelId.",
-    "Fall back to PostMessageToSelf when the audience is not configured."
+    "Fall back to PostMessageToSelf when the audience is not configured.",
+    "Written from connector knowledge; not checked against the cited source; verify parameter names in acceptance."
   ],
   "action": {
     "type": "OpenApiConnection",

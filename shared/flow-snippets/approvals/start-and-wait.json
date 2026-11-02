@@ -2,11 +2,12 @@
   "connector": "shared_approvals",
   "operationId": "StartAndWaitForAnApproval",
   "source": "coe-starter-kit",
-  "verified": true,
+  "verified": false,
   "notes": [
     "Basic approval with Approve/Reject options; first to respond finishes it.",
     "Set limit.timeout on the action (ISO 8601, for example P14D) so an unanswered approval ends.",
-    "Persist the approval ID before waiting if later steps need it."
+    "Persist the approval ID before waiting if later steps need it.",
+    "Written from connector knowledge; not checked against the cited source; verify parameter names in acceptance."
   ],
   "action": {
     "type": "OpenApiConnection",
