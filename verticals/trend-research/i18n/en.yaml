@@ -53,6 +53,9 @@ env:
   tr_PublicationsList:
     name: Publications list
     description: Title or ID (GUID) of the publications list.
+  tr_BusinessCaseRequestsList:
+    name: Business Case Requests list
+    description: Title or ID (GUID) of the business case requests list.
   tr_DailyClassificationLimit:
     name: Daily Classification Limit
     description: Maximum SourceItems classified per daily run (each item is classified once per enabled brief).

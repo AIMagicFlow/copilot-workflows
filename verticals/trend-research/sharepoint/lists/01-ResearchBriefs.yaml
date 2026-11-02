@@ -70,6 +70,29 @@ fields:
     en: DigestHumanReview
     es: Revisión humana del resumen
   default: 1
+- name: Product
+  type: Text
+  required: true
+  since: "1.3.0.0"
+  display:
+    en: Product
+    es: Producto
+- name: Dimension
+  type: Choice
+  choices: [Market, Technology, Regulatory, Competition]
+  required: true
+  since: "1.3.0.0"
+  display:
+    en: Dimension
+    es: Dimensión
+- name: BriefType
+  type: Choice
+  choices: [Monitoring, Investigation]
+  default: Monitoring
+  since: "1.3.0.0"
+  display:
+    en: BriefType
+    es: Tipo de brief
 seed:
   en:
   - Title: Real-Time Voice AI and Speech-to-Speech Models

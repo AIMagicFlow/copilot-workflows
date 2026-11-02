@@ -347,13 +347,43 @@ class SharePointKitTests(unittest.TestCase):
         for expected in ("Stage", "Choice", "Etapa", "Open, Closed"):
             self.assertIn(expected, notes)
 
-    def test_upgrade_notes_1_2(self):
+    def test_upgrade_notes_1_3(self):
         notes = self.kit["es"][f"upgrade-{self.v.version}.es.md"].decode("utf-8")
-        self.assertEqual("1.2.0.0", self.v.version)
-        self.assertIn("`SourcePath`", notes)
-        self.assertIn("SourceUploads", notes)
-        self.assertIn("Cargas de fuentes", notes)
-        self.assertIn("PublicData", notes)
+        self.assertEqual("1.3.0.0", self.v.version)
+        for name in ("Product", "Dimension", "BriefType", "AlertTags", "Objectives", "BriefId", "PublicationType",
+                     "BusinessCaseRequestId", "InputPublicationIds", "ReviewStatus", "Version"):
+            self.assertIn(f"`{name}`", notes)
+        self.assertIn("SolicitudesCasoNegocio", notes)
+        self.assertIn("Monitoring, Investigation", notes)
+        self.assertIn("CompetitorLaunch, RegulatoryAlert, NewTechnology", notes)
+        self.assertIn("Digest, BusinessCase", notes)
+
+    def test_business_case_requests_schema(self):
+        fields, _ = self.parse(self.kit["es"]["lists/SolicitudesCasoNegocio.csv"])
+        names = [f.get("Name") for f in fields]
+        expected = ["Title", "Product", "DecisionQuestion", "Geographies", "TimeHorizon", "Alternatives",
+                    "StrategicObjectives", "FinancialInputs", "Constraints", "InputPublicationIds",
+                    "ReviewerEmail", "AudienceKey", "PreviousRequestId", "Version", "Status",
+                    "PublicationId", "LastError"]
+        self.assertEqual(17, len(expected))
+        for n in expected:
+            self.assertIn(n, names)
+        status = next(f for f in fields if f.get("Name") == "Status")
+        self.assertEqual(["Draft", "Submitted", "Generating", "InReview", "Approved", "Rejected", "Failed"],
+                         [c.text for c in status.iter("CHOICE")])
+        self.assertEqual("Draft", status.findtext("Default"))
+        by_name = {f.get("Name"): f for f in fields}
+        self.assertEqual("1", by_name["Version"].findtext("Default"))
+        self.assertEqual("Producto", by_name["Product"].get("DisplayName"))
+
+    def test_new_multichoice_fields_keep_english_codes(self):
+        signals = next(l for l in self.v.lists if l["list"] == "Signals")
+        csv_name = next(n for n in self.kit["es"] if n.startswith("lists/") and n.endswith(".csv")
+                        and n[len("lists/"):-4] in (signals["title"]["es"], "Senales"))
+        fields, _ = self.parse(self.kit["es"][csv_name])
+        tags = next(f for f in fields if f.get("Name") == "AlertTags")
+        self.assertEqual("MultiChoice", tags.get("Type"))
+        self.assertEqual(["CompetitorLaunch", "RegulatoryAlert", "NewTechnology"], [c.text for c in tags.iter("CHOICE")])
 
     def test_seed_rows_follow_sharepoint_quoting(self):
         _, rows = self.parse(self.kit["en"]["lists/Sources.csv"])

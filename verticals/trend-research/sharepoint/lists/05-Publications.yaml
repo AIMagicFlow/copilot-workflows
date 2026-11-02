@@ -59,3 +59,53 @@ fields:
   display:
     en: ApprovalReference
     es: Referencia de aprobación
+- name: BriefId
+  type: Number
+  since: "1.3.0.0"
+  display:
+    en: BriefId
+    es: ID del brief
+- name: Product
+  type: Text
+  since: "1.3.0.0"
+  display:
+    en: Product
+    es: Producto
+- name: Dimension
+  type: Text
+  since: "1.3.0.0"
+  display:
+    en: Dimension
+    es: Dimensión
+- name: PublicationType
+  type: Choice
+  choices: [Digest, BusinessCase]
+  since: "1.3.0.0"
+  display:
+    en: PublicationType
+    es: Tipo de publicación
+- name: BusinessCaseRequestId
+  type: Number
+  since: "1.3.0.0"
+  display:
+    en: BusinessCaseRequestId
+    es: ID de solicitud de caso de negocio
+- name: InputPublicationIds
+  type: Text
+  since: "1.3.0.0"
+  display:
+    en: InputPublicationIds
+    es: IDs de publicaciones de entrada
+- name: ReviewStatus
+  type: Choice
+  choices: [Draft, InReview, Approved, Rejected]
+  since: "1.3.0.0"
+  display:
+    en: ReviewStatus
+    es: Estado de revisión
+- name: Version
+  type: Number
+  since: "1.3.0.0"
+  display:
+    en: Version
+    es: Versión

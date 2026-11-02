@@ -83,3 +83,17 @@ fields:
   display:
     en: Status
     es: Estado
+- name: AlertTags
+  type: MultiChoice
+  choices: [CompetitorLaunch, RegulatoryAlert, NewTechnology]
+  since: "1.3.0.0"
+  display:
+    en: AlertTags
+    es: Etiquetas de alerta
+- name: Objectives
+  type: MultiChoice
+  choices: [Anticipate, MinimizeRisks, Compare, Innovate, Cooperate]
+  since: "1.3.0.0"
+  display:
+    en: Objectives
+    es: Objetivos estratégicos

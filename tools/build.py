@@ -406,6 +406,9 @@ def field_xml(field, display):
     if t == "Text":
         return f'<Field Type="Text" DisplayName={d} Name="{n}" ID="{fid}" StaticName="{n}"{flags} />'
     if t == "Number":
+        if "default" in field:
+            return (f'<Field Type="Number" DisplayName={d} Name="{n}" ID="{fid}" StaticName="{n}"{flags}>'
+                    f'<Default>{escape(str(field["default"]))}</Default></Field>')
         return f'<Field Type="Number" DisplayName={d} Name="{n}" ID="{fid}" StaticName="{n}"{flags} />'
     if t == "Note":
         return ('<Field AppendOnly="FALSE" ClientSideComponentId="00000000-0000-0000-0000-000000000000" '

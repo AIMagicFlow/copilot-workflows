@@ -54,6 +54,9 @@ env:
   tr_PublicationsList:
     name: Lista de publicaciones
     description: Título o ID (GUID) de la lista de publicaciones.
+  tr_BusinessCaseRequestsList:
+    name: Lista de solicitudes de caso de negocio
+    description: Título o ID (GUID) de la lista de solicitudes de caso de negocio.
   tr_DailyClassificationLimit:
     name: Límite diario de clasificación
     description: Máximo de ElementosFuente clasificados por ejecución diaria (cada elemento se clasifica una vez por brief habilitado).

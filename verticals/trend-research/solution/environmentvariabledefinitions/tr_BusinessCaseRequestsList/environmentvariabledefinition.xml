@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_BusinessCaseRequestsList">
+  <defaultvalue>{{list:BusinessCaseRequests}}</defaultvalue>
+  <description default="{{t:env.tr_BusinessCaseRequestsList.description}}">
+    <label description="{{t:env.tr_BusinessCaseRequestsList.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_BusinessCaseRequestsList.name}}">
+    <label description="{{t:env.tr_BusinessCaseRequestsList.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.3.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>
