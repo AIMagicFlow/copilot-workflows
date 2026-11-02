@@ -255,6 +255,21 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         cls.definition = cls.doc["properties"]["definition"]
         cls.trigger = cls.definition["triggers"]["When_a_request_is_submitted"]
 
+    def assert_failed_write(self, name):
+        """The owning run writes Failed with a MERGE; IF-MATCH * because it already claimed the item."""
+        a = find_action(self.doc, name)
+        self.assertEqual("HttpRequest", a["inputs"]["host"]["operationId"])
+        p = a["inputs"]["parameters"]
+        claim = params(self.doc, "Claim_Request")
+        self.assertEqual("POST", p["parameters/method"])
+        self.assertEqual(claim["parameters/uri"], p["parameters/uri"])
+        self.assertEqual("*", p["parameters/headers"]["IF-MATCH"])
+        self.assertEqual("MERGE", p["parameters/headers"]["X-HTTP-Method"])
+        for locale in ("en", "es"):
+            body = json.loads(params(load_built(locale, BUSINESS_CASE), name)["parameters/body"])
+            self.assertEqual(["Status", "LastError"], list(body))
+            self.assertEqual("Failed", body["Status"])
+
     def _branch(self, condition, branch):
         a = find_action(self.doc, condition)
         return a["actions"] if branch == "yes" else a["else"]["actions"]
@@ -269,7 +284,8 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertEqual("@equals(triggerOutputs()?['body/Status/Value'], 'Submitted')",
                          self.trigger["conditions"][0]["expression"])
         self.assertEqual(1, len(self.trigger["conditions"]))
-        self.assertEqual(1, self.trigger["runtimeConfiguration"]["concurrency"]["runs"])
+        # the ETag claim makes concurrent runs safe; the cap is a throughput limit only
+        self.assertEqual(25, self.trigger["runtimeConfiguration"]["concurrency"]["runs"])
         self.assertIn("splitOn", self.trigger)
 
     def test_request_reread_and_validated(self):
@@ -317,8 +333,7 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertIn("Publications", self.definition["parameters"][p["table"][len("@parameters('"):-2]]
                       ["metadata"]["schemaName"])
         gate = find_action(self.doc, "If_No_Existing_Publication")
-        self.assertIn("@body('Get_Existing_Publication')?['value']", dumps(gate["expression"]))
-        self.assertIn("empty", dumps(gate["expression"]))
+        self.assertEqual({"and": [{"empty": ["@body('Get_Existing_Publication')?['value']"]}]}, gate["expression"])
         trail = path_to(self.doc, "Generate_Case")
         self.assertIn("If_No_Existing_Publication", trail)
         self.assertNotIn("If_No_Existing_Publication/else", trail)
@@ -344,11 +359,14 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         # a lost claim (412) cancels; any other claim failure stops the run; only a won claim continues
         conflict = find_action(self.doc, "If_Claim_Conflict")
         self.assertEqual({"Claim_Request": ["Failed", "TimedOut"]}, conflict["runAfter"])
-        self.assertIn("@outputs('Claim_Request')?['statusCode']", dumps(conflict["expression"]))
-        self.assertIn("412", dumps(conflict["expression"]))
-        won = conflict["actions"]["Terminate_Claim_Conflict"]["inputs"]
-        self.assertEqual("Cancelled", won["runStatus"])
+        self.assertEqual({"and": [{"equals": ["@outputs('Claim_Request')?['statusCode']", 412]}]},
+                         conflict["expression"])
+        self.assertEqual(["Terminate_Claim_Conflict"], list(conflict["actions"]))
+        self.assertEqual({"runStatus": "Cancelled"}, conflict["actions"]["Terminate_Claim_Conflict"]["inputs"])
+        self.assertEqual(["Terminate_Claim_Failed"], list(conflict["else"]["actions"]))
         self.assertEqual("Failed", conflict["else"]["actions"]["Terminate_Claim_Failed"]["inputs"]["runStatus"])
+        # a retried 5xx after an applied write would get 412 and leave the item stuck in Generating
+        self.assertEqual({"type": "none"}, claim["inputs"]["retryPolicy"])
         self.assertEqual({"Claim_Request": ["Succeeded"]}, find_action(self.doc, "Split_Input_Ids")["runAfter"])
 
     def test_input_ids_bounds(self):
@@ -366,18 +384,19 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertEqual("@not(and(equals(string(int(item())), item()), greater(int(item()), 0)))", where)
         ids = "body('Parse_Input_Ids')"
         value = find_action(self.doc, "Set_InputIdsValid")["inputs"]["value"]
-        self.assertIn("empty(body('Filter_Invalid_Ids'))", value)
-        self.assertIn("greaterOrEquals(length(%s), 1)" % ids, value)
-        self.assertIn("lessOrEquals(length(%s), 5)" % ids, value)
-        self.assertIn("equals(length(union(%s, %s)), length(%s))" % (ids, ids, ids), value)
+        self.assertEqual("@and(empty(body('Filter_Invalid_Ids')), greaterOrEquals(length(%s), 1), "
+                         "lessOrEquals(length(%s), 5), equals(length(union(%s, %s)), length(%s)))"
+                         % (ids, ids, ids, ids, ids), value)
         init = find_action(self.doc, "Initialize_InputIdsValid")["inputs"]["variables"][0]
         self.assertIs(False, init["value"])
         gate = find_action(self.doc, "If_Input_Ids_Valid")
         self.assertEqual({"Check_Input_Ids": ["Succeeded", "Failed", "TimedOut"]}, gate["runAfter"])
-        self.assertIn("@variables('InputIdsValid')", dumps(gate["expression"]))
+        self.assertEqual({"and": [{"equals": ["@variables('InputIdsValid')", True]}]}, gate["expression"])
         failed = gate["else"]["actions"]
-        self.assertEqual("Failed", failed["Set_Failed_Input_Ids"]["inputs"]["parameters"]["item/Status"])
-        self.assertTrue(failed["Set_Failed_Input_Ids"]["inputs"]["parameters"]["item/LastError"])
+        self.assertEqual(["Set_Failed_Input_Ids", "Terminate_Invalid_Input_Ids"], list(failed))
+        self.assert_failed_write("Set_Failed_Input_Ids")
+        self.assertEqual({"Set_Failed_Input_Ids": ["Succeeded", "Failed", "TimedOut"]},
+                         failed["Terminate_Invalid_Input_Ids"]["runAfter"])
         self.assertEqual("Failed", failed["Terminate_Invalid_Input_Ids"]["inputs"]["runStatus"])
         self.assertIn("If_Input_Ids_Valid", path_to(self.doc, "Generate_Case"))
         self.assertNotIn("If_Input_Ids_Valid/else", path_to(self.doc, "Generate_Case"))
@@ -392,17 +411,18 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertIn("tr_PublicationsList", self.definition["parameters"][get["table"][len("@parameters('"):-2]]
                       ["metadata"]["schemaName"])
         check = find_action(self.doc, "If_Digest_Invalid")
-        expression = dumps(check["expression"])
-        self.assertIn("body('Get_Digest')?['PublicationType']?['Value']", expression)
-        self.assertIn('"Digest"', expression)
-        self.assertIn("trim(coalesce(body('Get_Digest')?['Product'], ''))", expression)
-        self.assertIn("trim(coalesce(%s?['Product'], ''))" % REQUEST, expression)
-        self.assertIn("trim(coalesce(body('Get_Digest')?['field_3'], ''))", expression)
+        self.assertEqual({"or": [
+            {"not": {"equals": ["@body('Get_Digest')?['PublicationType']?['Value']", "Digest"]}},
+            {"not": {"equals": ["@trim(coalesce(body('Get_Digest')?['Product'], ''))",
+                                "@trim(coalesce(%s?['Product'], ''))" % REQUEST]}},
+            {"empty": ["@trim(coalesce(body('Get_Digest')?['field_3'], ''))"]},
+        ]}, check["expression"])
+        self.assertEqual({"Get_Digest": ["Succeeded"]}, check["runAfter"])
         self.assertIn("Reject_Invalid_Digest", check["actions"])
         self.assertEqual({}, check["else"]["actions"])
         handler = find_action(self.doc, "Set_Failed_Digests")
         self.assertEqual({"Validate_Each_Digest": ["Failed", "TimedOut"]}, handler["runAfter"])
-        self.assertEqual("Failed", handler["inputs"]["parameters"]["item/Status"])
+        self.assert_failed_write("Set_Failed_Digests")
         self.assertEqual({"Set_Failed_Digests": ["Succeeded", "Failed", "TimedOut"]},
                          find_action(self.doc, "Terminate_Invalid_Digest")["runAfter"])
         self.assertEqual("Failed", find_action(self.doc, "Terminate_Invalid_Digest")["inputs"]["runStatus"])
@@ -410,9 +430,10 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
     def test_failure_messages_are_safe_and_localized(self):
         es = load_built("es", BUSINESS_CASE)
         for name in ("Set_Failed_Input_Ids", "Set_Failed_Digests"):
-            message = params(self.doc, name)["item/LastError"]
+            message = json.loads(params(self.doc, name)["parameters/body"])["LastError"]
+            self.assertTrue(message)
             self.assertNotIn("@", message)  # a fixed message: no request, digest or response content
-            self.assertNotEqual(message, params(es, name)["item/LastError"])
+            self.assertNotEqual(message, json.loads(params(es, name)["parameters/body"])["LastError"])
 
     def test_business_case_localized(self):
         for locale, name in (("en", "TR Business Case"), ("es", "VT Caso de Negocio")):
