@@ -113,6 +113,12 @@ class Vertical:
                 out[el.get("schemaname")] = m.group(1)
         return out
 
+    def library_by_key(self, key):
+        for lib in self.libraries:
+            if lib["urlName"] == key:
+                return lib
+        raise BuildError(f"unknown SharePoint library '{key}'")
+
     def file_tag(self, locale):
         return f"{self.unique_name}_{self.version.replace('.', '_')}_{locale}"
 
@@ -140,6 +146,8 @@ class Renderer:
             return self.v.version
         if kind == "list":
             return self.v.list_by_key(arg)["title"][self.locale]
+        if kind == "library":
+            return self.v.library_by_key(arg)["title"][self.locale]
         if kind == "promptVersion":
             return int(self.prompt_meta(arg, where)["version"])
         if kind == "prompt":
@@ -487,7 +495,13 @@ def render_pnp_template(vertical, locale):
     for lib in vertical.libraries:
         out.append(f'        <pnp:ListInstance Title={a(lib["title"][locale])} '
                    f'Description={a(lib["description"][locale])} TemplateType="101" Url={a(lib["urlName"])} '
-                   f'OnQuickLaunch="true" EnableVersioning="true" TemplateFeatureID="{DOC_LIBRARY_FEATURE}" />')
+                   f'OnQuickLaunch="true" EnableVersioning="true" TemplateFeatureID="{DOC_LIBRARY_FEATURE}"'
+                   + ('>' if lib.get("folders") else ' />'))
+        if lib.get("folders"):
+            out.append('          <pnp:Folders>')
+            out.extend(f'            <pnp:Folder Name={a(folder)} />' for folder in lib["folders"])
+            out.append('          </pnp:Folders>')
+            out.append('        </pnp:ListInstance>')
     for lst in vertical.lists:
         fields = lst["fields"]
         title = next(f for f in fields if f["name"] == "Title")
@@ -530,7 +544,8 @@ def render_pnp_template(vertical, locale):
 def render_expected_schema(vertical, locale):
     """What provision.ps1 checks after applying the template (or after a CSV import)."""
     doc = {
-        "libraries": [{"url": lib["urlName"], "title": lib["title"][locale]} for lib in vertical.libraries],
+        "libraries": [{"url": lib["urlName"], "title": lib["title"][locale], "folders": list(lib.get("folders", []))}
+                      for lib in vertical.libraries],
         "lists": [{
             "title": lst["title"][locale],
             "url": list_url(lst),
@@ -584,11 +599,19 @@ def upgrade_entries(vertical, locale):
 def render_upgrade_notes(vertical, locale):
     """Per-release notes for CSV-path customers: which columns to add by hand. Empty when nothing is new."""
     rows = upgrade_entries(vertical, locale)
-    if not rows:
+    if not rows and not any(str(lib.get("since", "")) == vertical.version for lib in vertical.libraries):
         return b""
     t = vertical.strings(locale)
     out = [f"# {t['upgrade.title'].format(version=vertical.version)}", "", t["upgrade.intro"], "",
            f"**{t['upgrade.renameRule']}**", ""]
+    new_libs = [lib for lib in vertical.libraries if str(lib.get("since", "")) == vertical.version]
+    if new_libs:
+        out += [t["upgrade.newLibraries"], ""]
+        for lib in new_libs:
+            folders = ", ".join(lib.get("folders", []))
+            out.append(f"- {lib['title'][locale]} (`{lib['urlName']}`)"
+                       + (f": {t['upgrade.folders']} {folders}" if folders else ""))
+        out.append("")
     new_lists = [lst["title"][locale] for lst in vertical.lists if str(lst.get("since", "")) == vertical.version]
     if new_lists:
         out += [t["upgrade.newLists"], ""] + [f"- {name}" for name in new_lists] + [""]

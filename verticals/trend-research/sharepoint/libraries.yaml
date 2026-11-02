@@ -17,3 +17,10 @@ libraries:
     description:
       en: Restricted drafts awaiting human review (used by future workflows).
       es: Borradores restringidos en espera de revisión humana (para flujos futuros).
+  - urlName: SourceUploads
+    since: "1.2.0.0"
+    folders: [PublicData]
+    title: {en: Source Uploads, es: Cargas de fuentes}
+    description:
+      en: Documents uploaded as sources. Only files under PublicData are processed.
+      es: Documentos cargados como fuentes. Solo se procesan los archivos de PublicData.

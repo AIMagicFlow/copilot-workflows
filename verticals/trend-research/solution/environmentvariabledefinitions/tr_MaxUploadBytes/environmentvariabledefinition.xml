@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_MaxUploadBytes">
+  <defaultvalue>1000000</defaultvalue>
+  <description default="{{t:env.tr_MaxUploadBytes.description}}">
+    <label description="{{t:env.tr_MaxUploadBytes.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_MaxUploadBytes.name}}">
+    <label description="{{t:env.tr_MaxUploadBytes.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.2.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>

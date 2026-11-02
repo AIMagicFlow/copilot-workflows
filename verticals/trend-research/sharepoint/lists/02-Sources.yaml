@@ -45,6 +45,13 @@ fields:
   display:
     en: LastSuccessfulCollection
     es: Última recolección exitosa
+- name: SourcePath
+  type: Text
+  indexed: true
+  since: "1.2.0.0"
+  display:
+    en: SourcePath
+    es: Ruta de la fuente
 seed:
   en:
   - Title: OpenAI News

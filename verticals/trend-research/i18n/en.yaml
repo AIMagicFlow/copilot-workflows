@@ -59,6 +59,12 @@ env:
   tr_NotificationAudience:
     name: Notification Audience
     description: Reserved for audience-based delivery. Not used by the current flows.
+  tr_SourceUploadsLibrary:
+    name: Source Uploads library
+    description: Title or ID (GUID) of the document library that receives uploaded sources. If the trigger rejects the title, enter the library GUID.
+  tr_MaxUploadBytes:
+    name: Maximum upload size (bytes)
+    description: Uploaded files larger than this are recorded as metadata only and their content is not read.
   tr_PublishingEnabled:
     name: Publishing Enabled
     description: Reserved publication switch. Not used by the current flows.

@@ -1,6 +1,6 @@
 # Test double for PnP.PowerShell used by tools/tests/test_build.py.
 # The fake site comes from the JSON file in $env:PNP_MOCK_SITE:
-#   { "libraries": ["Evidence"], "lists": [ { "title": "Fuentes", "url": "Lists/Sources",
+#   { "libraries": ["Evidence"], "folders": ["Evidence/Sub"], "lists": [ { "title": "Fuentes", "url": "Lists/Sources",
 #       "fields": [ { "InternalName": "field_1", "Title": "URL del feed", "TypeAsString": "Text", "EnforceUniqueValues": false } ] } ] }
 # Every call is appended to $env:PNP_MOCK_LOG.
 
@@ -17,9 +17,15 @@ function Get-PnPList {
     $site.lists | Where-Object { $_.title -eq $Identity -or $_.url -eq $Identity } | Select-Object -First 1
 }
 
+function Get-PnPFolder {
+    param($Url)
+    $site = Get-MockSite
+    if ($site.folders -contains $Url) { return [pscustomobject]@{ ServerRelativeUrl = "/$Url" } }
+}
+
 function Get-PnPField {
     param($List)
     $List.fields
 }
 
-Export-ModuleMember -Function Connect-PnPOnline, Invoke-PnPSiteTemplate, Get-PnPList, Get-PnPField
+Export-ModuleMember -Function Connect-PnPOnline, Invoke-PnPSiteTemplate, Get-PnPList, Get-PnPFolder, Get-PnPField

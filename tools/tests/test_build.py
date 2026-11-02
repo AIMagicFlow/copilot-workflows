@@ -78,6 +78,21 @@ class SolutionTests(unittest.TestCase):
         self.assertEqual("Signals", en.findtext("defaultvalue"))
         self.assertEqual("Señales", es.findtext("defaultvalue"))
 
+    def test_library_token_resolves_localized_title(self):
+        for locale, title in (("es", "Cargas de fuentes"), ("en", "Source Uploads")):
+            self.assertEqual(title, build.Renderer(self.v, locale).resolve("library", "SourceUploads", "test"))
+            files = {"es": self.es, "en": self.en}[locale]
+            el = ET.fromstring(files["environmentvariabledefinitions/tr_SourceUploadsLibrary/environmentvariabledefinition.xml"])
+            self.assertEqual(title, el.findtext("defaultvalue"))
+        with self.assertRaises(build.BuildError):
+            build.Renderer(self.v, "en").resolve("library", "NoSuchLibrary", "test")
+        self.assertEqual("SourceUploads", self.v.env_library_map()["tr_SourceUploadsLibrary"])
+
+    def test_max_upload_bytes_default(self):
+        el = ET.fromstring(self.en["environmentvariabledefinitions/tr_MaxUploadBytes/environmentvariabledefinition.xml"])
+        self.assertEqual("1000000", el.findtext("defaultvalue"))
+        self.assertEqual("100000001", el.findtext("type"))
+
     def test_no_tenant_literals_in_flows(self):
         for files in (self.en, self.es):
             for name in (n for n in files if n.startswith("Workflows/")):
@@ -322,6 +337,7 @@ class SharePointKitTests(unittest.TestCase):
 
     def test_upgrade_notes_list_new_fields(self):
         v = build.Vertical(ROOT, TR)
+        v.version = "1.1.0.0"  # a release that introduced nothing
         self.assertFalse([n for n in build.render_sharepoint_kit(v, "es") if n.startswith("upgrade-")])
         lst = v.lists[0]
         lst["fields"] = lst["fields"] + [{"name": "Stage", "type": "Choice", "choices": ["Open", "Closed"],
@@ -331,9 +347,17 @@ class SharePointKitTests(unittest.TestCase):
         for expected in ("Stage", "Choice", "Etapa", "Open, Closed"):
             self.assertIn(expected, notes)
 
+    def test_upgrade_notes_1_2(self):
+        notes = self.kit["es"][f"upgrade-{self.v.version}.es.md"].decode("utf-8")
+        self.assertEqual("1.2.0.0", self.v.version)
+        self.assertIn("`SourcePath`", notes)
+        self.assertIn("SourceUploads", notes)
+        self.assertIn("Cargas de fuentes", notes)
+        self.assertIn("PublicData", notes)
+
     def test_seed_rows_follow_sharepoint_quoting(self):
         _, rows = self.parse(self.kit["en"]["lists/Sources.csv"])
-        self.assertEqual('"OpenAI News","https://openai.com/news/rss.xml","RSS","1",,', rows[1])
+        self.assertEqual('"OpenAI News","https://openai.com/news/rss.xml","RSS","1",,,', rows[1])
 
 
 PNP = "{http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema}"
@@ -357,6 +381,15 @@ class PnPTemplateTests(unittest.TestCase):
         for locale in ("en", "es"):
             doc = etree.fromstring(build.render_pnp_template(self.v, locale))
             self.assertTrue(xsd.validate(doc), f"{locale}: {xsd.error_log}")
+
+    def test_library_folders_in_pnp_template(self):
+        uploads = self.list_instance("SourceUploads")
+        self.assertEqual("Cargas de fuentes", uploads.get("Title"))
+        folders = [f.get("Name") for f in uploads.iter(f"{PNP}Folder")]
+        self.assertEqual(["PublicData"], folders)
+        expected = json.loads(build.render_expected_schema(self.v, "es"))
+        lib = next(x for x in expected["libraries"] if x["url"] == "SourceUploads")
+        self.assertEqual(["PublicData"], lib["folders"])
 
     def test_lists_have_english_urls_and_localized_titles(self):
         sources = self.list_instance("Lists/Sources")
@@ -391,7 +424,8 @@ class PnPTemplateTests(unittest.TestCase):
         sources = next(lst for lst in expected["lists"] if lst["url"] == "Lists/Sources")
         self.assertEqual("Fuentes", sources["title"])
         self.assertIn({"name": "field_1", "type": "Text", "display": "URL del feed", "unique": False}, sources["fields"])
-        self.assertEqual(["Evidence", "PublishedReports", "ResearchDrafts"], [lib["url"] for lib in expected["libraries"]])
+        self.assertEqual(["Evidence", "PublishedReports", "ResearchDrafts", "SourceUploads"],
+                         [lib["url"] for lib in expected["libraries"]])
 
 
 @unittest.skipUnless(shutil.which(os.environ.get("PWSH", "pwsh")), "PowerShell 7 (pwsh) not available")
@@ -410,6 +444,8 @@ class ProvisionScriptTests(unittest.TestCase):
     def site_from_expected(self):
         return {
             "libraries": [lib["url"] for lib in self.expected["libraries"]],
+            "folders": [f"{lib['url']}/{folder}" for lib in self.expected["libraries"]
+                        for folder in lib.get("folders", [])],
             "lists": [{"title": lst["title"], "url": lst["url"], "fields": [
                 {"InternalName": f["name"], "Title": f["display"], "TypeAsString": f["type"],
                  "EnforceUniqueValues": f["unique"]} for f in lst["fields"]]} for lst in self.expected["lists"]],
@@ -463,6 +499,13 @@ class ProvisionScriptTests(unittest.TestCase):
         result, _ = self.run_script(site, "-VerifyOnly")
         self.assertEqual(1, result.returncode)
         self.assertIn("[Evidence]", result.stdout)
+
+    def test_provision_reports_missing_folder(self):
+        site = self.site_from_expected()
+        site["folders"].remove("SourceUploads/PublicData")
+        result, _ = self.run_script(site, "-VerifyOnly")
+        self.assertEqual(1, result.returncode)
+        self.assertIn("PublicData", result.stdout)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ provision:
   applying: Applying the SharePoint template...
   verifying: Verifying lists, libraries and columns...
   missingLibrary: library not found
+  missingFolder: folder not found
   missingList: list not found
   missingColumn: column not found
   foundAs: a column with this name exists with internal name
@@ -33,6 +34,8 @@ upgrade:
   title: "Upgrade notes for version {version}"
   intro: This release adds the lists and columns below. If you provisioned with PnP, re-run pnp/provision.ps1 from this kit and nothing else is needed. If you created the lists from the CSV files, add them by hand as described here.
   renameRule: Type the internal name first when you create each column, save it, and only then rename the column to the display name. SharePoint fixes the internal name from the first name you type.
+  newLibraries: "New libraries (create each one by hand with this URL name, then add the folders):"
+  folders: "folders"
   newLists: "New lists (create each one from its CSV file in lists/):"
   col:
     list: List

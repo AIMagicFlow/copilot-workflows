@@ -22,6 +22,7 @@ provision:
   applying: Aplicando la plantilla de SharePoint...
   verifying: Verificando listas, bibliotecas y columnas...
   missingLibrary: no se encontró la biblioteca
+  missingFolder: carpeta no encontrada
   missingList: no se encontró la lista
   missingColumn: no se encontró la columna
   foundAs: existe una columna con este nombre pero su nombre interno es
@@ -33,6 +34,8 @@ upgrade:
   title: "Notas de actualización de la versión {version}"
   intro: Esta versión agrega las listas y columnas siguientes. Si aprovisionó con PnP, vuelva a ejecutar pnp/provision.ps1 de este kit y no necesita nada más. Si creó las listas desde los archivos CSV, agréguelas a mano como se describe aquí.
   renameRule: Al crear cada columna, escriba primero el nombre interno, guárdela y solo después cambie el nombre al nombre para mostrar. SharePoint fija el nombre interno con el primer nombre que se escribe.
+  newLibraries: "Bibliotecas nuevas (cree cada una a mano con este nombre de URL y luego agregue las carpetas):"
+  folders: "carpetas"
   newLists: "Listas nuevas (cree cada una desde su archivo CSV en lists/):"
   col:
     list: Lista

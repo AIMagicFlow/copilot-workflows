@@ -60,6 +60,12 @@ env:
   tr_NotificationAudience:
     name: Audiencia de notificación
     description: Reservado para entregas por audiencia. No lo usan los flujos actuales.
+  tr_SourceUploadsLibrary:
+    name: Biblioteca de cargas de fuentes
+    description: Título o ID (GUID) de la biblioteca de documentos que recibe las fuentes cargadas. Si el desencadenador rechaza el título, escriba el GUID de la biblioteca.
+  tr_MaxUploadBytes:
+    name: Tamaño máximo de carga (bytes)
+    description: Los archivos cargados que superen este tamaño se registran solo con metadatos y no se lee su contenido.
   tr_PublishingEnabled:
     name: Publicación habilitada
     description: Interruptor de publicación reservado. No lo usan los flujos actuales.

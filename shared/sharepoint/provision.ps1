@@ -53,6 +53,14 @@ foreach ($library in $expected.libraries) {
     }
 }
 
+foreach ($library in $expected.libraries) {
+    foreach ($folder in $library.folders) {
+        if (-not (Get-PnPFolder -Url "$($library.url)/$folder" -ErrorAction SilentlyContinue)) {
+            $problems.Add("$($library.title) / ${folder}: {{t:provision.missingFolder}}")
+        }
+    }
+}
+
 foreach ($list in $expected.lists) {
     # Lists created by the template live at Lists/<EnglishName>; lists created from CSV
     # live at a URL derived from their title. Find either one by title first.
