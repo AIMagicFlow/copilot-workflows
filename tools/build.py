@@ -413,7 +413,7 @@ def field_xml(field, display):
     if t == "Note":
         return ('<Field AppendOnly="FALSE" ClientSideComponentId="00000000-0000-0000-0000-000000000000" '
                 f'DisplayName={d} Format="Dropdown" IsolateStyles="FALSE" Name="{n}" RichText="FALSE" '
-                f'RichTextMode="Compatible" Title={d} Type="Note" ID="{fid}" StaticName="{n}" />')
+                f'RichTextMode="Compatible" Title={d} Type="Note" ID="{fid}" StaticName="{n}"{flags} />')
     if t == "DateTime":
         return (f'<Field Type="DateTime" DisplayName={d} Required="FALSE" EnforceUniqueValues="FALSE" '
                 f'Indexed="FALSE" Format="DateTime" FriendlyDisplayFormat="Disabled" ID="{fid}" '

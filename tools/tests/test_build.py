@@ -375,6 +375,16 @@ class SharePointKitTests(unittest.TestCase):
         by_name = {f.get("Name"): f for f in fields}
         self.assertEqual("1", by_name["Version"].findtext("Default"))
         self.assertEqual("Producto", by_name["Product"].get("DisplayName"))
+        for n in ("DecisionQuestion", "Alternatives", "StrategicObjectives"):
+            self.assertEqual("TRUE", by_name[n].get("Required"), n)
+        for n in ("FinancialInputs", "Constraints", "LastError"):
+            self.assertNotEqual("TRUE", by_name[n].get("Required"), n)
+
+    def test_required_rendered_for_note_field(self):
+        el = ET.fromstring(build.field_xml({"name": "Why", "type": "Note", "required": True}, "Why"))
+        self.assertEqual("TRUE", el.get("Required"))
+        el = ET.fromstring(build.field_xml({"name": "Why", "type": "Note"}, "Why"))
+        self.assertIsNone(el.get("Required"))
 
     def test_new_multichoice_fields_keep_english_codes(self):
         signals = next(l for l in self.v.lists if l["list"] == "Signals")
