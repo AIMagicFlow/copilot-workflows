@@ -89,6 +89,35 @@
         <Description languagecode="{{lcid}}" description="{{t:flows.collectRss.description}}" />
       </Descriptions>
     </Workflow>
+    <Workflow WorkflowId="{58bca39f-6f0f-4947-ba05-d2291ea1e08d}" Name="{{t:flows.processDocuments.name}}">
+      <JsonFileName>/Workflows/TRProcessDocuments.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.2.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="{{lcid}}" description="{{t:flows.processDocuments.name}}" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="{{lcid}}" description="{{t:flows.processDocuments.description}}" />
+      </Descriptions>
+    </Workflow>
   </Workflows>
   <FieldSecurityProfiles></FieldSecurityProfiles>
   <Templates />

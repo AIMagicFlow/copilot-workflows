@@ -17,6 +17,9 @@ flows:
   weeklyDigest:
     name: VT Resumen Semanal
     description: Semanal. Genera un resumen HTML por brief habilitado a partir de las señales de resumen y registra la Publicación.
+  processDocuments:
+    name: VT Procesar Documentos
+    description: Cada 5 minutos. Lee los archivos de texto cargados en SourceUploads/PublicData, los guarda como evidencia y SourceItems (sin duplicados por ID de archivo). Los demás tipos se registran solo con metadatos.
 
 connections:
   sharepoint:

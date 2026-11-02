@@ -369,7 +369,7 @@ def validate_solution(vertical, files):
                 errors.append(f"{name}: parameter '{key}' points to missing env var '{schema}'")
         errors.extend(lint_flow(name, definition, params, library_for_env, url_names))
         for action_name, action in flow_actions(definition.get("actions", {})):
-            p = action.get("inputs", {}).get("parameters", {})
+            p = action_parameters(action)
             m = re.fullmatch(r"@parameters\('[^']*'\)", str(p.get("table", "")))
             if not m:
                 continue

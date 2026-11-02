@@ -1,0 +1,458 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Sources list (tr_SourcesList)": {
+          "defaultValue": "{{list:Sources}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourcesList"
+          }
+        },
+        "Source Items list (tr_SourceItemsList)": {
+          "defaultValue": "{{list:SourceItems}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceItemsList"
+          }
+        },
+        "Source Uploads library (tr_SourceUploadsLibrary)": {
+          "defaultValue": "{{library:SourceUploads}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceUploadsLibrary"
+          }
+        },
+        "Maximum upload size (bytes) (tr_MaxUploadBytes)": {
+          "defaultValue": 1000000,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_MaxUploadBytes"
+          }
+        }
+      },
+      "triggers": {
+        "When_a_file_is_created_or_modified": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Source Uploads library (tr_SourceUploadsLibrary)')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnUpdatedFileItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "recurrence": {
+            "frequency": "Minute",
+            "interval": 5
+          },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Initialize_Text": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Text",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Initialize_ContentStatus": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "ContentStatus",
+                "type": "string",
+                "value": "FullText"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_Text": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Get_Upload_Metadata": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "id": "@triggerOutputs()?['body/{Identifier}']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetFileMetadata"
+            }
+          },
+          "runAfter": {
+            "Initialize_ContentStatus": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Get upload metadata"
+          }
+        },
+        "Build_Source_Path": {
+          "type": "Compose",
+          "inputs": "@substring(outputs('Get_Upload_Metadata')?['body/Path'], 0, lastIndexOf(outputs('Get_Upload_Metadata')?['body/Path'], '/'))",
+          "runAfter": {
+            "Get_Upload_Metadata": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Build source path"
+          }
+        },
+        "If_Public_Path": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "startsWith": [
+                  "@outputs('Build_Source_Path')",
+                  "/SourceUploads/PublicData/"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Get_Upload_Source": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Sources list (tr_SourcesList)')",
+                  "$filter": "field_2 eq 'Upload' and field_3 eq 1 and SourcePath eq '@{replace(outputs('Build_Source_Path'), '''', '''''')}'",
+                  "$top": 1
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetItems"
+                }
+              },
+              "metadata": {
+                "description": "Get upload source"
+              }
+            },
+            "If_Source_Found": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "greater": [
+                      "@length(body('Get_Upload_Source')?['value'])",
+                      0
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Build_ItemKey": {
+                  "type": "Compose",
+                  "inputs": "@{first(body('Get_Upload_Source')?['value'])?['ID']}|@{triggerOutputs()?['body/ID']}",
+                  "metadata": {
+                    "description": "Build ItemKey"
+                  }
+                },
+                "Check_Upload_SourceItem_Exists": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                      "$filter": "field_3 eq '@{outputs('Build_ItemKey')}'",
+                      "$top": 1
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    }
+                  },
+                  "runAfter": {
+                    "Build_ItemKey": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Check upload SourceItem exists"
+                  }
+                },
+                "If_New_Upload": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "empty": [
+                          "@body('Check_Upload_SourceItem_Exists')?['value']"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "If_Text_File": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "or": [
+                              {
+                                "equals": [
+                                  "@toLower(last(split(outputs('Get_Upload_Metadata')?['body/Name'], '.')))",
+                                  "txt"
+                                ]
+                              },
+                              {
+                                "equals": [
+                                  "@toLower(last(split(outputs('Get_Upload_Metadata')?['body/Name'], '.')))",
+                                  "md"
+                                ]
+                              },
+                              {
+                                "equals": [
+                                  "@toLower(last(split(outputs('Get_Upload_Metadata')?['body/Name'], '.')))",
+                                  "csv"
+                                ]
+                              },
+                              {
+                                "equals": [
+                                  "@toLower(last(split(outputs('Get_Upload_Metadata')?['body/Name'], '.')))",
+                                  "html"
+                                ]
+                              },
+                              {
+                                "equals": [
+                                  "@toLower(last(split(outputs('Get_Upload_Metadata')?['body/Name'], '.')))",
+                                  "htm"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "lessOrEquals": [
+                              "@outputs('Get_Upload_Metadata')?['body/Size']",
+                              "@parameters('Maximum upload size (bytes) (tr_MaxUploadBytes)')"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Get_Upload_Content": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "inferContentType": false,
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "id": "@triggerOutputs()?['body/{Identifier}']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetFileContent"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get upload content"
+                          }
+                        },
+                        "Set_Text": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "Text",
+                            "value": "@base64ToString(body('Get_Upload_Content')?['$content'])"
+                          },
+                          "runAfter": {
+                            "Get_Upload_Content": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Set Text"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_ContentStatus_MetadataOnly": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "ContentStatus",
+                              "value": "MetadataOnly"
+                            },
+                            "metadata": {
+                              "description": "Set ContentStatus MetadataOnly"
+                            }
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "If text file"
+                      }
+                    },
+                    "Compose_Normalized_Text": {
+                      "type": "Compose",
+                      "inputs": "SOURCE FILE: @{outputs('Get_Upload_Metadata')?['body/Name']}\nSOURCE: @{first(body('Get_Upload_Source')?['value'])?['Title']}\nSOURCE TYPE: Upload\nPRIVACY: Public\nCOLLECTED: @{utcNow()}\nCONTENT:\n@{variables('Text')}",
+                      "runAfter": {
+                        "If_Text_File": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Compose normalized text"
+                      }
+                    },
+                    "Create_Upload_Evidence": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "folderPath": "/Evidence",
+                          "name": "upload-@{triggerOutputs()?['body/ID']}.txt",
+                          "body": "@outputs('Compose_Normalized_Text')"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "CreateFile"
+                        }
+                      },
+                      "runAfter": {
+                        "Compose_Normalized_Text": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create upload evidence"
+                      }
+                    },
+                    "Create_Upload_SourceItem": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                          "item/Title": "@outputs('Get_Upload_Metadata')?['body/Name']",
+                          "item/field_1": "@first(body('Get_Upload_Source')?['value'])?['ID']",
+                          "item/field_2": "@triggerOutputs()?['body/ID']",
+                          "item/field_3": "@outputs('Build_ItemKey')",
+                          "item/field_4": "@triggerOutputs()?['body/{Link}']",
+                          "item/field_7": "@outputs('Create_Upload_Evidence')?['body/Path']",
+                          "item/field_8": "@variables('ContentStatus')",
+                          "item/field_9": "Ready",
+                          "item/CollectedAt": "@utcNow()"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        }
+                      },
+                      "runAfter": {
+                        "Create_Upload_Evidence": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create upload SourceItem"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Check_Upload_SourceItem_Exists": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "If new upload"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Get_Upload_Source": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "If source found"
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          },
+          "runAfter": {
+            "Build_Source_Path": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "If public path"
+          }
+        }
+      },
+      "outputs": {},
+      "metadata": {
+        "telemetryMetadata": {
+          "creationSource": "WorkflowDesigner",
+          "modifiedSources": "WorkflowDesigner"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -16,6 +16,9 @@ flows:
   weeklyDigest:
     name: TR Weekly Digest
     description: Weekly. Builds one HTML digest per enabled brief from Digest signals and records the Publication.
+  processDocuments:
+    name: TR Process Documents
+    description: Every 5 minutes. Reads text files uploaded under SourceUploads/PublicData, saves them as evidence and SourceItems (deduplicated by file ID). Other file types are recorded as metadata only.
 
 connections:
   sharepoint:
