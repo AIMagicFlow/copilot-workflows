@@ -314,7 +314,7 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
             name = next(k for k, v in self.definition["parameters"].items()
                         if v.get("metadata", {}).get("schemaName") == schema)
             self.assertEqual("@split(coalesce(parameters('%s'), ''), ';')" % name, a["inputs"]["from"])
-            self.assertEqual([], path_to(self.doc, select))
+            self.assertEqual(["Scope_Validate"], path_to(self.doc, select))
 
     def test_invalid_request_leaves_status_unchanged(self):
         actions = self._branch("If_Request_Valid", "else")
@@ -357,7 +357,8 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertEqual("_api/web/lists/GetByTitle('@{parameters('%s')}')/items(@{%s?['ID']})"
                          % (list_param, REQUEST), p["parameters/uri"])
         self.assertEqual({"Status": "Generating"}, json.loads(p["parameters/body"]))
-        self.assertEqual(["If_Request_Valid", "If_No_Existing_Publication"], path_to(self.doc, "Claim_Request"))
+        self.assertEqual(["Scope_Validate", "If_Request_Valid", "If_No_Existing_Publication"],
+                         path_to(self.doc, "Claim_Request"))
         # a lost claim (412) cancels; any other claim failure stops the run; only a won claim continues
         conflict = find_action(self.doc, "If_Claim_Conflict")
         self.assertEqual({"Claim_Request": ["Failed", "TimedOut"]}, conflict["runAfter"])
@@ -369,7 +370,11 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertEqual("Failed", conflict["else"]["actions"]["Terminate_Claim_Failed"]["inputs"]["runStatus"])
         # a retried 5xx after an applied write would get 412 and leave the item stuck in Generating
         self.assertEqual({"type": "none"}, claim["inputs"]["retryPolicy"])
-        self.assertEqual({"Claim_Request": ["Succeeded"]}, find_action(self.doc, "Split_Input_Ids")["runAfter"])
+        # a won claim is recorded first, so the validation failure handler knows this run owns the request
+        mark = find_action(self.doc, "Mark_Claimed")
+        self.assertEqual({"Claim_Request": ["Succeeded"]}, mark["runAfter"])
+        self.assertEqual({"name": "Claimed", "value": True}, mark["inputs"])
+        self.assertEqual({"Mark_Claimed": ["Succeeded"]}, find_action(self.doc, "Split_Input_Ids")["runAfter"])
 
     def test_input_ids_bounds(self):
         split = find_action(self.doc, "Split_Input_Ids")
@@ -405,7 +410,10 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
 
     def test_wrong_product_fails_before_ai(self):
         # the AI step is reached only through: digests valid -> contents read -> prompt built
-        self.assertEqual({"Validate_Each_Digest": ["Succeeded"]}, find_action(self.doc, "Loop_Digest_Contents")["runAfter"])
+        # Scope_Generate (nodes 6-9) starts only after every digest validated
+        self.assertEqual({"Validate_Each_Digest": ["Succeeded"]}, find_action(self.doc, "Scope_Generate")["runAfter"])
+        self.assertEqual("Scope_Generate", path_to(self.doc, "Loop_Digest_Contents")[-1])
+        self.assertNotIn("runAfter", find_action(self.doc, "Loop_Digest_Contents"))
         self.assertEqual({"Loop_Digest_Contents": ["Succeeded"]}, find_action(self.doc, "Build_Case_Prompt")["runAfter"])
         self.assertEqual({"Build_Case_Prompt": ["Succeeded"]}, find_action(self.doc, "Generate_Until_Valid")["runAfter"])
         self.assertEqual("Generate_Until_Valid", path_to(self.doc, "Generate_Case")[-1])
@@ -799,11 +807,13 @@ class BusinessCaseGenerateTests(unittest.TestCase):
         handler = find_action(self.doc, "Set_Failed_Storage")
         self.assertEqual({"Store_Case": ["Failed", "TimedOut"]}, handler["runAfter"])
         self.assert_failed_write("Set_Failed_Storage")
-        # no write anywhere hands the request back to Submitted
+        # no write anywhere hands the request back to Submitted (LastError text may tell the analyst to)
         for name, action in flow_actions(self.definition["actions"]):
             inputs = action.get("inputs")
             if isinstance(inputs, dict) and inputs.get("host", {}).get("operationId") == "HttpRequest":
-                self.assertNotIn("Submitted", action["inputs"]["parameters"]["parameters/body"], name)
+                body = json.loads(action["inputs"]["parameters"]["parameters/body"])
+                self.assertNotEqual("Submitted", body.get("Status"), name)
+                self.assertEqual([], [k for k, v in body.items() if k != "LastError" and "Submitted" in str(v)], name)
 
     def test_publication_key_unique_reused(self):
         keys = [n for n, a in flow_actions(self.definition["actions"])
@@ -826,6 +836,365 @@ class BusinessCaseGenerateTests(unittest.TestCase):
         self.assertEqual("@trim(coalesce(%s?['AudienceKey'], ''))" % REQUEST, p["item/field_4"])
         for blank in ("item/BriefId", "item/field_2"):
             self.assertNotIn(blank, p)
+
+
+DRAFT_ID = "@outputs('Create_Draft_File')?['body/Id']"
+PUBLICATION_ID = "@outputs('Create_Case_Publication')?['body/ID']"
+SCOPES = {"Scope_Validate": "Validate", "Scope_Generate": "Generate", "Scope_Review_Publish": "Review_Publish"}
+FAILURE_NAME = "first(body('Find_%s_Failure'))?['name']"
+FAILURE_CODE = ("coalesce(first(body('Find_%s_Failure'))?['outputs']?['statusCode'], "
+                "first(body('Find_%s_Failure'))?['status'])")
+
+
+def operation(action):
+    inputs = action.get("inputs")
+    return inputs.get("host", {}).get("operationId") if isinstance(inputs, dict) else None
+
+
+class BusinessCaseReviewPublishTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", BUSINESS_CASE)
+        cls.es = load_built("es", BUSINESS_CASE)
+        cls.definition = cls.doc["properties"]["definition"]
+
+    assert_failed_write = BusinessCaseValidateClaimTests.assert_failed_write
+
+    def body(self, name, doc=None):
+        return json.loads(params(doc or self.doc, name)["parameters/body"])
+
+    def assert_request_write(self, name):
+        """A MERGE on the request this run owns: IF-MATCH * (the recheck changed the ETag)."""
+        p = params(self.doc, name)
+        self.assertEqual("HttpRequest", find_action(self.doc, name)["inputs"]["host"]["operationId"])
+        self.assertEqual(params(self.doc, "Claim_Request")["parameters/uri"], p["parameters/uri"])
+        self.assertEqual("*", p["parameters/headers"]["IF-MATCH"])
+        self.assertEqual("MERGE", p["parameters/headers"]["X-HTTP-Method"])
+
+    def assert_publication_update(self, name):
+        a = find_action(self.doc, name)
+        self.assertEqual("PatchItem", a["inputs"]["host"]["operationId"])
+        p = a["inputs"]["parameters"]
+        self.assertIn("tr_PublicationsList", self.definition["parameters"][p["table"][len("@parameters('"):-2]]
+                      ["metadata"]["schemaName"])
+        self.assertEqual(PUBLICATION_ID, p["id"])
+        return p
+
+    def subtree(self, name):
+        action = find_action(self.doc, name)
+        return dict(flow_actions(action.get("actions", {}))) | dict(flow_actions(action.get("else", {}).get("actions", {})))
+
+    def test_approval_persisted_before_wait(self):
+        review = find_action(self.doc, "Scope_Review_Publish")
+        self.assertEqual("Scope", review["type"])
+        self.assertEqual({"Store_Case": ["Succeeded"]}, review["runAfter"])
+        self.assertEqual("If_Case_Valid", path_to(self.doc, "Scope_Review_Publish")[-1])
+        start = find_action(self.doc, "Start_Approval")
+        self.assertEqual("CreateAnApproval", start["inputs"]["host"]["operationId"])
+        self.assertEqual("/providers/Microsoft.PowerApps/apis/shared_approvals", start["inputs"]["host"]["apiId"])
+        self.assertEqual({"Capture_Draft_Version": ["Succeeded"]}, start["runAfter"])
+        p = start["inputs"]["parameters"]
+        self.assertEqual("Basic", p["approvalType"])  # Approve/Reject, first to respond
+        self.assertEqual("@trim(coalesce(%s?['ReviewerEmail'], ''))" % REQUEST, p["ApprovalCreationInput/assignedTo"])
+        # the details carry the restricted draft link only: no case text, request text or digest content
+        details = p["ApprovalCreationInput/details"]
+        self.assertEqual(["parameters('Site URL (tr_SiteURL)')", "outputs('Create_Draft_File')?['body/Path']"],
+                         list(expression_spans(details)))
+        self.assertTrue(details.startswith("Review the restricted draft"), details)
+        self.assertNotEqual(details, params(self.es, "Start_Approval")["ApprovalCreationInput/details"])
+        self.assertEqual([], [s for s in expression_spans(p["ApprovalCreationInput/title"])
+                              if s not in ("%s?['ID']" % REQUEST, "%s?['Version']" % REQUEST)])
+        # the approval ID and InReview are written before the wait starts
+        pub = self.assert_publication_update("Set_Publication_InReview")
+        self.assertEqual({"Start_Approval": ["Succeeded"]}, find_action(self.doc, "Set_Publication_InReview")["runAfter"])
+        self.assertEqual("@body('Start_Approval')?['name']", pub["item/field_7"])
+        self.assertEqual("InReview", pub["item/ReviewStatus"])
+        self.assert_request_write("Set_Request_InReview")
+        self.assertEqual({"Set_Publication_InReview": ["Succeeded"]},
+                         find_action(self.doc, "Set_Request_InReview")["runAfter"])
+        self.assertEqual({"Status": "InReview"}, self.body("Set_Request_InReview"))
+        wait = find_action(self.doc, "Wait_For_Approval")
+        self.assertEqual("OpenApiConnectionWebhook", wait["type"])
+        self.assertEqual("WaitForAnApproval", wait["inputs"]["host"]["operationId"])
+        self.assertEqual({"approvalName": "@body('Start_Approval')?['name']"}, wait["inputs"]["parameters"])
+        self.assertEqual({"timeout": "P14D"}, wait["limit"])
+        self.assertEqual({"Set_Request_InReview": ["Succeeded"]}, wait["runAfter"])
+
+    def test_rejected_never_published(self):
+        copies = [n for n, a in flow_actions(self.definition["actions"]) if operation(a) == "CopyFileAsync"]
+        self.assertEqual(["Copy_To_Published"], copies)
+        trail = path_to(self.doc, "Copy_To_Published")
+        self.assertEqual(["Scope_Review_Publish", "If_Approved", "If_Draft_Unchanged"], trail[-3:])
+        self.assertEqual([], [t for t in trail if "/" in t])  # never an else branch
+        gate = find_action(self.doc, "If_Approved")
+        # approved only on a completed approval whose outcome is Approve; a timeout never reaches the gate
+        self.assertEqual({"Wait_For_Approval": ["Succeeded"]}, gate["runAfter"])
+        self.assertEqual({"and": [{"equals": ["@body('Wait_For_Approval')?['outcome']", "Approve"]}]},
+                         gate["expression"])
+        rejected = gate["else"]["actions"]
+        self.assertEqual(["Set_Publication_Rejected", "Set_Request_Rejected"], list(rejected))
+        timeout = find_action(self.doc, "Record_Approval_Timeout")
+        self.assertEqual("Scope", timeout["type"])
+        self.assertEqual({"Wait_For_Approval": ["TimedOut"]}, timeout["runAfter"])
+        self.assertEqual(["Set_Publication_Timed_Out", "Set_Request_Timed_Out"], list(timeout["actions"]))
+        for pub, req in (("Set_Publication_Rejected", "Set_Request_Rejected"),
+                         ("Set_Publication_Timed_Out", "Set_Request_Timed_Out")):
+            self.assertEqual("Rejected", self.assert_publication_update(pub)["item/ReviewStatus"])
+            self.assert_request_write(req)
+            self.assertEqual("Rejected", self.body(req)["Status"])
+            self.assertEqual({pub: ["Succeeded"]}, find_action(self.doc, req)["runAfter"])
+        self.assertEqual(["Status"], list(self.body("Set_Request_Rejected")))
+        self.assertEqual(["Status", "LastError"], list(self.body("Set_Request_Timed_Out")))
+        self.assertNotIn("@", self.body("Set_Request_Timed_Out")["LastError"])
+        # nothing on the rejected or timeout side copies, publishes or notifies
+        for actions in (rejected, timeout["actions"]):
+            for name, action in flow_actions(actions):
+                self.assertNotIn(operation(action), ("CopyFileAsync", "PostMessageToConversation",
+                                                     "PostMessageToSelf", "CreateFile"), name)
+                self.assertNotIn("PublishedReports", dumps(action), name)
+        for name in ("Wait_For_Approval", "If_Approved", "Record_Approval_Timeout"):
+            self.assertEqual("Scope_Review_Publish", path_to(self.doc, name)[-1], name)
+
+    def test_approved_path_publishes_and_records(self):
+        unchanged = find_action(self.doc, "If_Draft_Unchanged")["actions"]
+        self.assertEqual(["Compose_Published_Path", "Copy_To_Published", "Update_Publication_Approved",
+                          "Set_Request_Approved", "Mark_Request_Approved", "If_Audience_Configured",
+                          "Record_Delivery"], list(unchanged))
+        self.assertEqual("/PublishedReports/businesscase-@{%s?['ID']}-v@{%s?['Version']}.html" % (REQUEST, REQUEST),
+                         unchanged["Compose_Published_Path"]["inputs"])
+        # the copy keeps the draft's deterministic name, so it lands at Compose_Published_Path
+        self.assertEqual(params(self.doc, "Create_Draft_File")["name"],
+                         unchanged["Compose_Published_Path"]["inputs"].split("/")[-1])
+        copy = unchanged["Copy_To_Published"]
+        self.assertEqual({"Compose_Published_Path": ["Succeeded"]}, copy["runAfter"])
+        p = copy["inputs"]["parameters"]
+        self.assertEqual(DRAFT_ID, p["parameters/sourceFileId"])
+        self.assertEqual("@parameters('Site URL (tr_SiteURL)')", p["dataset"])
+        self.assertEqual("@parameters('Site URL (tr_SiteURL)')", p["parameters/destinationDataset"])
+        self.assertEqual("/PublishedReports", p["parameters/destinationFolderPath"])
+        self.assertEqual(0, p["parameters/nameConflictBehavior"])  # never replace an approved report
+        pub = self.assert_publication_update("Update_Publication_Approved")
+        self.assertEqual({"Copy_To_Published": ["Succeeded"]}, unchanged["Update_Publication_Approved"]["runAfter"])
+        self.assertEqual("Approved", pub["item/ReviewStatus"])
+        self.assertEqual("@outputs('Compose_Published_Path')", pub["item/field_3"])
+        self.assert_request_write("Set_Request_Approved")
+        self.assertEqual({"Status": "Approved"}, self.body("Set_Request_Approved"))
+        self.assertEqual({"Update_Publication_Approved": ["Succeeded"]}, unchanged["Set_Request_Approved"]["runAfter"])
+        self.assertEqual({"name": "RequestApproved", "value": True}, unchanged["Mark_Request_Approved"]["inputs"])
+        self.assertEqual({"Set_Request_Approved": ["Succeeded"]}, unchanged["Mark_Request_Approved"]["runAfter"])
+        # Approved is written only here, after the copy
+        approved = []
+        for name, action in flow_actions(self.definition["actions"]):
+            if operation(action) == "PatchItem":
+                values = action["inputs"]["parameters"].values()
+            elif operation(action) == "HttpRequest":
+                values = json.loads(action["inputs"]["parameters"]["parameters/body"]).values()
+            else:
+                continue
+            if "Approved" in values:
+                approved.append(name)
+        self.assertEqual(["Update_Publication_Approved", "Set_Request_Approved"], approved)
+
+    def test_edit_after_approval_blocks_publish(self):
+        capture = find_action(self.doc, "Capture_Draft_Version")
+        self.assertEqual("GetFileMetadata", capture["inputs"]["host"]["operationId"])
+        self.assertEqual(DRAFT_ID, capture["inputs"]["parameters"]["id"])
+        self.assertEqual("Scope_Review_Publish", path_to(self.doc, "Capture_Draft_Version")[-1])
+        self.assertNotIn("runAfter", capture)  # first in the review scope, before the approval starts
+        get = find_action(self.doc, "Get_Draft_Version")
+        self.assertEqual("GetFileMetadata", get["inputs"]["host"]["operationId"])
+        self.assertEqual(DRAFT_ID, get["inputs"]["parameters"]["id"])
+        self.assertEqual("If_Approved", path_to(self.doc, "Get_Draft_Version")[-1])
+        gate = find_action(self.doc, "If_Draft_Unchanged")
+        self.assertEqual({"Get_Draft_Version": ["Succeeded"]}, gate["runAfter"])
+        self.assertEqual({"and": [
+            {"not": {"empty": ["@body('Capture_Draft_Version')?['ETag']"]}},
+            {"equals": ["@body('Get_Draft_Version')?['ETag']", "@body('Capture_Draft_Version')?['ETag']"]},
+        ]}, gate["expression"])
+        changed = gate["else"]["actions"]
+        self.assertEqual(["Set_Failed_Edited", "Terminate_Edited_After_Approval"], list(changed))
+        self.assert_failed_write("Set_Failed_Edited")
+        message = self.body("Set_Failed_Edited")["LastError"]
+        self.assertIn("edited after the approval request", message)
+        self.assertIn("resubmit", message)
+        self.assertEqual({"Set_Failed_Edited": ["Succeeded", "Failed", "TimedOut"]},
+                         changed["Terminate_Edited_After_Approval"]["runAfter"])
+        self.assertEqual("Failed", changed["Terminate_Edited_After_Approval"]["inputs"]["runStatus"])
+        for name, action in flow_actions(changed):
+            self.assertNotIn(operation(action), ("CopyFileAsync", "PatchItem", "PostMessageToConversation",
+                                                 "PostMessageToSelf"), name)
+
+    def test_delivery_uncertain_on_timeout(self):
+        audience = next(k for k, v in self.definition["parameters"].items()
+                        if v.get("metadata", {}).get("schemaName") == "tr_NotificationAudience")
+        gate = find_action(self.doc, "If_Audience_Configured")
+        self.assertEqual({"Mark_Request_Approved": ["Succeeded"]}, gate["runAfter"])
+        self.assertEqual({"and": [{"not": {"empty": ["@trim(coalesce(parameters('%s'), ''))" % audience]}}]},
+                         gate["expression"])
+        link = "@{parameters('Site URL (tr_SiteURL)')}@{outputs('Compose_Published_Path')}"
+        channel = find_action(self.doc, "Notify_Audience")
+        self.assertIn("Notify_Audience", gate["actions"])
+        self.assertEqual("PostMessageToConversation", channel["inputs"]["host"]["operationId"])
+        p = channel["inputs"]["parameters"]
+        self.assertEqual(("Flow bot", "Channel"), (p["poster"], p["location"]))
+        self.assertEqual("@trim(first(split(parameters('%s'), '|')))" % audience, p["body/recipient/groupId"])
+        self.assertEqual("@trim(last(split(parameters('%s'), '|')))" % audience, p["body/recipient/channelId"])
+        self_post = find_action(self.doc, "Notify_Self")
+        self.assertIn("Notify_Self", gate["else"]["actions"])
+        self.assertEqual("PostMessageToSelf", self_post["inputs"]["host"]["operationId"])
+        messages = (p["body/messageBody"], self_post["inputs"]["parameters"]["body/body/content"])
+        for message in messages:
+            self.assertTrue(message.endswith(link), message)  # only the approved, published link
+            self.assertEqual(["parameters('Site URL (tr_SiteURL)')", "outputs('Compose_Published_Path')"],
+                             list(expression_spans(message)))
+        self.assertEqual("text", self_post["inputs"]["parameters"]["body/body/contentType"])
+        for notify, branch in (("Notify_Audience", gate["actions"]), ("Notify_Self", gate["else"]["actions"])):
+            a = branch[notify]
+            # one post only: a retried post after an unknown outcome could duplicate it
+            self.assertEqual({"type": "none"}, a["inputs"]["retryPolicy"])
+            self.assertEqual("PT1M", a["limit"]["timeout"])
+            outcome = {n: (s["runAfter"], s["inputs"]) for n, s in branch.items() if s["type"] == "SetVariable"}
+            self.assertEqual(sorted([({notify: ["Succeeded"]}, {"name": "DeliveryStatus", "value": "Sent"}),
+                                     ({notify: ["Failed"]}, {"name": "DeliveryStatus", "value": "Failed"}),
+                                     ({notify: ["TimedOut"]}, {"name": "DeliveryStatus", "value": "Uncertain"})],
+                                    key=dumps), sorted(outcome.values(), key=dumps))
+        record = find_action(self.doc, "Record_Delivery")
+        self.assertEqual({"If_Audience_Configured": ["Succeeded", "Failed", "TimedOut"]}, record["runAfter"])
+        p = self.assert_publication_update("Record_Delivery")
+        self.assertEqual("@variables('DeliveryStatus')", p["item/field_5"])
+        self.assertEqual("@if(equals(variables('DeliveryStatus'), 'Sent'), utcNow(), null)", p["item/field_6"])
+        init = {a["inputs"]["variables"][0]["name"]: a["inputs"]["variables"][0]
+                for a in self.definition["actions"].values() if a["type"] == "InitializeVariable"}
+        self.assertEqual({"name": "DeliveryStatus", "type": "string", "value": "Pending"}, init["DeliveryStatus"])
+        # notifications exist only in the approved, unchanged branch
+        posts = [n for n, a in flow_actions(self.definition["actions"])
+                 if operation(a) in ("PostMessageToConversation", "PostMessageToSelf")]
+        self.assertEqual(["Notify_Audience", "Notify_Self"], posts)
+        for name in posts:
+            self.assertIn("If_Draft_Unchanged", path_to(self.doc, name))
+        self.assertNotEqual(messages[0], find_action(self.es, "Notify_Audience")["inputs"]["parameters"]
+                            ["body/messageBody"])
+
+    def test_failure_handlers_cover_three_scopes(self):
+        self.assertEqual([], path_to(self.doc, "Scope_Validate"))
+        self.assertEqual("Scope_Validate", path_to(self.doc, "Get_Request")[-1])
+        self.assertNotIn("runAfter", find_action(self.doc, "Get_Request"))
+        last_init = [n for n, a in self.definition["actions"].items() if a["type"] == "InitializeVariable"][-1]
+        self.assertEqual({last_init: ["Succeeded"]}, find_action(self.doc, "Scope_Validate")["runAfter"])
+        self.assertEqual(["Scope_Validate", "Handle_Scope_Validate_Failure"],
+                         [n for n, a in self.definition["actions"].items() if a["type"] != "InitializeVariable"])
+        members = {
+            "Scope_Validate": ["Get_Request", "If_Request_Valid", "Claim_Request", "Validate_Each_Digest"],
+            "Scope_Generate": ["Loop_Digest_Contents", "Build_Case_Prompt", "Generate_Until_Valid", "Store_Case"],
+            "Scope_Review_Publish": ["Start_Approval", "Wait_For_Approval", "Copy_To_Published", "Notify_Audience"],
+        }
+        for scope, short in SCOPES.items():
+            self.assertEqual("Scope", find_action(self.doc, scope)["type"])
+            for member in members[scope]:
+                self.assertIn(scope, path_to(self.doc, member), member)
+            handler_name = "Handle_%s_Failure" % scope
+            handler = find_action(self.doc, handler_name)
+            self.assertEqual("Scope", handler["type"])
+            self.assertEqual({scope: ["Failed", "TimedOut"]}, handler["runAfter"])
+            self.assertEqual(path_to(self.doc, scope), path_to(self.doc, handler_name))  # siblings
+            find = handler["actions"]["Find_%s_Failure" % short]
+            self.assertEqual("Query", find["type"])
+            self.assertEqual("@result('%s')" % scope, find["inputs"]["from"])
+            self.assertEqual("@contains(createArray('Failed', 'TimedOut'), item()?['status'])", find["inputs"]["where"])
+            terminate = handler["actions"]["Terminate_%s_Failed" % short]
+            self.assertEqual("Terminate", terminate["type"])
+            self.assertEqual("Failed", terminate["inputs"]["runStatus"])
+            self.assertEqual(4, len(next(iter(terminate["runAfter"].values()))))  # always ends the run
+            # handlers never delete or move files or publications
+            for name, action in flow_actions(handler["actions"]):
+                self.assertNotIn(operation(action), ("DeleteFile", "DeleteItem", "CopyFileAsync", "MoveFileAsync",
+                                                     "PatchItem", "PostItem"), name)
+        # before the claim this run does not own the request: write nothing
+        claimed = find_action(self.doc, "If_Validate_Claimed")
+        self.assertEqual({"and": [{"equals": ["@variables('Claimed')", True]}]}, claimed["expression"])
+        self.assertEqual(["Set_Failed_Validate"], list(claimed["actions"]))
+        self.assertEqual({}, claimed["else"]["actions"])
+        self.assert_failed_write("Set_Failed_Validate")
+        self.assert_failed_write("Set_Failed_Generate")
+        # after approval a failure (for example recording delivery) keeps Approved and records LastError only
+        approved = find_action(self.doc, "If_Request_Already_Approved")
+        self.assertEqual({"and": [{"equals": ["@variables('RequestApproved')", True]}]}, approved["expression"])
+        self.assertEqual(["Set_Error_After_Approval"], list(approved["actions"]))
+        self.assert_request_write("Set_Error_After_Approval")
+        self.assertEqual(["LastError"], list(self.body("Set_Error_After_Approval")))
+        self.assertEqual(["Set_Failed_Review_Publish"], list(approved["else"]["actions"]))
+        self.assert_failed_write("Set_Failed_Review_Publish")
+        init = {a["inputs"]["variables"][0]["name"]: a["inputs"]["variables"][0]["value"]
+                for a in self.definition["actions"].values() if a["type"] == "InitializeVariable"}
+        self.assertIs(False, init["Claimed"])
+        self.assertIs(False, init["RequestApproved"])
+        # R-E: a failed or stuck request is retried by setting Status back to Submitted
+        for name in ("Set_Failed_Validate", "Set_Failed_Generate"):
+            self.assertIn("set Status back to Submitted", self.body(name)["LastError"], name)
+        for name in ("Terminate_Claim_Failed", "Terminate_Recheck_Failed"):
+            self.assertIn("set it back to Submitted", find_action(self.doc, name)["inputs"]["runError"]["message"])
+
+    def test_last_error_has_no_body_content(self):
+        checked = 0
+        for doc in (self.doc, self.es):
+            for name, action in flow_actions(doc["properties"]["definition"]["actions"]):
+                if operation(action) != "HttpRequest":
+                    continue
+                body = json.loads(action["inputs"]["parameters"]["parameters/body"])
+                if "LastError" not in body:
+                    continue
+                checked += 1
+                message = body["LastError"]
+                self.assertTrue(message.strip(), name)
+                self.assertNotIn('"', message)
+                for raw in ("Generate_Case", "structuredOutput", "DigestBundle", "Compose_Digest_Text",
+                            "Get_Digest_Contents", "Build_Case_Prompt", "Render_Case_Html", "Get_Request",
+                            "Escape_Html", "['error']", "['body']", "message"):
+                    self.assertNotIn(raw, message, name)
+                spans = list(expression_spans(message))
+                if spans:
+                    short = next(s for s in SCOPES.values() if "Find_%s_Failure" % s in message)
+                    # action name and status code only
+                    self.assertEqual([FAILURE_NAME % short, FAILURE_CODE % (short, short)], spans, name)
+                    # the interpolations sit at the end, after the fixed label
+                    self.assertTrue(message.endswith("@{%s}" % (FAILURE_CODE % (short, short))), name)
+                    self.assertIn("Handle_Scope_%s_Failure" % short, path_to(doc, name))
+        self.assertGreaterEqual(checked, 2 * 10)
+
+    def test_request_writes_after_claim_use_if_match_star(self):
+        uri = params(self.doc, "Claim_Request")["parameters/uri"]
+        writes = {n: a for n, a in flow_actions(self.definition["actions"])
+                  if operation(a) == "HttpRequest" and a["inputs"]["parameters"]["parameters/uri"] == uri}
+        for name in ("Set_Request_InReview", "Set_Request_Approved", "Set_Request_Rejected", "Set_Request_Timed_Out",
+                     "Set_Failed_Edited", "Set_Failed_Validate", "Set_Failed_Generate", "Set_Failed_Review_Publish",
+                     "Set_Error_After_Approval"):
+            self.assertIn(name, writes)
+        for name, action in writes.items():
+            headers = action["inputs"]["parameters"]["parameters/headers"]
+            self.assertEqual("MERGE", headers["X-HTTP-Method"], name)
+            if name in ("Claim_Request", "Recheck_Claim"):
+                continue
+            # the recheck MERGE changed the ETag; the owning run writes with IF-MATCH *
+            self.assertEqual("*", headers["IF-MATCH"], name)
+        statuses = {n: json.loads(a["inputs"]["parameters"]["parameters/body"]).get("Status") for n, a in writes.items()}
+        self.assertEqual({"Generating", "InReview", "Approved", "Rejected", "Failed", None}, set(statuses.values()))
+        self.assertEqual(["Claim_Request", "Recheck_Claim"], [n for n, s in statuses.items() if s == "Generating"])
+
+    def test_approvals_connection_reference(self):
+        refs = self.doc["properties"]["connectionReferences"]
+        self.assertEqual({"shared_sharepointonline", "shared_agentnode", "shared_approvals", "shared_teams"}, set(refs))
+        self.assertEqual("tr_sharedapprovals", refs["shared_approvals"]["connection"]["connectionReferenceLogicalName"])
+        self.assertEqual("new_sharedteams_9326dab3", refs["shared_teams"]["connection"]["connectionReferenceLogicalName"])
+        names = {}
+        for locale in ("en", "es"):
+            xml = ET.fromstring(built_text(locale, "customizations.xml").lstrip("﻿"))
+            ref = next(c for c in xml.iter("connectionreference")
+                       if c.get("connectionreferencelogicalname") == "tr_sharedapprovals")
+            self.assertEqual("/providers/Microsoft.PowerApps/apis/shared_approvals", ref.findtext("connectorid"))
+            self.assertTrue(ref.findtext("description"))
+            names[locale] = ref.findtext("connectionreferencedisplayname")
+        self.assertEqual("Trend Researcher - Approvals", names["en"])
+        self.assertNotEqual(names["en"], names["es"])
 
 
 if __name__ == "__main__":

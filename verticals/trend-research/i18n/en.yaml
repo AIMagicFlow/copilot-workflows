@@ -36,6 +36,9 @@ connections:
   agent:
     name: Trend Researcher - AI classifier
     description: Copilot Studio agent connection used by the bounded classification prompt.
+  approvals:
+    name: Trend Researcher - Approvals
+    description: Approvals connection that sends business case drafts to the configured reviewer.
 
 env:
   tr_SiteURL:
@@ -117,15 +120,24 @@ digest:
 businessCase:
   errors:
     invalidRequest: The business case request is not valid. Check that Status is Submitted, every required field is filled in, Version is a positive whole number, and ReviewerEmail and AudienceKey are approved values.
-    claimFailed: The business case request could not be claimed for generation. Try again later.
+    claimFailed: "The business case request could not be claimed for generation. If its Status shows Generating, set it back to Submitted to retry."
     invalidInputIds: InputPublicationIds must hold 1 to 5 distinct positive whole-number IDs separated by commas.
     invalidDigests: An input publication does not exist, is not a digest, belongs to another product, or has no report URL.
     digestContent: An input digest file could not be read, is not an HTML or text file, is empty, or the digests together exceed the maximum input size (tr_BusinessCaseMaxInputChars).
     invalidCase: The generated business case was rejected twice. A required section was empty, a citation did not match an input digest, or costs were not reported as Unknown without financial inputs.
-    recheckFailed: The business case request could not be re-checked before writing the draft. No draft was written.
+    recheckFailed: "The business case request could not be re-checked before writing the draft. No draft was written. The request stays in Generating; set it back to Submitted to retry."
     storageFailed: The business case draft or its Publication record could not be written.
+    validateFailed: "The business case request could not be validated. Fix the cause, then set Status back to Submitted to retry. Failed step:"
+    generateFailed: "The business case could not be generated or stored; nothing was published. Fix the cause, then set Status back to Submitted to retry. Failed step:"
+    reviewPublishFailed: "The business case review or publication failed. The draft, its Publication record and any copied file are kept; to try again, create a new revision request. Failed step:"
+    afterApprovalFailed: "The business case was approved and published, but a later step failed. Failed step:"
+    editedAfterApproval: "The draft was edited after the approval request, so it was not published; resubmit it as a new request version."
+    approvalTimedOut: "The approval request had no response within 14 days. The draft was not published."
   outputLanguage: English
   publicationTitle: Business case
+  approvalTitle: Review business case request
+  approvalDetails: "Review the restricted draft below. Approve only if its citations and assumptions are correct. Any change to the file after this request blocks publication: reject it and resubmit instead."
+  notifyMessage: Approved business case
   html:
     title: Business case
     draftNotice: Draft for review. Not approved and not for distribution.

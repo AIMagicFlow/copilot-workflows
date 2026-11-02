@@ -193,6 +193,15 @@
       <statecode>0</statecode>
       <statuscode>1</statuscode>
     </connectionreference>
+    <connectionreference connectionreferencelogicalname="tr_sharedapprovals">
+      <connectionreferencedisplayname>{{t:connections.approvals.name}}</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_approvals</connectorid>
+      <description>{{t:connections.approvals.description}}</description>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
   </connectionreferences>
   <Languages>
     <Language>{{lcid}}</Language>

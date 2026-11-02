@@ -37,6 +37,9 @@ connections:
   agent:
     name: Vigilante de Tendencias - Clasificador IA
     description: Conexión del agente de Copilot Studio que usa el prompt de clasificación acotado.
+  approvals:
+    name: Vigilante de Tendencias - Aprobaciones
+    description: Conexión de Aprobaciones que envía los borradores de casos de negocio al revisor configurado.
 
 env:
   tr_SiteURL:
@@ -118,15 +121,24 @@ digest:
 businessCase:
   errors:
     invalidRequest: La solicitud de caso de negocio no es válida. Compruebe que Status sea Submitted, que todos los campos obligatorios estén completos, que Version sea un número entero positivo y que ReviewerEmail y AudienceKey sean valores aprobados.
-    claimFailed: No se pudo reservar la solicitud de caso de negocio para su generación. Inténtelo de nuevo más tarde.
+    claimFailed: "No se pudo reservar la solicitud de caso de negocio para su generación. Si su Status muestra Generating, vuelva a ponerlo en Submitted para reintentar."
     invalidInputIds: InputPublicationIds debe contener de 1 a 5 ID distintos, enteros positivos, separados por comas.
     invalidDigests: Una publicación de entrada no existe, no es un resumen, pertenece a otro producto o no tiene URL del informe.
     digestContent: No se pudo leer el archivo de un resumen de entrada, no es un archivo HTML o de texto, está vacío, o los resúmenes juntos superan el tamaño máximo de entrada (tr_BusinessCaseMaxInputChars).
     invalidCase: El caso de negocio generado se rechazó dos veces. Una sección obligatoria estaba vacía, una cita no coincidía con un resumen de entrada, o los costos no se indicaron como Unknown sin datos financieros.
-    recheckFailed: No se pudo volver a comprobar la solicitud de caso de negocio antes de escribir el borrador. No se escribió ningún borrador.
+    recheckFailed: "No se pudo volver a comprobar la solicitud de caso de negocio antes de escribir el borrador. No se escribió ningún borrador. La solicitud queda en Generating; vuelva a ponerla en Submitted para reintentar."
     storageFailed: No se pudo escribir el borrador del caso de negocio o su registro en Publicaciones.
+    validateFailed: "No se pudo validar la solicitud de caso de negocio. Corrija la causa y vuelva a poner Status en Submitted para reintentar. Paso con error:"
+    generateFailed: "No se pudo generar ni guardar el caso de negocio; no se publicó nada. Corrija la causa y vuelva a poner Status en Submitted para reintentar. Paso con error:"
+    reviewPublishFailed: "Falló la revisión o la publicación del caso de negocio. Se conservan el borrador, su registro en Publicaciones y cualquier archivo copiado; para reintentar, cree una nueva solicitud con la versión siguiente. Paso con error:"
+    afterApprovalFailed: "El caso de negocio se aprobó y se publicó, pero falló un paso posterior. Paso con error:"
+    editedAfterApproval: "El borrador se editó después de la solicitud de aprobación, por lo que no se publicó; vuelva a enviarlo como una nueva versión de la solicitud."
+    approvalTimedOut: "La solicitud de aprobación no tuvo respuesta en 14 días. El borrador no se publicó."
   outputLanguage: Spanish (español neutro latinoamericano)
   publicationTitle: Caso de negocio
+  approvalTitle: Revisar la solicitud de caso de negocio
+  approvalDetails: "Revise el borrador restringido a continuación. Apruébelo solo si sus citas y supuestos son correctos. Cualquier cambio en el archivo después de esta solicitud bloquea la publicación: en ese caso, rechácelo y vuelva a enviarlo."
+  notifyMessage: Caso de negocio aprobado
   html:
     title: Caso de negocio
     draftNotice: Borrador para revisión. No está aprobado y no debe distribuirse.

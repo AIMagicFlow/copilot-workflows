@@ -72,7 +72,8 @@ class SolutionTests(unittest.TestCase):
     def test_only_used_connection_references_ship(self):
         es = ET.fromstring(self.es["customizations.xml"])
         apis = sorted(c.findtext("connectorid").rsplit("/", 1)[1] for c in es.iter("connectionreference"))
-        self.assertEqual(["shared_agentnode", "shared_rss", "shared_sharepointonline", "shared_teams"], apis)
+        self.assertEqual(["shared_agentnode", "shared_approvals", "shared_rss", "shared_sharepointonline", "shared_teams"],
+                         apis)
 
     def test_list_env_var_defaults_are_localized_titles(self):
         en = ET.fromstring(self.en["environmentvariabledefinitions/tr_SignalsList/environmentvariabledefinition.xml"])
