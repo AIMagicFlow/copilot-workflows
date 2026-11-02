@@ -23,7 +23,7 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 
 ## 2. Create the lists and libraries (choose one option)
 
-The flows depend on each column's **internal name** (for example `field_3`), not its display name. Both options create the same five lists (`ResearchBriefs`, `Sources`, `SourceItems`, `Signals`, `Publications`) and three libraries.
+The flows depend on each column's **internal name** (for example `field_3`), not its display name. Both options create the same five lists (`ResearchBriefs`, `Sources`, `SourceItems`, `Signals`, `Publications`) and four libraries (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
 
 | | Option A: CSV files | Option B: PnP PowerShell |
 |---|---|---|
@@ -35,7 +35,9 @@ The flows depend on each column's **internal name** (for example `field_3`), not
 
 ### Option A: CSV files
 
-**Libraries.** The flows write to `/Evidence`, `/PublishedReports` and `/ResearchDrafts`. For each: **New → Document library → Blank library**, enter the name exactly as written, select **Create**. You can rename the display title later. The URL stays the same.
+**Libraries.** The flows write to `/Evidence`, `/PublishedReports` and `/ResearchDrafts`, and `TR Process Documents` watches `/SourceUploads`. For each: **New → Document library → Blank library**, enter the name exactly as written, select **Create**. You can rename the display title later. The URL stays the same.
+
+**Upload folder.** Open the `SourceUploads` library and create a folder named exactly `PublicData`. The flow only reads files under this folder. (Option B creates it for you.)
 
 **Lists.** The kit's `lists/` folder has one file per list. Each file carries the full schema, including internal names. For each file:
 
@@ -109,6 +111,8 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
    | Site URL | The URL from step 1, no trailing slash |
    | Research Briefs / Sources / Source Items / Signals / Publications list | Prefilled with the list names. Change them only if you named the lists differently. A list ID (GUID) also works. |
    | Daily Classification Limit | `50` (maximum items classified per day). Each item is classified once per enabled brief. |
+   | Source Uploads library | Prefilled with the library title (`Source Uploads`). If the flow's trigger rejects the title, enter the library's ID (GUID) instead. |
+   | Maximum upload size (bytes) | `1000000`. Larger files are recorded by name only (see step 5). |
 
    The other variables are reserved for future versions. Leave them empty.
 
@@ -117,7 +121,7 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
 ## 4. Turn the flows on
 
 1. In **Solutions**, open **Trend Researcher → Cloud flows**.
-2. Check that **TR Collect RSS**, **TR Classify Items** and **TR Weekly Digest** are **On**. If one is off, select it and choose **Turn on**.
+2. Check that **TR Collect RSS**, **TR Classify Items**, **TR Weekly Digest** and **TR Process Documents** are **On**. If one is off, select it and choose **Turn on**.
 
 The same flows appear in Copilot Studio under **Flows**.
 
@@ -125,6 +129,21 @@ The same flows appear in Copilot Studio under **Flows**.
 
 - **ResearchBriefs**: edit the sample brief or add your own. Fill in *Question*, *Keywords*, *Exclusions*, *Languages* and *Geographies*. Set *Enabled* to `1` to run the brief and `0` to stop it. If you change an existing brief's question, increase *BriefVersion*: new items are then analyzed under the new version.
 - **Sources**: keep only approved RSS feeds. Set *Enabled* to `1` to collect from a source and `0` to pause it. Set *SourceType* to `RSS`.
+- **Uploaded documents (optional).** Add one **Sources** row per upload subfolder:
+  1. In `SourceUploads/PublicData`, create a subfolder for the source, for example `VendorDocuments`.
+  2. In **Sources**, add a row with *Title* (the source name), *SourceType* `Upload`, *SourcePath* `/SourceUploads/PublicData/VendorDocuments` (library URL name plus folder path, no trailing slash) and *Enabled* `1`.
+  3. Upload files into that subfolder. `TR Process Documents` checks for new or changed files every 5 minutes.
+
+  What the flow does with an upload:
+  - **Text files are read.** `.txt`, `.md`, `.csv`, `.html` and `.htm` (any capitalization) are read as UTF-8 text. HTML is kept as is, tags included.
+  - **Everything else is recorded by name only.** PDF, Word, Excel, PowerPoint and any other type get a SourceItem with *ContentStatus* `MetadataOnly`: the classifier sees the file name and folder, not the content.
+  - **Size limit.** A text file larger than *Maximum upload size* (default 1,000,000 bytes) is also `MetadataOnly`.
+  - **Only subfolders of `PublicData` are read.** A file placed directly in `PublicData`, or in any other folder, is ignored. Each subfolder needs its own enabled `Upload` row in Sources, or its files are ignored.
+  - **Do not upload private documents.** This version has no redaction. See [ADR-001](design/adr-001-text-only-uploads.md).
+  - **No duplicates.** Uploading the same file again, editing it or renaming it does not create a second item. The flow identifies a file by its SharePoint item ID.
+  - Each processed file adds a text file to **Evidence** named `upload-<item ID>.txt` and a SourceItem with *Status* `Ready`. The next **TR Classify Items** run classifies it.
+
+  Known limits, not yet verified in a tenant: the flow assumes the file path it receives starts with `/SourceUploads/`; a folder created in the library may also produce a `MetadataOnly` item; and the file link stored in the SourceItem is limited to 255 characters.
 
 ## 6. Test end to end
 
@@ -133,6 +152,7 @@ Run each flow once with **Test → Manually**, in this order:
 1. **TR Collect RSS** → rows appear in **SourceItems** with *Status* `Ready`, and `.txt` files appear in **Evidence**.
 2. **TR Classify Items** → rows appear in **Signals**. Processed items switch to `Classified`.
 3. **TR Weekly Digest** → an HTML file appears in **PublishedReports**, a row appears in **Publications**, and you get a Teams message. If no signal reached relevance 70 or higher in the last 7 days, no digest is produced. That is expected.
+4. **TR Process Documents** (if you added an `Upload` source) runs by itself when a file is added. Upload a small `.txt` file to the source's subfolder and wait about 5 minutes. A SourceItem with *ContentStatus* `FullText` and a file in **Evidence** appear.
 
 ## Troubleshooting
 
@@ -146,3 +166,13 @@ Run each flow once with **Test → Manually**, in this order:
 ## Upgrading
 
 Import the new zip with **Solutions → Import solution**, as in step 3. The solution is updated in place. Lists, data and environment variable values are kept. If you used option B, run the new kit's `provision.ps1` again: it adds new columns. With option A, add them by hand from the release notes.
+
+### Upgrading from 1.1 to 1.2
+
+1.2.0.0 adds the `TR Process Documents` flow, the `SourceUploads` library and the `SourcePath` column on **Sources**. Follow the generated `upgrade-1.2.0.0.en.md`, inside the SharePoint kit zip: it lists what to add by hand if you used option A. Then:
+
+1. Create the `SourceUploads` library and its `PublicData` folder (option B does this when you run `provision.ps1`).
+2. Import the new solution. It asks for the two new environment variables, *Source Uploads library* and *Maximum upload size*.
+3. Turn **TR Process Documents** on and add `Upload` rows to **Sources** (step 5).
+4. Read the 1.2.0.0 entry in `CHANGELOG.md` before upgrading. It describes the ItemKey fix in `TR Collect RSS`; its effect on existing items is pending dev-tenant verification.
+

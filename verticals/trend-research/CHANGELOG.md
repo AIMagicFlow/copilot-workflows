@@ -2,6 +2,18 @@
 
 ## 1.2.0.0 (unreleased)
 
+### Added
+
+- **Document uploads: new flow `TR Process Documents`.** It checks the `SourceUploads` library every 5 minutes for new or modified files and writes each one to Evidence and SourceItems. See [ADR-001](docs/design/adr-001-text-only-uploads.md).
+  - Text files are read as UTF-8: `.txt`, `.md`, `.csv`, `.html`, `.htm` (extension check is case-insensitive). HTML is kept raw, tags included.
+  - Any other file type, and any text file larger than `tr_MaxUploadBytes` (default `1000000`), becomes a SourceItem with `ContentStatus=MetadataOnly`.
+  - Only folders under `/SourceUploads/PublicData/` are read. A file directly in `PublicData`, or in any other folder, is ignored. **Private documents must not be uploaded:** there is no redaction in this version.
+  - Re-uploading, editing or renaming a processed file creates no second item: `ItemKey` is `<Source ID>|<list item ID>`.
+- **Schema.** New library `SourceUploads` (es: `Cargas de fuentes`) with folder `PublicData`. New column `Sources.SourcePath` (Text, indexed). Sources rows for uploads use `SourceType=Upload`, `SourcePath` such as `/SourceUploads/PublicData/VendorDocuments` (no trailing slash) and `Enabled=1`.
+- **Environment variables.** `tr_SourceUploadsLibrary` (default: the library title; use the library GUID if the trigger rejects the title) and `tr_MaxUploadBytes` (default `1000000`).
+- **Upgrading from 1.1:** see the quickstart section "Upgrading from 1.1 to 1.2" and the generated `upgrade-1.2.0.0.<locale>.md` inside the SharePoint kit zip.
+- Known open points, not verified in a tenant: the `Path` returned by `GetFileMetadata` is assumed to start with `/SourceUploads/`; a folder-created event may produce a `MetadataOnly` item; the SourceItem link is limited to 255 characters.
+
 ### Fixes
 
 - **Designer line breaks removed.** `TR Collect RSS` → `Build_ItemKey` wrote the ItemKey as `<SourceID>|<entry id>` followed by a line break, and `TR Weekly Digest` → `Get_Existing_Publication` had a `$filter` that ended in one. Both values are now clean.

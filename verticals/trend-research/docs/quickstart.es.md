@@ -24,7 +24,7 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 
 ## 2. Cree las listas y bibliotecas (elija una opción)
 
-Los flujos dependen del **nombre interno** de cada columna (por ejemplo `field_3`), no del nombre visible. Las dos opciones crean las mismas cinco listas (`Briefs`, `Fuentes`, `ElementosFuente`, `Señales`, `Publicaciones`) y las tres bibliotecas.
+Los flujos dependen del **nombre interno** de cada columna (por ejemplo `field_3`), no del nombre visible. Las dos opciones crean las mismas cinco listas (`Briefs`, `Fuentes`, `ElementosFuente`, `Señales`, `Publicaciones`) y las cuatro bibliotecas (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
 
 | | Opción A: archivos CSV | Opción B: PnP PowerShell |
 |---|---|---|
@@ -36,13 +36,16 @@ Los flujos dependen del **nombre interno** de cada columna (por ejemplo `field_3
 
 ### Opción A: archivos CSV
 
-**Bibliotecas.** Los flujos escriben en las rutas `/Evidence`, `/PublishedReports` y `/ResearchDrafts`. Cree cada biblioteca **con el nombre en inglés** (ese nombre define la URL) y después cámbiele el nombre visible.
+**Bibliotecas.** Los flujos escriben en las rutas `/Evidence`, `/PublishedReports` y `/ResearchDrafts`, y `VT Procesar Documentos` vigila `/SourceUploads`. Cree cada biblioteca **con el nombre en inglés** (ese nombre define la URL) y después cámbiele el nombre visible (en la tabla siguiente).
+
+**Carpeta de cargas.** Abra la biblioteca `SourceUploads` y cree una carpeta llamada exactamente `PublicData`. El flujo solo lee los archivos que están debajo de ella. (La opción B la crea por usted.)
 
 | Crear con el nombre | Después renombrar a |
 |---|---|
 | `Evidence` | Evidencias |
 | `PublishedReports` | Informes publicados |
 | `ResearchDrafts` | Borradores de investigación |
+| `SourceUploads` | Cargas de fuentes |
 
 Para cada una: **Nuevo → Biblioteca de documentos → En blanco**, escriba el nombre en inglés y seleccione **Crear**. Para cambiar el nombre visible: **Configuración → Configuración de la biblioteca → Nombre, descripción y navegación**.
 
@@ -118,6 +121,8 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
    | URL del sitio | La URL del paso 1, sin barra final |
    | Lista de briefs / fuentes / elementos fuente / señales / publicaciones | Ya vienen con `Briefs`, `Fuentes`, `ElementosFuente`, `Señales`, `Publicaciones`. Cámbielas solo si usó otros nombres de lista. También acepta el ID (GUID) de la lista. |
    | Límite diario de clasificación | `50` (máximo de elementos clasificados por día). Cada elemento se clasifica una vez por brief habilitado. |
+   | Biblioteca de cargas de fuentes | Ya viene con el título de la biblioteca (`Cargas de fuentes`). Si el desencadenador del flujo rechaza el título, escriba el ID (GUID) de la biblioteca. |
+   | Tamaño máximo de carga (bytes) | `1000000`. Los archivos más grandes se registran solo por nombre (vea el paso 5). |
 
    El resto de variables están reservadas para versiones futuras. Déjelas vacías.
 
@@ -126,7 +131,7 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
 ## 4. Active los flujos
 
 1. En **Soluciones**, abra **Vigilante de Tendencias → Flujos de nube**.
-2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos** y **VT Resumen Semanal** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
+2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos**, **VT Resumen Semanal** y **VT Procesar Documentos** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
 
 Los mismos flujos aparecen en Copilot Studio en **Flujos**.
 
@@ -134,6 +139,21 @@ Los mismos flujos aparecen en Copilot Studio en **Flujos**.
 
 - **Briefs**: edite el brief de ejemplo o cree uno nuevo. Complete *Pregunta*, *Palabras clave*, *Exclusiones*, *Idiomas* y *Geografías*. Use `1` en *Habilitado* para activarlo y `0` para desactivarlo. Si cambia la pregunta de un brief existente, aumente *Versión del brief*: los elementos nuevos se analizarán con la versión nueva.
 - **Fuentes**: deje solo los feeds RSS aprobados. Use `1` en *Habilitada* para recolectar de una fuente y `0` para pausarla. Use `RSS` en *Tipo de fuente*.
+- **Documentos cargados (opcional).** Agregue una fila en **Fuentes** por cada subcarpeta de cargas:
+  1. En `SourceUploads/PublicData`, cree una subcarpeta para la fuente, por ejemplo `VendorDocuments`.
+  2. En **Fuentes**, agregue una fila con *Título* (el nombre de la fuente), *Tipo de fuente* `Upload`, *Ruta de la fuente* `/SourceUploads/PublicData/VendorDocuments` (nombre de URL de la biblioteca más la ruta de la carpeta, sin barra final) y *Habilitada* `1`.
+  3. Cargue los archivos en esa subcarpeta. `VT Procesar Documentos` busca archivos nuevos o modificados cada 5 minutos.
+
+  Qué hace el flujo con una carga:
+  - **Los archivos de texto se leen.** `.txt`, `.md`, `.csv`, `.html` y `.htm` (con cualquier combinación de mayúsculas) se leen como texto UTF-8. El HTML se conserva tal cual, con sus etiquetas.
+  - **Todo lo demás se registra solo por nombre.** PDF, Word, Excel, PowerPoint y cualquier otro tipo generan un ElementoFuente con *ContentStatus* `MetadataOnly`: el clasificador ve el nombre del archivo y la carpeta, no el contenido.
+  - **Límite de tamaño.** Un archivo de texto mayor que *Tamaño máximo de carga* (por defecto 1.000.000 de bytes) también queda como `MetadataOnly`.
+  - **Solo se leen las subcarpetas de `PublicData`.** Un archivo puesto directamente en `PublicData`, o en cualquier otra carpeta, se ignora. Cada subcarpeta necesita su propia fila `Upload` habilitada en Fuentes, o sus archivos se ignoran.
+  - **No cargue documentos privados.** Esta versión no tiene redacción. Vea [ADR-001](design/adr-001-text-only-uploads.md).
+  - **Sin duplicados.** Volver a cargar el mismo archivo, editarlo o renombrarlo no crea un segundo elemento. El flujo identifica el archivo por su ID de elemento de SharePoint.
+  - Cada archivo procesado agrega un archivo de texto en **Evidencias** llamado `upload-<ID del elemento>.txt` y un ElementoFuente con *Estado* `Ready`. La siguiente ejecución de **VT Clasificar Elementos** lo clasifica.
+
+  Límites conocidos, aún no verificados en un tenant: el flujo supone que la ruta del archivo que recibe empieza con `/SourceUploads/`; una carpeta creada en la biblioteca también puede generar un elemento `MetadataOnly`; y el vínculo al archivo guardado en el ElementoFuente está limitado a 255 caracteres.
 
 ## 6. Pruebe de punta a punta
 
@@ -142,6 +162,7 @@ Ejecute cada flujo una vez con **Probar → Manualmente**, en este orden:
 1. **VT Recolectar RSS** → aparecen filas en **ElementosFuente** con *Estado* `Ready` y archivos `.txt` en **Evidencias**.
 2. **VT Clasificar Elementos** → aparecen filas en **Señales**. Los elementos procesados cambian a `Classified`.
 3. **VT Resumen Semanal** → aparece un archivo HTML en **Informes publicados** y una fila en **Publicaciones**, y recibe un mensaje en Teams. Si ninguna señal llegó a relevancia 70 o más en los últimos 7 días, no se genera resumen. Es el comportamiento esperado.
+4. **VT Procesar Documentos** (si agregó una fuente `Upload`) se ejecuta sola cuando se agrega un archivo. Cargue un `.txt` pequeño en la subcarpeta de la fuente y espere unos 5 minutos. Aparecen un ElementoFuente con *ContentStatus* `FullText` y un archivo en **Evidencias**.
 
 Las columnas de estado (*Estado*, *Impacto*, *Horizonte*) guardan códigos en inglés (`Ready`, `Digest`, `High`…) a propósito: los flujos filtran por esos valores. El resumen HTML los muestra traducidos.
 
@@ -157,3 +178,13 @@ Las columnas de estado (*Estado*, *Impacto*, *Horizonte*) guardan códigos en in
 ## Actualizar a una versión nueva
 
 Importe el zip nuevo con **Soluciones → Importar solución**, igual que en el paso 3. La solución se actualiza en su lugar. Sus listas, datos y valores de variables de entorno se conservan. Si usó la opción B, vuelva a ejecutar `provision.ps1` del kit nuevo: agrega las columnas nuevas. Con la opción A, agréguelas a mano según las notas de la versión.
+
+### Actualizar de 1.1 a 1.2
+
+1.2.0.0 agrega el flujo `VT Procesar Documentos`, la biblioteca `SourceUploads` y la columna `SourcePath` en **Fuentes**. Siga el archivo `upgrade-1.2.0.0.es.md` que genera la compilación, dentro del zip del kit de SharePoint: indica qué agregar a mano si usó la opción A. Después:
+
+1. Cree la biblioteca `SourceUploads` y su carpeta `PublicData` (la opción B lo hace al ejecutar `provision.ps1`).
+2. Importe la solución nueva. Pedirá las dos variables de entorno nuevas, *Biblioteca de cargas de fuentes* y *Tamaño máximo de carga*.
+3. Active **VT Procesar Documentos** y agregue filas `Upload` en **Fuentes** (paso 5).
+4. Lea la entrada 1.2.0.0 de `CHANGELOG.md` antes de actualizar. Describe la corrección del ItemKey en `VT Recolectar RSS`; su efecto sobre los elementos existentes está pendiente de verificación en el tenant de desarrollo.
+
