@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.3.0.0 (unreleased)
+
+### Added
+
+- **Business cases: new flow `TR Business Case`** (es `VT Caso de Negocio`). An analyst fills in an item in `BusinessCaseRequests` (es `SolicitudesCasoNegocio`, 17 columns) and sets `Status` to `Submitted`. The flow starts at its next poll (up to 5 minutes), validates the request and its 1 to 5 input digests, claims it (`Generating`), asks the AI for a structured case, validates that every citation is one of the input digests, and saves an HTML draft in `ResearchDrafts` with a Publication (`ReviewStatus=Draft`). It then sends an approval to the request's `ReviewerEmail` (14-day timeout). Approved drafts are copied to `PublishedReports` and announced to the Teams channel in `tr_NotificationAudience` (`teamId|channelId`); if that is empty, the post goes to the flow owner. Rejected or timed-out requests stay in `ResearchDrafts` and are not published. Missing financial inputs are reported as `Unknown`; ROI is never calculated without supplied values.
+- **Brief schema.** `ResearchBriefs` gains `Product` (required), `Dimension` (required) and `BriefType` (`Monitoring` default, `Investigation`). **The `Dimension` choices `Market`, `Technology`, `Regulatory`, `Competition` are placeholders until the customer decides the final codes.**
+- **Signal schema.** `Signals` gains `AlertTags` (`CompetitorLaunch`, `RegulatoryAlert`, `NewTechnology`) and `Objectives` (`Anticipate`, `MinimizeRisks`, `Compare`, `Innovate`, `Cooperate`). The quickstart describes one tag view per `AlertTag`.
+- **Publication schema.** `Publications` gains `BriefId`, `Product`, `Dimension`, `PublicationType` (`Digest`, `BusinessCase`), `BusinessCaseRequestId`, `InputPublicationIds`, `ReviewStatus` (`Draft`, `InReview`, `Approved`, `Rejected`) and `Version`.
+- **Weekly digest layout.** The digest header shows product and dimension, and signals are grouped under one heading per objective. New digests record `BriefId`, `Product`, `Dimension` and `PublicationType=Digest`.
+- **Environment variables.** `tr_BusinessCaseRequestsList` (use the list title, not the GUID), `tr_ApprovedReviewers` and `tr_ApprovedAudiences` (semicolon-separated lists; empty means every request is rejected), `tr_BusinessCaseMaxInputChars` (default `60000`) and `tr_NotificationAudience`. New connection reference: Approvals.
+- **Upgrading from 1.2:** see the quickstart section "Upgrading from 1.2 to 1.3" and the generated `upgrade-1.3.0.0.<locale>.md` inside the SharePoint kit zip.
+
+### Changed
+
+- **Classifier prompt v3.** It reads the brief's Product and Dimension and returns `AlertTags` and `Objectives`. The prompt version is part of `Signals.AnalysisKey`. A signal whose tag is outside the allowed list is saved without that tag, gets `Status=NeedsReview`, and the invalid tags are appended to `EvidenceNotes`. `TR Classify Items` marks a SourceItem `Classified` only when no brief failed for it.
+- **Retry rule for business-case requests.** A request that failed before any Publication was created can be retried by setting `Status` back to `Submitted` with the same `Version`. A request that already has a Publication must have `Version` increased first, because the existing-publication check stops the run early. A request stuck in `Generating` is recovered the same way.
+- **Reviewer edits after the request block publishing.** This is the current rule; the customer may change it.
+
+### Upgrade notes
+
+- **Existing digests need `PublicationType` and `Product` backfilled before they can be selected for a business case.** The flow accepts an input only if `PublicationType` is `Digest`, its `Product` equals the request's `Product` (after trimming) and its `ReportUrl` is not empty. Digests created before 1.3 have the report file but no `PublicationType` or `Product`.
+- Fill in `Product` and `Dimension` on existing briefs (both required).
+- Restrict `ResearchDrafts` to the requester, the reviewer and the flow account. No provisioning option does it.
+
+### Known open points (not verified)
+
+- The approval action shapes and the `CopyFileAsync` parameters are built from connector knowledge, not verified against a real export.
+- The `Path` shape from `GetFileMetadata` and the folder-created event, and the 255-character file-link limit (both from 1.2), are still unverified.
+- An edit made in the seconds between the draft check and the copy could be published (known risk).
+- A pending approval holds one of the 25 trigger slots, so at most 25 requests can be pending approval at once.
+- The dev-tenant acceptance run (Task B7 step 4) has not been done.
+- Documentation still outstanding: `docs/architecture.md` has not been updated to list `NeedsReview` among the Signals status values (it has uncommitted edits by someone else), and `docs/environment-variables.md` has not been updated with the five new variables.
+
 ## 1.2.0.0 (unreleased)
 
 ### Added
