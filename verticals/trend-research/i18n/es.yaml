@@ -1,0 +1,87 @@
+solution:
+  name: Vigilante de Tendencias
+  description: >-
+    Recolecta fuentes RSS aprobadas, clasifica los elementos nuevos frente a los
+    briefs de investigación con un prompt de IA acotado y publica un resumen
+    semanal en SharePoint.
+publisher:
+  name: Investigación de Tendencias
+
+flows:
+  collectRss:
+    name: VT Recolectar RSS
+    description: Diario. Lee las fuentes RSS habilitadas y guarda los elementos nuevos como evidencia y ElementosFuente (sin duplicados por clave).
+  classifyItems:
+    name: VT Clasificar Elementos
+    description: Diario. Clasifica los ElementosFuente listos frente a cada brief habilitado y escribe Señales.
+  weeklyDigest:
+    name: VT Resumen Semanal
+    description: Semanal. Genera un resumen HTML por brief habilitado a partir de las señales de resumen y registra la Publicación.
+
+connections:
+  sharepoint:
+    name: Vigilante de Tendencias - SharePoint
+    description: Cuenta con lectura y escritura en el sitio de SharePoint del Vigilante de Tendencias.
+  rss:
+    name: Vigilante de Tendencias - RSS
+    description: Conector RSS para leer los feeds aprobados.
+  teams:
+    name: Vigilante de Tendencias - Teams
+    description: Cuenta de Teams que recibe el aviso de resumen listo.
+  agent:
+    name: Vigilante de Tendencias - Clasificador IA
+    description: Conexión del agente de Copilot Studio que usa el prompt de clasificación acotado.
+
+env:
+  tr_SiteURL:
+    name: URL del sitio
+    description: URL completa del sitio de SharePoint, p. ej. https://contoso.sharepoint.com/sites/VigilanteTendencias
+  tr_ResearchBriefsList:
+    name: Lista de briefs
+    description: Título o ID (GUID) de la lista de briefs de investigación.
+  tr_SourcesList:
+    name: Lista de fuentes
+    description: Título o ID (GUID) de la lista de fuentes.
+  tr_SourceItemsList:
+    name: Lista de elementos fuente
+    description: Título o ID (GUID) de la lista de elementos fuente.
+  tr_SignalsList:
+    name: Lista de señales
+    description: Título o ID (GUID) de la lista de señales.
+  tr_PublicationsList:
+    name: Lista de publicaciones
+    description: Título o ID (GUID) de la lista de publicaciones.
+  tr_DailyClassificationLimit:
+    name: Límite diario de clasificación
+    description: Máximo de ElementosFuente clasificados por ejecución diaria (cada elemento se clasifica una vez por brief habilitado).
+  tr_DailyResearchLimit:
+    name: Límite diario de investigación
+    description: Reservado para investigaciones profundas. No lo usan los flujos actuales.
+  tr_NotificationAudience:
+    name: Audiencia de notificación
+    description: Reservado para entregas por audiencia. No lo usan los flujos actuales.
+  tr_PublishingEnabled:
+    name: Publicación habilitada
+    description: Interruptor de publicación reservado. No lo usan los flujos actuales.
+
+digest:
+  title: Resumen semanal del Vigilante de Tendencias
+  briefHeading: Brief de investigación
+  reportingWindow: Periodo del informe
+  through: al
+  pipelineSummary: Resumen semanal del proceso
+  digestSignalsIncluded: Señales incluidas en el resumen
+  topFindings: Hallazgos principales
+  relevance: Relevancia
+  impact: Impacto
+  horizon: Horizonte
+  published: Publicado
+  evidence: Evidencia
+  notes: Notas
+  openSource: Abrir la fuente original
+  footer: >-
+    Generado automáticamente por el Vigilante de Tendencias a partir de señales
+    clasificadas. Consulte el sitio de SharePoint para revisar señales, fuentes,
+    evidencia e informes anteriores.
+  publicationTitle: Resumen semanal
+  teamsMessage: Resumen del Vigilante de Tendencias listo

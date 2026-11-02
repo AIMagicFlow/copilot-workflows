@@ -1,0 +1,419 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      },
+      "shared_agentnode": {
+        "api": {
+          "name": "shared_agentnode"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedagentnode_673fe64a"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Research Briefs list (tr_ResearchBriefsList)": {
+          "defaultValue": "{{list:ResearchBriefs}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_ResearchBriefsList"
+          }
+        },
+        "Source Items list (tr_SourceItemsList)": {
+          "defaultValue": "{{list:SourceItems}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceItemsList"
+          }
+        },
+        "Signals list (tr_SignalsList)": {
+          "defaultValue": "{{list:Signals}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SignalsList"
+          }
+        },
+        "Daily Classification Limit (tr_DailyClassificationLimit)": {
+          "defaultValue": 50,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_DailyClassificationLimit"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                16
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Get_Ready_SourceItems": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+              "$filter": "field_9 eq 'Ready'",
+              "$top": "@parameters('Daily Classification Limit (tr_DailyClassificationLimit)')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            }
+          },
+          "metadata": {
+            "description": "Get Ready SourceItems",
+            "nodeId": "connector-2c06e413-7472-4453-8bd0-b3e7849e22d6"
+          }
+        },
+        "Loop": {
+          "type": "Foreach",
+          "foreach": "@coalesce(body('Get_Ready_SourceItems')?['value'], json('[]'))",
+          "actions": {
+            "Get_Enabled_Briefs": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Research Briefs list (tr_ResearchBriefsList)')",
+                  "$filter": "field_7 eq 1"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetItems"
+                }
+              },
+              "metadata": {
+                "description": "Get Enabled Briefs",
+                "nodeId": "connector-b83663aa-a026-477b-bb8c-2a4734a004b9"
+              }
+            },
+            "Loop_2": {
+              "type": "Foreach",
+              "foreach": "@coalesce(body('Get_Enabled_Briefs')?['value'], json('[]'))",
+              "actions": {
+                "Build_AnalysisKey": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "AnalysisKey",
+                    "value": "@{items('Loop')?['ID']}|@{items('Loop_2')?['ID']}|@{items('Loop_2')?['field_6']}|{{promptVersion:classify-signal}}"
+                  },
+                  "metadata": {
+                    "description": "Build AnalysisKey",
+                    "nodeId": "variable-b8c2940a-b5b0-4d3a-92f5-f1b9c98f78d2"
+                  }
+                },
+                "Check_AnalysisKey": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Signals list (tr_SignalsList)')",
+                      "$filter": "field_3 eq '@{variables('AnalysisKey')}'"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    }
+                  },
+                  "runAfter": {
+                    "Build_AnalysisKey": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Check AnalysisKey",
+                    "nodeId": "connector-e212993e-f9ee-45c5-a853-4e906cd7d57f"
+                  }
+                },
+                "If_Else": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "empty": [
+                          "@body('Check_AnalysisKey')?['value']"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Get_Evidence_Content": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "inferContentType": true,
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "path": "@items('Loop')?['field_7']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetFileContentByPath"
+                        }
+                      },
+                      "metadata": {
+                        "description": "Get Evidence Content",
+                        "nodeId": "connector-3aad8bee-7e13-4c5a-b882-a884b41107dc"
+                      }
+                    },
+                    "Classify_TR_Signal": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "body/definition": {
+                            "components": [],
+                            "environmentVariables": [],
+                            "flows": [],
+                            "dataverseTableSearchs": [],
+                            "dataverseTableSearchGlossaryConfigurations": [],
+                            "dataverseTableSearchEntityConfigurations": [],
+                            "dataverseTableSearchEntityColumnSynonyms": [],
+                            "connectionReferences": [],
+                            "connectorDefinitions": [],
+                            "aIModelDefinitions": [],
+                            "aIPluginOperations": [],
+                            "connectedAgentDefinitions": [],
+                            "componentCollections": [],
+                            "connectedBots": [],
+                            "diagnostics": [],
+                            "entity": {
+                              "authorizedSecurityGroupIds": [],
+                              "supportedLanguages": [],
+                              "diagnostics": [],
+                              "schemaName": "workflow_agentnode",
+                              "language": 1033,
+                              "accessControlPolicy": "Any",
+                              "authenticationMode": "Integrated",
+                              "authenticationTrigger": "Always",
+                              "synchronizationStatus": {
+                                "graphDriveItems": [],
+                                "diagnostics": [],
+                                "lastPublishedDetails": {
+                                  "diagnosticDetails": [],
+                                  "diagnostics": [],
+                                  "authenticationMode": "Integrated",
+                                  "$kind": "SuccessfulPublishResultDetails"
+                                },
+                                "$kind": "BotSynchronizationDetails"
+                              },
+                              "configuration": {
+                                "categories": [],
+                                "channels": [],
+                                "settings": {},
+                                "memoryParameters": [],
+                                "diagnostics": [],
+                                "recognizer": {
+                                  "diagnostics": [],
+                                  "$kind": "CLICopilotRecognizer"
+                                },
+                                "agentSettings": {
+                                  "conversationStarters": [],
+                                  "diagnostics": [],
+                                  "model": {
+                                    "diagnostics": [],
+                                    "series": "GPT5Chat",
+                                    "$kind": "ModelConfig"
+                                  },
+                                  "instructions": {
+                                    "segments": [],
+                                    "diagnostics": [],
+                                    "$kind": "Instructions"
+                                  },
+                                  "output": {
+                                    "diagnostics": [],
+                                    "schema": "{\"type\":\"object\",\"properties\":{\"Summary\":{\"type\":\"string\"},\"Relevance\":{\"type\":\"number\"},\"Impact\":{\"type\":\"string\"},\"SupportingPassages\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"Limitations\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"InsufficientEvidence\":{\"type\":\"boolean\"},\"Horizon\":{\"type\":\"string\"}},\"required\":[\"Summary\",\"Relevance\",\"Impact\",\"SupportingPassages\",\"Limitations\",\"InsufficientEvidence\",\"Horizon\"]}",
+                                    "$kind": "StructuredAgentOutput"
+                                  },
+                                  "$kind": "AgentSettings"
+                                },
+                                "$kind": "BotConfiguration"
+                              },
+                              "$kind": "BotEntity"
+                            },
+                            "$kind": "BotDefinition"
+                          },
+                          "body/message": "{{prompt:classify-signal}}"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_agentnode",
+                          "connectionName": "shared_agentnode",
+                          "operationId": "InvokeDefinition"
+                        }
+                      },
+                      "runAfter": {
+                        "Get_Evidence_Content": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Classify TR Signal",
+                        "nodeId": "agent-3bccd2e6-d267-4b00-a153-fe8bc5f94710"
+                      }
+                    },
+                    "Create_Signal": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Signals list (tr_SignalsList)')",
+                          "item/field_3": "@variables('AnalysisKey')",
+                          "item/Title": "@items('Loop')?['Title']",
+                          "item/field_2": "@items('Loop_2')?['ID']",
+                          "item/field_1": "@items('Loop')?['ID']",
+                          "item/field_4": "@items('Loop_2')?['field_6']",
+                          "item/field_5": "{{promptVersion:classify-signal}}",
+                          "item/field_6": "@body('Classify_TR_Signal')?['structuredOutput/Summary']",
+                          "item/field_7": "@body('Classify_TR_Signal')?['structuredOutput/Relevance']",
+                          "item/field_8": "@body('Classify_TR_Signal')?['structuredOutput/Impact']",
+                          "item/field_9": "@body('Classify_TR_Signal')?['structuredOutput/Horizon']",
+                          "item/field_10": "Supporting evidence: @{body('Classify_TR_Signal')?['structuredOutput/SupportingPassages']}; Limitations: @{body('Classify_TR_Signal')?['structuredOutput/Limitations']}",
+                          "item/field_11": "@if(\n  less(\n    body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n    40\n  ),\n  'Rejected',\n  if(\n    less(\n      body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n      70\n    ),\n    'Monitor',\n    'Digest'\n  )\n)"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        }
+                      },
+                      "runAfter": {
+                        "Classify_TR_Signal": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create Signal",
+                        "nodeId": "connector-55d40cb8-caf5-4a32-924f-06aa3b717b9a"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Check_AnalysisKey": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "If/Else",
+                    "nodeId": "ifElse-65f56cf9-b12b-4b23-a22c-c508e1285603"
+                  }
+                }
+              },
+              "metadata": {
+                "description": "Loop 2",
+                "nodeId": "loop-028e5678-2ffc-4031-a7fe-0fad5fc9075a"
+              },
+              "runAfter": {
+                "Get_Enabled_Briefs": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Mark_SourceItem_Classified": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                  "id": "@items('Loop')?['ID']",
+                  "item/field_9": "Classified"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                }
+              },
+              "runAfter": {
+                "Loop_2": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Mark SourceItem Classified",
+                "nodeId": "connector-166ae35e-19c5-477c-a468-018559775388"
+              }
+            }
+          },
+          "metadata": {
+            "description": "Loop",
+            "nodeId": "loop-bcbc0a72-752c-4410-b6eb-6b40530d50fb"
+          },
+          "runAfter": {
+            "Get_Ready_SourceItems": [
+              "Succeeded"
+            ],
+            "Initialize_variable_AnalysisKey": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_variable_AnalysisKey": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "AnalysisKey",
+                "type": "String"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "metadata": {
+        "telemetryMetadata": {
+          "creationSource": "WorkflowDesigner",
+          "modifiedSources": "WorkflowDesigner"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

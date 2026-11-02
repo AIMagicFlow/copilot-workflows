@@ -1,0 +1,85 @@
+# SharePoint list schema: Signals
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. Field ids are kept from the original tenant export.
+list: Signals
+title:
+  en: Signals
+  es: Señales
+description:
+  en: Classifier output per source item and brief.
+  es: Resultado del clasificador por elemento fuente y brief.
+fields:
+- name: Title
+  type: Text
+  display:
+    en: Title
+    es: Título
+  builtin: true
+- name: field_1
+  id: 01a64b48-f6af-4f4c-8d16-7d59952f4158
+  type: Number
+  display:
+    en: SourceItemId
+    es: ID del elemento fuente
+- name: field_2
+  id: 92cd4720-09d0-4e1a-8a90-fbc83dc5aae1
+  type: Number
+  display:
+    en: BriefId
+    es: ID del brief
+- name: field_3
+  id: 227a4aaa-7015-4638-aa92-2c808a28a800
+  type: Text
+  display:
+    en: AnalysisKey
+    es: Clave de análisis
+  unique: true
+  indexed: true
+- name: field_4
+  id: 04fbd892-7183-4865-8c2a-b04846c95fa5
+  type: Number
+  display:
+    en: BriefVersion
+    es: Versión del brief
+- name: field_5
+  id: e62dc56f-1dbf-40a1-a5f3-02d650e1bf30
+  type: Number
+  display:
+    en: PromptVersion
+    es: Versión del prompt
+- name: field_6
+  id: 3800df36-03b3-47cf-9ce3-94d79acc2a74
+  type: Note
+  display:
+    en: Summary
+    es: Resumen
+- name: field_7
+  id: 688f9c04-47f1-47dc-a556-b252ef13af67
+  type: Number
+  display:
+    en: Relevance
+    es: Relevancia
+- name: field_8
+  id: 86e4a4be-8615-451c-8272-55880cb27b53
+  type: Text
+  display:
+    en: Impact
+    es: Impacto
+- name: field_9
+  id: 9c25eba5-0e4d-488a-bc8e-e97f9f3046ed
+  type: Text
+  display:
+    en: Horizon
+    es: Horizonte
+- name: field_10
+  id: c95293c9-4395-4939-929d-95aeaddca00c
+  type: Note
+  display:
+    en: EvidenceNotes
+    es: Notas de evidencia
+- name: field_11
+  id: 1d407297-1c67-489f-85f8-611243774d7b
+  type: Text
+  display:
+    en: Status
+    es: Estado

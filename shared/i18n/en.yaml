@@ -1,0 +1,31 @@
+# Strings shared by every vertical. Vertical files override keys with the same path.
+language:
+  name: English
+codes:
+  impact: {High: High, Medium: Medium, Low: Low}
+  horizon: {Near: Near, Medium: Medium, Long: Long}
+classifier:
+  outputLanguage: English
+sharepoint:
+  allItemsView: All Items
+provision:
+  synopsis: Creates or updates the SharePoint lists and libraries of this solution, then verifies every column.
+  description: >-
+    Applies sharepoint-template.pnp.xml with PnP PowerShell. The template fixes each column internal name,
+    so the flows work in any tenant. Safe to run again, for example after an upgrade, because existing
+    lists, columns and rows are kept. With -VerifyOnly it only checks an existing site, for example one
+    whose lists were created from the CSV files.
+  paramSiteUrl: Full URL of the SharePoint site, for example https://contoso.sharepoint.com/sites/TrendResearch
+  paramClientId: Application (client) ID of the Entra ID app registered for PnP PowerShell.
+  paramVerifyOnly: Only check the site, change nothing.
+  missingModule: PnP.PowerShell is not installed. Run - Install-Module PnP.PowerShell -Scope CurrentUser
+  applying: Applying the SharePoint template...
+  verifying: Verifying lists, libraries and columns...
+  missingLibrary: library not found
+  missingList: list not found
+  missingColumn: column not found
+  foundAs: a column with this name exists with internal name
+  wrongType: wrong column type
+  notUnique: must enforce unique values
+  failed: The site does not match the expected schema. Fix the items above before importing or running the solution.
+  ok: All lists, libraries and columns match the expected schema.

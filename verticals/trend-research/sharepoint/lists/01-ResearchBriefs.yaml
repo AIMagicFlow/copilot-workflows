@@ -1,0 +1,124 @@
+# SharePoint list schema: ResearchBriefs
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. Field ids are kept from the original tenant export.
+list: ResearchBriefs
+title:
+  en: ResearchBriefs
+  es: Briefs
+description:
+  en: Research questions and scope that drive classification and digests.
+  es: Preguntas de investigación y alcance que guían la clasificación y los resúmenes.
+fields:
+- name: Title
+  type: Text
+  display:
+    en: Title
+    es: Título
+  builtin: true
+- name: field_1
+  id: 769f3b63-9b4f-416b-ad30-53a64653250a
+  type: Note
+  display:
+    en: Question
+    es: Pregunta
+- name: field_2
+  id: 2d184389-c308-4079-8d56-4383fcb5f280
+  type: Note
+  display:
+    en: Keywords
+    es: Palabras clave
+- name: field_3
+  id: 6ebc8488-47c3-43fb-985e-d119c9fbfa37
+  type: Note
+  display:
+    en: Exclusions
+    es: Exclusiones
+- name: field_4
+  id: 22f304bb-698a-4df5-9b0e-4f71030a75e8
+  type: Text
+  display:
+    en: Languages
+    es: Idiomas
+- name: field_5
+  id: d224ffd8-740f-489d-afad-bc2443e764fb
+  type: Text
+  display:
+    en: Geographies
+    es: Geografías
+- name: field_6
+  id: e8ca23e7-ac5b-4955-bfbe-a36fbd303ed7
+  type: Number
+  display:
+    en: BriefVersion
+    es: Versión del brief
+- name: field_7
+  id: dc5dd4ee-f74a-48ce-b4cc-32b434691c0b
+  type: Number
+  display:
+    en: Enabled
+    es: Habilitado
+- name: field_8
+  id: 9b101f2b-6e36-41bb-959e-148b494b7869
+  type: Text
+  display:
+    en: ReviewerEmail
+    es: Correo del revisor
+- name: DigestHumanReview
+  id: 4ec5f821-5964-4d77-80b1-dd81113cf4fc
+  type: Boolean
+  display:
+    en: DigestHumanReview
+    es: Revisión humana del resumen
+  default: 1
+seed:
+  en:
+  - Title: Real-Time Voice AI and Speech-to-Speech Models
+    Question: What technical, product, ecosystem, safety, and adoption developments are changing real-time
+      AI voice systems and native speech-to-speech models, particularly for enterprise customer service,
+      contact centers, voice agents, and conversational applications?
+    Keywords: speech-to-speech; speech to speech; speech2speech; S2S; real-time voice AI; realtime voice
+      AI; real-time audio model; realtime audio model; voice-to-voice; native audio model; audio language
+      model; multimodal audio; conversational speech model; streaming speech model; streaming inference;
+      full-duplex voice; duplex conversation; voice agent; AI voice agent; conversational agent; spoken
+      dialogue system; turn-taking; interruption handling; barge-in; endpointing; voice activity detection;
+      VAD; latency; time to first audio; speech recognition; ASR; automatic speech recognition; speech
+      synthesis; TTS; text-to-speech; neural codec; audio tokenizer; speech tokenizer; prosody; intonation;
+      expressive speech; emotion-aware speech; multilingual speech; accent support; speaker diarization;
+      echo cancellation; noise suppression; telephony AI; WebRTC; SIP; PSTN; contact center AI; CCaaS;
+      customer service automation; voice cloning; speaker similarity; watermarking; audio provenance;
+      deepfake detection; voice safety; consent; impersonation; model evaluation; speech benchmark; voice
+      API; realtime API
+    Exclusions: Music generation without a conversational speech capability; consumer voice changers with
+      no model or platform significance; celebrity-voice entertainment; generic chatbot announcements
+      with no audio or voice functionality; conventional IVR announcements with no AI model development;
+      generic transcription products unless they materially affect a real-time voice pipeline; smart-speaker
+      consumer news; audio hardware reviews; podcast promotion; cryptocurrency; gaming voice chat; articles
+      that merely repeat another announcement without new technical, commercial, safety, or adoption evidence.
+    Languages: English
+    Geographies: Global; United States
+    BriefVersion: '1'
+    Enabled: '1'
+    ReviewerEmail: alert+email@example.com
+    DigestHumanReview: 'True'
+  es:
+  - Title: IA de voz en tiempo real y modelos speech-to-speech
+    Question: ¿Qué desarrollos técnicos, de producto, de ecosistema, de seguridad y de adopción están
+      cambiando los sistemas de voz con IA en tiempo real y los modelos nativos speech-to-speech, en especial
+      para servicio al cliente, centros de contacto, agentes de voz y aplicaciones conversacionales empresariales?
+    Keywords: speech-to-speech; S2S; voz en tiempo real; IA de voz; agente de voz; asistente de voz; real-time
+      voice AI; voice agent; reconocimiento de voz; ASR; síntesis de voz; TTS; text-to-speech; latencia;
+      turn-taking; barge-in; full-duplex; centro de contacto; contact center AI; CCaaS; atención al cliente;
+      clonación de voz; voice cloning; deepfake de audio; marca de agua de audio; seguridad de voz; consentimiento;
+      API de voz; realtime API
+    Exclusions: Generación de música sin capacidad conversacional; cambiadores de voz para consumo sin
+      relevancia de modelo o plataforma; entretenimiento con voces de celebridades; anuncios genéricos
+      de chatbots sin funciones de audio o voz; IVR convencional sin desarrollo de modelos de IA; noticias
+      de altavoces inteligentes; reseñas de hardware de audio; promoción de podcasts; criptomonedas; chat
+      de voz en videojuegos; artículos que solo repiten otro anuncio sin evidencia técnica, comercial,
+      de seguridad o de adopción nueva.
+    Languages: Español; Inglés; Portugués
+    Geographies: LATAM; Global
+    BriefVersion: '1'
+    Enabled: '1'
+    ReviewerEmail: revisor@example.com
+    DigestHumanReview: 'True'

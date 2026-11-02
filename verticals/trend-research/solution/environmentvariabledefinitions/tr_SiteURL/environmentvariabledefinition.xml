@@ -1,0 +1,13 @@
+<environmentvariabledefinition schemaname="tr_SiteURL">
+  <description default="{{t:env.tr_SiteURL.description}}">
+    <label description="{{t:env.tr_SiteURL.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_SiteURL.name}}">
+    <label description="{{t:env.tr_SiteURL.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

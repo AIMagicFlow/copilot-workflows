@@ -1,0 +1,12 @@
+# Trend Research vertical: one Power Platform solution + one SharePoint site.
+id: trend-research
+solution:
+  uniqueName: TrendResearchFlow   # never change: Dataverse matches upgrades on this name
+  version: 1.1.0.0                # bump before every release (major.minor.build.revision)
+locales:
+  en: {lcid: 1033}
+  es: {lcid: 3082}
+prompts:
+  classify-signal:
+    file: prompts/classify-signal.md
+    version: 2                    # bump when the prompt changes; becomes part of Signals.AnalysisKey

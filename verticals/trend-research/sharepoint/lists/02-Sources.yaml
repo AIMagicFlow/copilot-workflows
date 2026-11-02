@@ -1,0 +1,122 @@
+# SharePoint list schema: Sources
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. Field ids are kept from the original tenant export.
+list: Sources
+title:
+  en: Sources
+  es: Fuentes
+description:
+  en: Approved RSS/API/upload sources and their collection checkpoints.
+  es: Fuentes aprobadas (RSS/API/carga) y sus puntos de control de recolección.
+fields:
+- name: Title
+  type: Text
+  display:
+    en: Title
+    es: Título
+  builtin: true
+- name: field_1
+  id: f5fdb68d-2507-41a9-82c1-41eb91abe535
+  type: Text
+  display:
+    en: FeedUrl
+    es: URL del feed
+- name: field_2
+  id: 7f35d818-ccd0-4ffc-9b45-cbcedaef2cba
+  type: Text
+  display:
+    en: SourceType
+    es: Tipo de fuente
+- name: field_3
+  id: b21c1218-9731-4387-8419-fb9496c82950
+  type: Number
+  display:
+    en: Enabled
+    es: Habilitada
+- name: field_5
+  id: f27886f1-3022-4268-97d9-b6c3808659c9
+  type: Note
+  display:
+    en: LastError
+    es: Último error
+- name: LastSuccessfulCollection
+  id: 7d64cc51-056e-40fb-b0fa-d92242efc46b
+  type: DateTime
+  display:
+    en: LastSuccessfulCollection
+    es: Última recolección exitosa
+seed:
+  en:
+  - Title: OpenAI News
+    FeedUrl: https://openai.com/news/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: NVIDIA Technical Blog
+    FeedUrl: https://developer.nvidia.com/blog/feed/
+    SourceType: RSS
+    Enabled: '1'
+  - Title: ElevenLabs Blog
+    FeedUrl: https://elevenlabs.io/blog/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Google DeepMind Blog
+    FeedUrl: https://deepmind.google/blog/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Hugging Face Blog
+    FeedUrl: https://huggingface.co/blog/feed.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Hugging Face speech-to-speech releases
+    FeedUrl: https://github.com/huggingface/speech-to-speech/releases.atom
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - LocalLLaMA
+    FeedUrl: https://www.reddit.com/r/LocalLLaMA/.rss
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - MachineLearning
+    FeedUrl: https://www.reddit.com/r/MachineLearning/.rss
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - ArtificialInteligence
+    FeedUrl: https://www.reddit.com/r/ArtificialInteligence/.rss
+    SourceType: RSS
+    Enabled: '1'
+  es:
+  - Title: OpenAI News
+    FeedUrl: https://openai.com/news/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: NVIDIA Technical Blog
+    FeedUrl: https://developer.nvidia.com/blog/feed/
+    SourceType: RSS
+    Enabled: '1'
+  - Title: ElevenLabs Blog
+    FeedUrl: https://elevenlabs.io/blog/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Google DeepMind Blog
+    FeedUrl: https://deepmind.google/blog/rss.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Hugging Face Blog
+    FeedUrl: https://huggingface.co/blog/feed.xml
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Hugging Face speech-to-speech releases
+    FeedUrl: https://github.com/huggingface/speech-to-speech/releases.atom
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - LocalLLaMA
+    FeedUrl: https://www.reddit.com/r/LocalLLaMA/.rss
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - MachineLearning
+    FeedUrl: https://www.reddit.com/r/MachineLearning/.rss
+    SourceType: RSS
+    Enabled: '1'
+  - Title: Reddit - ArtificialInteligence
+    FeedUrl: https://www.reddit.com/r/ArtificialInteligence/.rss
+    SourceType: RSS
+    Enabled: '1'

@@ -1,0 +1,16 @@
+# Build output (releases/ is committed; dist/ is not)
+dist/
+__pycache__/
+*.pyc
+
+# Secrets and per-environment values
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.yaml
+verticals/*/settings/*.json
+!verticals/*/settings/*.example.json
+
+# Raw working material (exports, screenshots) kept outside source
+brainstorm/

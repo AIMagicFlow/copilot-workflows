@@ -1,0 +1,17 @@
+{
+  "EnvironmentVariables": [
+    { "SchemaName": "tr_SiteURL", "Value": "https://<tenant>.sharepoint.com/sites/<site>" },
+    { "SchemaName": "tr_ResearchBriefsList", "Value": "ResearchBriefs" },
+    { "SchemaName": "tr_SourcesList", "Value": "Sources" },
+    { "SchemaName": "tr_SourceItemsList", "Value": "SourceItems" },
+    { "SchemaName": "tr_SignalsList", "Value": "Signals" },
+    { "SchemaName": "tr_PublicationsList", "Value": "Publications" },
+    { "SchemaName": "tr_DailyClassificationLimit", "Value": "50" }
+  ],
+  "ConnectionReferences": [
+    { "LogicalName": "new_sharedsharepointonline_63e80a5a", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline" },
+    { "LogicalName": "new_sharedrss_778f004c", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_rss" },
+    { "LogicalName": "new_sharedteams_9326dab3", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_teams" },
+    { "LogicalName": "new_sharedagentnode_673fe64a", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_agentnode" }
+  ]
+}

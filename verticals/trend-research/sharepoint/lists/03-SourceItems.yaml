@@ -1,0 +1,73 @@
+# SharePoint list schema: SourceItems
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. Field ids are kept from the original tenant export.
+list: SourceItems
+title:
+  en: SourceItems
+  es: ElementosFuente
+description:
+  en: One row per collected item; deduplicated by ItemKey.
+  es: Una fila por elemento recolectado; sin duplicados gracias a la clave del elemento.
+fields:
+- name: Title
+  type: Text
+  display:
+    en: Title
+    es: Título
+  builtin: true
+- name: field_1
+  id: 3ea35d60-070b-4bef-9e0d-152e32898cba
+  type: Number
+  display:
+    en: SourceId
+    es: ID de fuente
+- name: field_2
+  id: 7683b863-2213-4c3a-9b83-4ae83917ae41
+  type: Note
+  display:
+    en: ExternalId
+    es: ID externo
+- name: field_3
+  id: 3febd6be-3a94-4c2a-93a6-6fcbe5efec7f
+  type: Text
+  display:
+    en: ItemKey
+    es: Clave del elemento
+  unique: true
+  indexed: true
+- name: field_4
+  id: 5deacb54-6a3f-4e15-9bda-e7d4f68bc59d
+  type: Text
+  display:
+    en: SourceUrl
+    es: URL de origen
+- name: field_7
+  id: 15b06257-e576-477c-be90-f355a2552d48
+  type: Text
+  display:
+    en: EvidenceUrl
+    es: URL de evidencia
+- name: field_8
+  id: 717a326b-5df8-41ad-8694-5109324c93ba
+  type: Text
+  display:
+    en: ContentStatus
+    es: Estado del contenido
+- name: field_9
+  id: e8e2a2bf-9dfb-48cf-b03e-117c58d7cf6f
+  type: Text
+  display:
+    en: Status
+    es: Estado
+- name: PublishedAt
+  id: f0979bbf-df07-4a71-ade2-574cf9c1b2f8
+  type: DateTime
+  display:
+    en: PublishedAt
+    es: Publicado el
+- name: CollectedAt
+  id: ea5f39b9-bb36-450a-a917-06217619b349
+  type: DateTime
+  display:
+    en: CollectedAt
+    es: Recolectado el

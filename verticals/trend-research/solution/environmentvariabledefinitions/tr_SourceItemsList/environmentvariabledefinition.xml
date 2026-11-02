@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_SourceItemsList">
+  <defaultvalue>{{list:SourceItems}}</defaultvalue>
+  <description default="{{t:env.tr_SourceItemsList.description}}">
+    <label description="{{t:env.tr_SourceItemsList.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_SourceItemsList.name}}">
+    <label description="{{t:env.tr_SourceItemsList.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.1.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

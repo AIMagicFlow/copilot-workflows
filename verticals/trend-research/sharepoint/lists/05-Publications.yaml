@@ -1,0 +1,61 @@
+# SharePoint list schema: Publications
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. Field ids are kept from the original tenant export.
+list: Publications
+title:
+  en: Publications
+  es: Publicaciones
+description:
+  en: Published digests and their delivery status.
+  es: Resúmenes publicados y su estado de entrega.
+fields:
+- name: Title
+  type: Text
+  display:
+    en: Title
+    es: Título
+  builtin: true
+- name: field_1
+  id: 283db7e2-d963-4ece-9000-81ae6d684b8d
+  type: Text
+  display:
+    en: PublicationKey
+    es: Clave de publicación
+  unique: true
+  indexed: true
+- name: field_2
+  id: 0ecc3687-e42c-45c9-96ac-1714145dde60
+  type: Number
+  display:
+    en: JobId
+    es: ID de trabajo
+- name: field_3
+  id: a66f3972-e673-4c71-b6c0-0a91df0eb556
+  type: Text
+  display:
+    en: ReportUrl
+    es: URL del informe
+- name: field_4
+  id: 9a65b72d-959c-4a21-b29b-94992e0d3055
+  type: Text
+  display:
+    en: AudienceKey
+    es: Clave de audiencia
+- name: field_5
+  id: 75f208cb-9834-4f3a-a588-67d75cb01395
+  type: Text
+  display:
+    en: DeliveryStatus
+    es: Estado de entrega
+- name: field_6
+  id: 0f3fb445-5452-4869-b15a-f84127dc2c9f
+  type: DateTime
+  display:
+    en: SentAt
+    es: Enviado el
+- name: field_7
+  id: 4ca8f0e2-7552-4955-b4e4-bfc294a743ed
+  type: Text
+  display:
+    en: ApprovalReference
+    es: Referencia de aprobación

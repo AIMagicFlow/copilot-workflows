@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_DailyResearchLimit">
+  <defaultvalue>2</defaultvalue>
+  <description default="{{t:env.tr_DailyResearchLimit.description}}">
+    <label description="{{t:env.tr_DailyResearchLimit.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_DailyResearchLimit.name}}">
+    <label description="{{t:env.tr_DailyResearchLimit.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>

@@ -1,0 +1,86 @@
+solution:
+  name: Trend Researcher
+  description: >-
+    Collects approved RSS sources, classifies new items against research briefs
+    with a bounded AI prompt, and publishes a weekly digest to SharePoint.
+publisher:
+  name: Trend Research
+
+flows:
+  collectRss:
+    name: TR Collect RSS
+    description: Daily. Reads enabled RSS sources, saves new items as evidence and SourceItems (deduplicated by ItemKey).
+  classifyItems:
+    name: TR Classify Items
+    description: Daily. Classifies Ready SourceItems against every enabled research brief and writes Signals.
+  weeklyDigest:
+    name: TR Weekly Digest
+    description: Weekly. Builds one HTML digest per enabled brief from Digest signals and records the Publication.
+
+connections:
+  sharepoint:
+    name: Trend Researcher - SharePoint
+    description: Account with read/write access to the Trend Research SharePoint site.
+  rss:
+    name: Trend Researcher - RSS
+    description: RSS connector used to read approved feeds.
+  teams:
+    name: Trend Researcher - Teams
+    description: Teams account that receives the digest-ready notification.
+  agent:
+    name: Trend Researcher - AI classifier
+    description: Copilot Studio agent connection used by the bounded classification prompt.
+
+env:
+  tr_SiteURL:
+    name: Site URL
+    description: Full URL of the Trend Research SharePoint site, e.g. https://contoso.sharepoint.com/sites/TrendResearch
+  tr_ResearchBriefsList:
+    name: Research Briefs list
+    description: Title or ID (GUID) of the research briefs list.
+  tr_SourcesList:
+    name: Sources list
+    description: Title or ID (GUID) of the sources list.
+  tr_SourceItemsList:
+    name: Source Items list
+    description: Title or ID (GUID) of the source items list.
+  tr_SignalsList:
+    name: Signals list
+    description: Title or ID (GUID) of the signals list.
+  tr_PublicationsList:
+    name: Publications list
+    description: Title or ID (GUID) of the publications list.
+  tr_DailyClassificationLimit:
+    name: Daily Classification Limit
+    description: Maximum SourceItems classified per daily run (each item is classified once per enabled brief).
+  tr_DailyResearchLimit:
+    name: Daily Research Limit
+    description: Reserved for deep-research jobs. Not used by the current flows.
+  tr_NotificationAudience:
+    name: Notification Audience
+    description: Reserved for audience-based delivery. Not used by the current flows.
+  tr_PublishingEnabled:
+    name: Publishing Enabled
+    description: Reserved publication switch. Not used by the current flows.
+
+digest:
+  title: Trend Research Weekly Digest
+  briefHeading: Research brief
+  reportingWindow: Reporting window
+  through: through
+  pipelineSummary: Weekly pipeline summary
+  digestSignalsIncluded: Digest signals included
+  topFindings: Top findings
+  relevance: Relevance
+  impact: Impact
+  horizon: Horizon
+  published: Published
+  evidence: Evidence
+  notes: Notes
+  openSource: Open original source
+  footer: >-
+    Generated automatically by Trend Researcher from classified signals.
+    Review the Trend Research SharePoint workspace to inspect signals,
+    sources, evidence, and previous reports.
+  publicationTitle: Weekly Digest
+  teamsMessage: Trend Researcher digest ready

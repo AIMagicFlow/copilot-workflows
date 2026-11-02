@@ -1,0 +1,309 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      },
+      "shared_rss-1": {
+        "api": {
+          "name": "shared_rss"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedrss_778f004c"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Sources list (tr_SourcesList)": {
+          "defaultValue": "{{list:Sources}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourcesList"
+          }
+        },
+        "Source Items list (tr_SourceItemsList)": {
+          "defaultValue": "{{list:SourceItems}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceItemsList"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                11
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Get_RSS_Sources": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Sources list (tr_SourcesList)')",
+              "$filter": "field_3 eq 1"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            }
+          },
+          "metadata": {
+            "description": "Get RSS Sources",
+            "nodeId": "connector-f0d57822-2005-4b83-a9e1-d97b3df55c6f"
+          }
+        },
+        "Loop": {
+          "type": "Foreach",
+          "foreach": "@coalesce(body('Get_RSS_Sources')?['value'], json('[]'))",
+          "actions": {
+            "List_all_RSS_feed_items": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "sinceProperty": "PublishDate",
+                  "feedUrl": "@items('Loop')?['field_1']",
+                  "since": "@items('Loop')?['LastSuccessfulCollection']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_rss",
+                  "connectionName": "shared_rss-1",
+                  "operationId": "ListFeedItems"
+                }
+              },
+              "metadata": {
+                "description": "List all RSS feed items",
+                "nodeId": "connector-993b1787-bf06-4e02-8826-308f35722544"
+              }
+            },
+            "Apply_to_each": {
+              "type": "Foreach",
+              "foreach": "@coalesce(body('List_all_RSS_feed_items'), json('[]'))",
+              "actions": {
+                "Build_ItemKey": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "ItemKey",
+                    "value": "@{items('Loop')?['ID']}|@{items('Apply_to_each')?['id']}\n"
+                  },
+                  "metadata": {
+                    "description": "Build ItemKey",
+                    "nodeId": "variable-039f8648-616f-4552-bed0-d7fb6ec5a2c3"
+                  }
+                },
+                "Check_SourceItem_Exist": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                      "$filter": "field_3 eq '@{variables('ItemKey')}'"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    }
+                  },
+                  "runAfter": {
+                    "Build_ItemKey": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Check SourceItem Exist",
+                    "nodeId": "connector-6c5b27cc-37f5-415e-8f26-54b37325d947"
+                  }
+                },
+                "If_Else": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "empty": [
+                          "@body('Check_SourceItem_Exist')?['value']"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Save_RSS_Evidence": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "folderPath": "/Evidence",
+                          "name": "rss-@{items('Loop')?['ID']}-@{items('Apply_to_each')?['id']}.txt",
+                          "body": "@body('List_all_RSS_feed_items')"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "CreateFile"
+                        }
+                      },
+                      "metadata": {
+                        "description": "Save RSS Evidence",
+                        "nodeId": "connector-0c71dadf-847f-4a4c-acd8-5e48d84fa956"
+                      }
+                    },
+                    "Create_SourceItem": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                          "item/Title": "@items('Apply_to_each')?['title']",
+                          "item/field_1": "@items('Loop')?['ID']",
+                          "item/field_2": "@items('Apply_to_each')?['id']",
+                          "item/field_3": "@variables('ItemKey')",
+                          "item/field_4": "@items('Apply_to_each')?['primaryLink']",
+                          "item/field_7": "@outputs('Save_RSS_Evidence')?['body/Path']",
+                          "item/field_8": "FeedExcerpt",
+                          "item/field_9": "Ready",
+                          "item/PublishedAt": "@items('Apply_to_each')?['publishDate']",
+                          "item/CollectedAt": "@utcNow()"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        }
+                      },
+                      "runAfter": {
+                        "Save_RSS_Evidence": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create SourceItem",
+                        "nodeId": "connector-466f2aec-065a-4c83-affa-2b58cdc626c1"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Check_SourceItem_Exist": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "If/Else",
+                    "nodeId": "ifElse-880fe27f-650c-420a-bd88-e272135213e6"
+                  }
+                }
+              },
+              "metadata": {
+                "description": "Apply to each",
+                "nodeId": "loop-0d8f3ccf-b38e-4e99-9638-d7655f69d915"
+              },
+              "runAfter": {
+                "List_all_RSS_feed_items": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Update_Source_Checkpoint": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Sources list (tr_SourcesList)')",
+                  "id": "@items('Loop')?['ID']",
+                  "item/LastSuccessfulCollection": "@utcNow()"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                }
+              },
+              "runAfter": {
+                "Apply_to_each": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Update Source Checkpoint",
+                "nodeId": "connector-bd416e6a-37b2-4096-b6e7-9c3df795e5cb"
+              }
+            }
+          },
+          "metadata": {
+            "description": "Loop",
+            "nodeId": "loop-965ace7b-7840-4eae-b82e-b7658f920bce"
+          },
+          "runAfter": {
+            "Get_RSS_Sources": [
+              "Succeeded"
+            ],
+            "Initialize_variable_ItemKey": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_variable_ItemKey": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "ItemKey",
+                "type": "String"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "metadata": {
+        "telemetryMetadata": {
+          "creationSource": "WorkflowDesigner",
+          "modifiedSources": "WorkflowDesigner"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

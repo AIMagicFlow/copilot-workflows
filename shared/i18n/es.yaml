@@ -1,0 +1,31 @@
+# Cadenas compartidas por todas las verticales. Los archivos de cada vertical sobrescriben claves iguales.
+language:
+  name: Español
+codes:
+  impact: {High: Alto, Medium: Medio, Low: Bajo}
+  horizon: {Near: Corto plazo, Medium: Mediano plazo, Long: Largo plazo}
+classifier:
+  outputLanguage: Spanish (español neutro latinoamericano)
+sharepoint:
+  allItemsView: Todos los elementos
+provision:
+  synopsis: Crea o actualiza las listas y bibliotecas de SharePoint de esta solución y verifica cada columna.
+  description: >-
+    Aplica sharepoint-template.pnp.xml con PnP PowerShell. La plantilla fija el nombre interno de cada
+    columna, así los flujos funcionan en cualquier tenant. Se puede ejecutar de nuevo, por ejemplo después
+    de una actualización, porque conserva las listas, columnas y filas existentes. Con -VerifyOnly solo
+    revisa un sitio existente, por ejemplo uno cuyas listas se crearon desde los archivos CSV.
+  paramSiteUrl: URL completa del sitio de SharePoint, por ejemplo https://contoso.sharepoint.com/sites/VigilanteTendencias
+  paramClientId: ID de aplicación (cliente) de la app de Entra ID registrada para PnP PowerShell.
+  paramVerifyOnly: Solo revisa el sitio, no cambia nada.
+  missingModule: PnP.PowerShell no está instalado. Ejecute - Install-Module PnP.PowerShell -Scope CurrentUser
+  applying: Aplicando la plantilla de SharePoint...
+  verifying: Verificando listas, bibliotecas y columnas...
+  missingLibrary: no se encontró la biblioteca
+  missingList: no se encontró la lista
+  missingColumn: no se encontró la columna
+  foundAs: existe una columna con este nombre pero su nombre interno es
+  wrongType: tipo de columna incorrecto
+  notUnique: debe exigir valores únicos
+  failed: El sitio no coincide con el esquema esperado. Corrija los puntos anteriores antes de importar o ejecutar la solución.
+  ok: Todas las listas, bibliotecas y columnas coinciden con el esquema esperado.

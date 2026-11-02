@@ -1,0 +1,19 @@
+# Document libraries used by the flows.
+# urlName is the contract: flows write to "/<urlName>" (e.g. folderPath "/Evidence").
+# Always create the library with urlName first, then rename its display title.
+libraries:
+  - urlName: Evidence
+    title: {en: Evidence, es: Evidencias}
+    description:
+      en: Normalized text evidence written by the collectors and read by the classifier.
+      es: Evidencia en texto normalizado que escriben los recolectores y lee el clasificador.
+  - urlName: PublishedReports
+    title: {en: Published Reports, es: Informes publicados}
+    description:
+      en: Weekly digests and approved reports for the intended audience.
+      es: Resúmenes semanales e informes aprobados para la audiencia prevista.
+  - urlName: ResearchDrafts
+    title: {en: Research Drafts, es: Borradores de investigación}
+    description:
+      en: Restricted drafts awaiting human review (used by future workflows).
+      es: Borradores restringidos en espera de revisión humana (para flujos futuros).

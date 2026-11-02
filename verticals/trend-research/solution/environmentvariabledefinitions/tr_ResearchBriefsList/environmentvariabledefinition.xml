@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_ResearchBriefsList">
+  <defaultvalue>{{list:ResearchBriefs}}</defaultvalue>
+  <description default="{{t:env.tr_ResearchBriefsList.description}}">
+    <label description="{{t:env.tr_ResearchBriefsList.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_ResearchBriefsList.name}}">
+    <label description="{{t:env.tr_ResearchBriefsList.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.1.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

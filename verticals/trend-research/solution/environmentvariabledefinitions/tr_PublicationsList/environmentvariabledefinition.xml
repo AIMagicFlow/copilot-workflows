@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_PublicationsList">
+  <defaultvalue>{{list:Publications}}</defaultvalue>
+  <description default="{{t:env.tr_PublicationsList.description}}">
+    <label description="{{t:env.tr_PublicationsList.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_PublicationsList.name}}">
+    <label description="{{t:env.tr_PublicationsList.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.1.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

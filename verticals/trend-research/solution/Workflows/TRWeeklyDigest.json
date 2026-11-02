@@ -1,0 +1,543 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      },
+      "shared_teams": {
+        "api": {
+          "name": "shared_teams"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedteams_9326dab3"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Research Briefs list (tr_ResearchBriefsList)": {
+          "defaultValue": "{{list:ResearchBriefs}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_ResearchBriefsList"
+          }
+        },
+        "Source Items list (tr_SourceItemsList)": {
+          "defaultValue": "{{list:SourceItems}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceItemsList"
+          }
+        },
+        "Signals list (tr_SignalsList)": {
+          "defaultValue": "{{list:Signals}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SignalsList"
+          }
+        },
+        "Publications list (tr_PublicationsList)": {
+          "defaultValue": "{{list:Publications}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_PublicationsList"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Week",
+            "interval": 1,
+            "schedule": {
+              "weekDays": [
+                "Monday"
+              ],
+              "hours": [
+                8
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Get_Enabled_Briefs": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Research Briefs list (tr_ResearchBriefsList)')",
+              "$filter": "field_7 eq 1"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            }
+          },
+          "metadata": {
+            "description": "Get Enabled Briefs",
+            "nodeId": "connector-16e0a9dd-705a-43de-929a-ad2ae6be2c47"
+          }
+        },
+        "Loop_Brief": {
+          "type": "Foreach",
+          "foreach": "@coalesce(body('Get_Enabled_Briefs')?['value'], json('[]'))",
+          "actions": {
+            "Build_WindowStart": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "WindowStart",
+                "value": "@{addDays(utcNow(), -7)}"
+              },
+              "metadata": {
+                "description": "Build WindowStart",
+                "nodeId": "variable-7a18a37e-de93-4da8-9a2b-2749322455fc"
+              }
+            },
+            "Build_WindowStart_Init_WindowStartDate": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "WindowStartDate",
+                "value": "@{formatDateTime(addDays(utcNow(), -7), 'yyyy-MM-dd')}"
+              },
+              "runAfter": {
+                "Build_WindowStart": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Build_WindowEnd": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "WindowEnd",
+                "value": "@{utcNow()}"
+              },
+              "runAfter": {
+                "Build_WindowStart_Init_WindowStartDate": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Build WindowEnd",
+                "nodeId": "variable-c483f02a-e7be-4dd7-abd8-51e1975cf688"
+              }
+            },
+            "Build_WindowEnd_Init_WindowEndDate": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "WindowEndDate",
+                "value": "@{formatDateTime(utcNow(), 'yyyy-MM-dd')}"
+              },
+              "runAfter": {
+                "Build_WindowEnd": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Build_PublicationKey": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "PublicationKey",
+                "value": "digest|@{items('Loop_Brief')?['ID']}|@{variables('WindowStartDate')}|@{variables('WindowEndDate')}"
+              },
+              "runAfter": {
+                "Build_WindowEnd_Init_WindowEndDate": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Build PublicationKey",
+                "nodeId": "variable-702498ec-56a4-4320-8ee8-376c978e5875"
+              }
+            },
+            "Check_Publication_Exists": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Publications list (tr_PublicationsList)')",
+                  "$filter": "field_1 eq '@{variables('PublicationKey')}'\n",
+                  "$top": 1
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetItems"
+                }
+              },
+              "runAfter": {
+                "Build_PublicationKey": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Check Publication Exists",
+                "nodeId": "connector-cbc77367-1e6c-4bf3-b52e-46467f3101f5"
+              }
+            },
+            "If_New_Publication": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "empty": [
+                      "@body('Check_Publication_Exists')?['value']"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Get_Digest_Signals": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Signals list (tr_SignalsList)')",
+                      "$filter": "field_2 eq @{items('Loop_Brief')?['ID']}\nand field_11 eq 'Digest'\nand Created ge '@{variables('WindowStart')}'\nand Created le '@{variables('WindowEnd')}'"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    }
+                  },
+                  "metadata": {
+                    "description": "Get Digest Signals",
+                    "nodeId": "connector-3f39dea4-227f-4874-87e6-447e7ff0813f"
+                  }
+                },
+                "Any_Digest_Signals_": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "not": [
+                          {
+                            "empty": [
+                              "@body('Get_Digest_Signals')?['value']"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Digest_HTML": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "<html lang=\"{{locale}}\">\n<head>\n<meta charset=\"utf-8\">\n<title>{{t:digest.title}}</title>\n</head>\n<body>\n<h1>{{t:digest.title}}</h1>\n<h2>{{t:digest.briefHeading}}</h2>\n<p>@{items('Loop_Brief')?['Title']}</p>\n<p>\n<strong>{{t:digest.reportingWindow}}:</strong>\n@{variables('WindowStartDate')} {{t:digest.through}} @{variables('WindowEndDate')}\n</p>\n<h2>{{t:digest.pipelineSummary}}</h2>\n<ul>\n<li>{{t:digest.digestSignalsIncluded}}: @{length(body('Get_Digest_Signals')?['value'])}</li>\n</ul>\n<h2>{{t:digest.topFindings}}</h2>"
+                      },
+                      "metadata": {
+                        "description": "Digest HTML",
+                        "nodeId": "variable-1762c5d8-ebf4-4f69-937d-73bd03aad3e9"
+                      }
+                    },
+                    "Loop": {
+                      "type": "Foreach",
+                      "foreach": "@coalesce(body('Get_Digest_Signals')?['value'], json('[]'))",
+                      "actions": {
+                        "Get_Signal_SourceItem": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "id": "@items('Loop')?['field_1']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get Signal SourceItem",
+                            "nodeId": "connector-2f8000e9-c163-43ff-a920-9b4fe131b74b"
+                          }
+                        },
+                        "Append_Signal_HTML": {
+                          "type": "AppendToStringVariable",
+                          "inputs": {
+                            "name": "DigestHTML",
+                            "value": "<hr>\n<h3>@{outputs('Get_Signal_SourceItem')?['body/Title']}</h3>\n<p>\n<strong>{{t:digest.relevance}}:</strong> @{items('Loop')?['field_7']}/100<br>\n<strong>{{t:digest.impact}}:</strong> @{if(equals(items('Loop')?['field_8'], 'High'), '{{t:codes.impact.High}}', if(equals(items('Loop')?['field_8'], 'Medium'), '{{t:codes.impact.Medium}}', if(equals(items('Loop')?['field_8'], 'Low'), '{{t:codes.impact.Low}}', items('Loop')?['field_8'])))}<br>\n<strong>{{t:digest.horizon}}:</strong> @{if(equals(items('Loop')?['field_9'], 'Near'), '{{t:codes.horizon.Near}}', if(equals(items('Loop')?['field_9'], 'Medium'), '{{t:codes.horizon.Medium}}', if(equals(items('Loop')?['field_9'], 'Long'), '{{t:codes.horizon.Long}}', items('Loop')?['field_9'])))}<br>\n<strong>{{t:digest.published}}:</strong> @{outputs('Get_Signal_SourceItem')?['body/PublishedAt']}<br>\n<strong>{{t:digest.evidence}}:</strong> @{outputs('Get_Signal_SourceItem')?['body/field_7']}\n<br>\n<strong>{{t:digest.notes}}:</strong> @{items('Loop')?['field_10']}\n</p>\n<p>@{items('Loop')?['field_6']}</p>\n<p>\n<a href=\"@{outputs('Get_Signal_SourceItem')?['body/field_4']}\">{{t:digest.openSource}}</a>\n</p>"
+                          },
+                          "runAfter": {
+                            "Get_Signal_SourceItem": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Append Signal HTML",
+                            "nodeId": "variable-ec311c42-db2f-4cfa-8bf2-19459b511cdc"
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "Loop",
+                        "nodeId": "loop-69447925-9efe-40fb-9062-2b3d614c2e78"
+                      },
+                      "runAfter": {
+                        "Digest_HTML": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Finalize_Digest_HTML": {
+                      "type": "AppendToStringVariable",
+                      "inputs": {
+                        "name": "DigestHTML",
+                        "value": "<hr>\n<p>\n{{t:digest.footer}}\n</p>\n</body>\n</html>"
+                      },
+                      "runAfter": {
+                        "Loop": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Finalize Digest HTML",
+                        "nodeId": "variable-eecd99c0-ca87-4bb1-916b-aa446bc30bcb"
+                      }
+                    },
+                    "Create_Published_Report": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "folderPath": "/PublishedReports",
+                          "name": "weekly-digest-Brief@{items('Loop_Brief')?['ID']}-@{variables('WindowEndDate')}.html",
+                          "body": "@variables('DigestHTML')"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "CreateFile"
+                        }
+                      },
+                      "runAfter": {
+                        "Finalize_Digest_HTML": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create Published Report",
+                        "nodeId": "connector-bdf594ff-4403-4102-8c39-2290046de13a"
+                      }
+                    },
+                    "Create_Publication_Record": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Publications list (tr_PublicationsList)')",
+                          "item/Title": "{{t:digest.publicationTitle}} - @{items('Loop_Brief')?['Title']} - @{variables('WindowEndDate')}",
+                          "item/field_1": "@variables('PublicationKey')",
+                          "item/field_3": "@outputs('Create_Published_Report')?['body/Path']",
+                          "item/field_4": "sharepoint",
+                          "item/field_5": "Sent"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        }
+                      },
+                      "runAfter": {
+                        "Create_Published_Report": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Create Publication Record",
+                        "nodeId": "connector-be0cc758-dc1d-4067-b7b9-8c82354d15c6"
+                      }
+                    },
+                    "Post_a_message_to_myself": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "body/body/contentType": "text",
+                          "body/body/content": "{{t:digest.teamsMessage}}: @{outputs('Create_Publication_Record')?['body/field_3']}"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                          "connectionName": "shared_teams",
+                          "operationId": "PostMessageToSelf"
+                        }
+                      },
+                      "runAfter": {
+                        "Create_Publication_Record": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Post a message to myself",
+                        "nodeId": "connector-ac064291-07ca-4199-9481-3e962eacbe04"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  },
+                  "runAfter": {
+                    "Get_Digest_Signals": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Any Digest Signals?",
+                    "nodeId": "ifElse-49104761-d853-40f2-95a2-4232f1f325dc"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              },
+              "runAfter": {
+                "Check_Publication_Exists": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "If New Publication",
+                "nodeId": "ifElse-f609439c-0e76-4d4a-a7b7-ece747bd6c39"
+              }
+            }
+          },
+          "metadata": {
+            "description": "Loop_Brief",
+            "nodeId": "loop-d6aa327b-ad2e-4ec5-9dd6-3a47f3b6c4b5"
+          },
+          "runAfter": {
+            "Get_Enabled_Briefs": [
+              "Succeeded"
+            ],
+            "Initialize_variable_WindowStart": [
+              "Succeeded"
+            ],
+            "Initialize_variable_WindowStartDate": [
+              "Succeeded"
+            ],
+            "Initialize_variable_WindowEnd": [
+              "Succeeded"
+            ],
+            "Initialize_variable_WindowEndDate": [
+              "Succeeded"
+            ],
+            "Initialize_variable_PublicationKey": [
+              "Succeeded"
+            ],
+            "Initialize_variable_DigestHTML": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_variable_WindowStart": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "WindowStart",
+                "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_WindowStartDate": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "WindowStartDate",
+                "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_WindowEnd": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "WindowEnd",
+                "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_WindowEndDate": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "WindowEndDate",
+                "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_PublicationKey": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PublicationKey",
+                "type": "String"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_DigestHTML": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DigestHTML",
+                "type": "String"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "metadata": {
+        "telemetryMetadata": {
+          "creationSource": "WorkflowDesigner",
+          "modifiedSources": "WorkflowDesigner"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

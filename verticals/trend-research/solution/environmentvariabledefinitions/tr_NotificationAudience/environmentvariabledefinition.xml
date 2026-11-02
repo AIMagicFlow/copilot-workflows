@@ -1,0 +1,13 @@
+<environmentvariabledefinition schemaname="tr_NotificationAudience">
+  <description default="{{t:env.tr_NotificationAudience.description}}">
+    <label description="{{t:env.tr_NotificationAudience.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_NotificationAudience.name}}">
+    <label description="{{t:env.tr_NotificationAudience.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

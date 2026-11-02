@@ -1,0 +1,150 @@
+﻿ListSchema={"schemaXmlList":["<Field ID=\"{fa564e0f-0c70-4ab9-b863-0177e6ddd247}\" Type=\"Text\" Name=\"Title\" DisplayName=\"Title\" Required=\"FALSE\" SourceID=\"http://schemas.microsoft.com/sharepoint/v3\" StaticName=\"Title\" FromBaseType=\"TRUE\" MaxLength=\"255\" />","<Field Type=\"Number\" DisplayName=\"SourceId\" Name=\"field_1\" ID=\"{3ea35d60-070b-4bef-9e0d-152e32898cba}\" StaticName=\"field_1\" />","<Field AppendOnly=\"FALSE\" ClientSideComponentId=\"00000000-0000-0000-0000-000000000000\" DisplayName=\"ExternalId\" Format=\"Dropdown\" IsolateStyles=\"FALSE\" Name=\"field_2\" RichText=\"FALSE\" RichTextMode=\"Compatible\" Title=\"ExternalId\" Type=\"Note\" ID=\"{7683b863-2213-4c3a-9b83-4ae83917ae41}\" StaticName=\"field_2\" />","<Field Type=\"Text\" DisplayName=\"ItemKey\" Name=\"field_3\" ID=\"{3febd6be-3a94-4c2a-93a6-6fcbe5efec7f}\" StaticName=\"field_3\" CustomFormatter=\"\" Required=\"FALSE\" EnforceUniqueValues=\"TRUE\" Indexed=\"TRUE\" MaxLength=\"255\" />","<Field Type=\"Text\" DisplayName=\"SourceUrl\" Name=\"field_4\" ID=\"{5deacb54-6a3f-4e15-9bda-e7d4f68bc59d}\" StaticName=\"field_4\" />","<Field Type=\"Text\" DisplayName=\"EvidenceUrl\" Name=\"field_7\" ID=\"{15b06257-e576-477c-be90-f355a2552d48}\" StaticName=\"field_7\" />","<Field Type=\"Text\" DisplayName=\"ContentStatus\" Name=\"field_8\" ID=\"{717a326b-5df8-41ad-8694-5109324c93ba}\" StaticName=\"field_8\" />","<Field Type=\"Text\" DisplayName=\"Status\" Name=\"field_9\" ID=\"{e8e2a2bf-9dfb-48cf-b03e-117c58d7cf6f}\" StaticName=\"field_9\" />","<Field Type=\"DateTime\" DisplayName=\"PublishedAt\" Required=\"FALSE\" EnforceUniqueValues=\"FALSE\" Indexed=\"FALSE\" Format=\"DateTime\" FriendlyDisplayFormat=\"Disabled\" ID=\"{f0979bbf-df07-4a71-ade2-574cf9c1b2f8}\" StaticName=\"PublishedAt\" Name=\"PublishedAt\" />","<Field Type=\"DateTime\" DisplayName=\"CollectedAt\" Required=\"FALSE\" EnforceUniqueValues=\"FALSE\" Indexed=\"FALSE\" Format=\"DateTime\" FriendlyDisplayFormat=\"Disabled\" ID=\"{ea5f39b9-bb36-450a-a917-06217619b349}\" StaticName=\"CollectedAt\" Name=\"CollectedAt\" />","<Field ID=\"{82642ec8-ef9b-478f-acf9-31f7d45fbc31}\" DisplayName=\"Title\" Description=\"\" Name=\"LinkTitle\" SourceID=\"http://schemas.microsoft.com/sharepoint/v3\" StaticName=\"LinkTitle\" Type=\"Computed\" ReadOnly=\"TRUE\" FromBaseType=\"TRUE\" Width=\"150\" DisplayNameSrcField=\"Title\" Sealed=\"FALSE\"><FieldRefs><FieldRef Name=\"Title\" /><FieldRef Name=\"LinkTitleNoMenu\" /><FieldRef Name=\"_EditMenuTableStart2\" /><FieldRef Name=\"_EditMenuTableEnd\" /></FieldRefs><DisplayPattern><FieldSwitch><Expr><GetVar Name=\"FreeForm\" /></Expr><Case Value=\"TRUE\"><Field Name=\"LinkTitleNoMenu\" /></Case><Default><HTML><![CDATA[<div class=\"ms-vb itx\" onmouseover=\"OnItem(this)\" CTXName=\"ctx]]></HTML><Field Name=\"_EditMenuTableStart2\" /><HTML><![CDATA[\">]]></HTML><Field Name=\"LinkTitleNoMenu\" /><HTML><![CDATA[</div>]]></HTML><HTML><![CDATA[<div class=\"s4-ctx\" onmouseover=\"OnChildItem(this.parentNode); return false;\">]]></HTML><HTML><![CDATA[<span>&nbsp;</span>]]></HTML><HTML><![CDATA[<a onfocus=\"OnChildItem(this.parentNode.parentNode); return false;\" onclick=\"PopMenuFromChevron(event); return false;\" href=\"javascript:;\" title=\"Open Menu\"></a>]]></HTML><HTML><![CDATA[<span>&nbsp;</span>]]></HTML><HTML><![CDATA[</div>]]></HTML></Default></FieldSwitch></DisplayPattern></Field>"]}
+"Title","SourceId","ExternalId","ItemKey","SourceUrl","EvidenceUrl","ContentStatus","Status","PublishedAt","CollectedAt"
+"Build a Validated Kubernetes Runtime for NVIDIA Dynamo","3","https://developer.nvidia.com/blog/?p=124424","3|https://developer.nvidia.com/blog/?p=124424
+","https://developer.nvidia.com/blog/build-a-validated-kubernetes-runtime-for-nvidia-dynamo/","/Evidence/rss-3-https___developer.nvidia.com_blog__p=124424.txt","FeedExcerpt","Classified","2026-10-30T21:35:31Z","2026-11-01T18:18:17Z"
+"Run AI Models for Edge Application Development with Just a Few Commands","3","https://developer.nvidia.com/blog/?p=124453","3|https://developer.nvidia.com/blog/?p=124453
+","https://developer.nvidia.com/blog/run-ai-models-for-edge-application-development-with-just-a-few-commands/","/Evidence/rss-3-https___developer.nvidia.com_blog__p=124453.txt","FeedExcerpt","Classified","2026-10-30T20:33:18Z","2026-11-01T18:18:18Z"
+"Build Specialized Agents on a Stack You Control with NVIDIA NemoClaw","3","https://developer.nvidia.com/blog/?p=124341","3|https://developer.nvidia.com/blog/?p=124341
+","https://developer.nvidia.com/blog/build-specialized-agents-on-a-stack-you-control-with-nvidia-nemoclaw/","/Evidence/rss-3-https___developer.nvidia.com_blog__p=124341.txt","FeedExcerpt","Classified","2026-10-30T16:00:00Z","2026-11-01T18:18:19Z"
+"How to Check and Configure NVIDIA GPUDirect Storage for Your Platform","3","https://developer.nvidia.com/blog/?p=124327","3|https://developer.nvidia.com/blog/?p=124327
+","https://developer.nvidia.com/blog/how-to-check-and-configure-nvidia-gpudirect-storage-for-your-platform/","/Evidence/rss-3-https___developer.nvidia.com_blog__p=124327.txt","FeedExcerpt","Classified","2026-10-30T15:01:36Z","2026-11-01T18:18:20Z"
+"Making it easier for websites to express AI training preferences","2","https://openai.com/index/helping-websites-express-ai-training-preferences","2|https://openai.com/index/helping-websites-express-ai-training-preferences
+","https://openai.com/index/helping-websites-express-ai-training-preferences","/Evidence/rss-2-https___openai.com_index_helping-websites-express-ai-training-preferences.txt","FeedExcerpt","Ready","2026-10-30T09:30:00Z","2026-11-02T01:13:15Z"
+"Community safety report and new protections for teens","2","https://openai.com/index/community-safety-report-and-new-protections-for-teens","2|https://openai.com/index/community-safety-report-and-new-protections-for-teens
+","https://openai.com/index/community-safety-report-and-new-protections-for-teens","/Evidence/rss-2-https___openai.com_index_community-safety-report-and-new-protections-for-teens.txt","FeedExcerpt","Ready","2026-10-30T09:00:00Z","2026-11-02T01:13:19Z"
+"Warm transfer vs cold transfer: choosing the right call","4","https://elevenlabs.io/blog/warm-transfer-vs-cold-transfer","4|https://elevenlabs.io/blog/warm-transfer-vs-cold-transfer
+","https://elevenlabs.io/blog/warm-transfer-vs-cold-transfer","/Evidence/rss-4-https___elevenlabs.io_blog_warm-transfer-vs-cold-transfer.txt","FeedExcerpt","Ready","2026-10-30T12:00:00Z","2026-11-02T01:13:24Z"
+"TELUS Digital cut early cancellations by more than half with ElevenAgents","4","https://elevenlabs.io/blog/telus-digital-early-cancellations","4|https://elevenlabs.io/blog/telus-digital-early-cancellations
+","https://elevenlabs.io/blog/telus-digital-early-cancellations","/Evidence/rss-4-https___elevenlabs.io_blog_telus-digital-early-cancellations.txt","FeedExcerpt","Ready","2026-10-30T12:00:00Z","2026-11-02T01:13:25Z"
+"nemotron-halloween","6","https://huggingface.co/blog/nvidia/nemotron-halloween","6|https://huggingface.co/blog/nvidia/nemotron-halloween
+","https://huggingface.co/blog/nvidia/nemotron-halloween","/Evidence/rss-6-https___huggingface.co_blog_nvidia_nemotron-halloween.txt","FeedExcerpt","Ready","2026-10-30T17:57:24Z","2026-11-02T01:13:29Z"
+"We’re MOSS, the team behind MOSS-Image, MOSS-TTS, and more — Ask Us Anything!","8","t3_1xjhpn9","8|t3_1xjhpn9
+","https://www.reddit.com/r/LocalLLaMA/comments/1xjhpn9/were_moss_the_team_behind_mossimage_mosstts_and/","/Evidence/rss-8-t3_1xjhpn9.txt","FeedExcerpt","Ready","2026-10-30T15:00:55Z","2026-11-02T01:13:36Z"
+"Heretic 2.0 released: Model modification for everyone","8","t3_1xl2tcm","8|t3_1xl2tcm
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl2tcm/heretic_20_released_model_modification_for/","/Evidence/rss-8-t3_1xl2tcm.txt","FeedExcerpt","Ready","2026-11-01T13:16:24Z","2026-11-02T01:13:38Z"
+"[GLB-3D-Coder] A tiny 4B coding model that creates 3D assets for Godot and other game engines","8","t3_1xlh0zw","8|t3_1xlh0zw
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlh0zw/glb3dcoder_a_tiny_4b_coding_model_that_creates_3d/","/Evidence/rss-8-t3_1xlh0zw.txt","FeedExcerpt","Ready","2026-11-01T22:56:19Z","2026-11-02T01:13:40Z"
+"Coding is solved* (exclusions apply)","8","t3_1xl90rr","8|t3_1xl90rr
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl90rr/coding_is_solved_exclusions_apply/","/Evidence/rss-8-t3_1xl90rr.txt","FeedExcerpt","Ready","2026-11-01T17:31:32Z","2026-11-02T01:13:41Z"
+"Getting incredible results with a single RTX 3090ti and 128gb of ram. Deepseek-V4.1-Flash-1017 (35 tok/s decode) and Qwen3.8-Flash-Next (130 tok/s decode)","8","t3_1xlec67","8|t3_1xlec67
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlec67/getting_incredible_results_with_a_single_rtx/","/Evidence/rss-8-t3_1xlec67.txt","FeedExcerpt","Ready","2026-11-01T21:01:42Z","2026-11-02T01:13:43Z"
+"Don't people pay attention anymore when buying hardware for AI?","8","t3_1xl4ckr","8|t3_1xl4ckr
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl4ckr/dont_people_pay_attention_anymore_when_buying/","/Evidence/rss-8-t3_1xl4ckr.txt","FeedExcerpt","Ready","2026-11-01T14:24:50Z","2026-11-02T01:13:44Z"
+"llama2.c on a 2006 iPod @ 80 MHz w/ 64 MB ram and no FPU","8","t3_1xlboqi","8|t3_1xlboqi
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlboqi/llama2c_on_a_2006_ipod_80_mhz_w_64_mb_ram_and_no/","/Evidence/rss-8-t3_1xlboqi.txt","FeedExcerpt","Ready","2026-11-01T19:15:26Z","2026-11-02T01:13:45Z"
+"Memdoor: A team of 5 Qwen3.8-27B models beats Fable 5 on LiveCodeBench Hard","8","t3_1xkxt7a","8|t3_1xkxt7a
+","https://www.reddit.com/r/LocalLLaMA/comments/1xkxt7a/memdoor_a_team_of_5_qwen3827b_models_beats_fable/","/Evidence/rss-8-t3_1xkxt7a.txt","FeedExcerpt","Ready","2026-11-01T08:24:18Z","2026-11-02T01:13:47Z"
+"Sorry Sam, my ""quite terrible"" home DRAM is at 100% now: patched Strata to make DeepSeek V4.1 agent sessions start 20× faster on a good old standard gaming GPU, no datacenter required","8","t3_1xljdnj","8|t3_1xljdnj
+","https://www.reddit.com/r/LocalLLaMA/comments/1xljdnj/sorry_sam_my_quite_terrible_home_dram_is_at_100/","/Evidence/rss-8-t3_1xljdnj.txt","FeedExcerpt","Ready","2026-11-02T00:44:53Z","2026-11-02T01:13:48Z"
+"Do we really need all these ""speed"" posts?","8","t3_1xljjf2","8|t3_1xljjf2
+","https://www.reddit.com/r/LocalLLaMA/comments/1xljjf2/do_we_really_need_all_these_speed_posts/","/Evidence/rss-8-t3_1xljjf2.txt","FeedExcerpt","Ready","2026-11-02T00:52:40Z","2026-11-02T01:13:50Z"
+"Is Gemma 4 E4B still the best small model for a local, tool-calling personal assistant? What am I missing?","8","t3_1xle3ul","8|t3_1xle3ul
+","https://www.reddit.com/r/LocalLLaMA/comments/1xle3ul/is_gemma_4_e4b_still_the_best_small_model_for_a/","/Evidence/rss-8-t3_1xle3ul.txt","FeedExcerpt","Ready","2026-11-01T20:52:26Z","2026-11-02T01:13:51Z"
+"tandem.cpp: Qwen3.8-Flash-Next at 97 tok/s on a single 4090 + 64 GB RAM, 3.3× llama.cpp, works for any MoE","8","t3_1xldent","8|t3_1xldent
+","https://www.reddit.com/r/LocalLLaMA/comments/1xldent/tandemcpp_qwen38flashnext_at_97_toks_on_a_single/","/Evidence/rss-8-t3_1xldent.txt","FeedExcerpt","Ready","2026-11-01T20:23:50Z","2026-11-02T01:13:53Z"
+"new research: A tiny 109M-parameter model outperforms models up to 72B parameters at image-text alignment, using 42× less training data","8","t3_1xkzony","8|t3_1xkzony
+","https://www.reddit.com/r/LocalLLaMA/comments/1xkzony/new_research_a_tiny_109mparameter_model/","/Evidence/rss-8-t3_1xkzony.txt","FeedExcerpt","Ready","2026-11-01T10:24:21Z","2026-11-02T01:13:54Z"
+"Benchmarking: Qwen 27B, 35B, QFN180B; Nemotron Bolt 74B, Flint40B & Clover 35B (Q4 + KFlash) on MacBook M5 Max 2026 with Kapitsa (Apple Silicon Inference Engine)","8","t3_1xlgu8m","8|t3_1xlgu8m
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlgu8m/benchmarking_qwen_27b_35b_qfn180b_nemotron_bolt/","/Evidence/rss-8-t3_1xlgu8m.txt","FeedExcerpt","Ready","2026-11-01T22:47:41Z","2026-11-02T01:13:56Z"
+"DeepSeek: Exploring Super-agent Design: Towards a More Autonomous Agent System","8","t3_1xl1zn3","8|t3_1xl1zn3
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl1zn3/deepseek_exploring_superagent_design_towards_a/","/Evidence/rss-8-t3_1xl1zn3.txt","FeedExcerpt","Ready","2026-11-01T12:36:14Z","2026-11-02T01:13:57Z"
+"Speedy is shockingly good for qwen3.8 FN","8","t3_1xlfhrd","8|t3_1xlfhrd
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlfhrd/speedy_is_shockingly_good_for_qwen38_fn/","/Evidence/rss-8-t3_1xlfhrd.txt","FeedExcerpt","Ready","2026-11-01T21:49:36Z","2026-11-02T01:13:58Z"
+"Qwen 3.8 Flash Next NVFP4 on 64gb RAM and 5090, Basalt. Ditched windows for it. Very hyped for qwen 4 model family now.","8","t3_1xlicia","8|t3_1xlicia
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlicia/qwen_38_flash_next_nvfp4_on_64gb_ram_and_5090/","/Evidence/rss-8-t3_1xlicia.txt","FeedExcerpt","Ready","2026-11-01T23:56:49Z","2026-11-02T01:14:00Z"
+"Meet Ava: In-browser local AI avatar with LFM3-Omni and WebGPU","8","t3_1xl9577","8|t3_1xl9577
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl9577/meet_ava_inbrowser_local_ai_avatar_with_lfm3omni/","/Evidence/rss-8-t3_1xl9577.txt","FeedExcerpt","Ready","2026-11-01T17:36:17Z","2026-11-02T01:14:01Z"
+"QwenBend : Qwen writes a Bend program, then the same model type checks it with Bend2 rules and runs it inside its own forward pass","8","t3_1xle8ta","8|t3_1xle8ta
+","https://www.reddit.com/r/LocalLLaMA/comments/1xle8ta/qwenbend_qwen_writes_a_bend_program_then_the_same/","/Evidence/rss-8-t3_1xle8ta.txt","FeedExcerpt","Ready","2026-11-01T20:58:07Z","2026-11-02T01:14:02Z"
+"Silencio-2: an 18M TTS with emotion and sound tags, ~20x realtime on CPU (open weights)","8","t3_1xl9yfi","8|t3_1xl9yfi
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl9yfi/silencio2_an_18m_tts_with_emotion_and_sound_tags/","/Evidence/rss-8-t3_1xl9yfi.txt","FeedExcerpt","Ready","2026-11-01T18:07:34Z","2026-11-02T01:14:04Z"
+"An updated 2.3bpw model for qwen 27b + 12 GB cards: ties Qwen3.6 BF16 on LiveCode Bench and reduces error by 37-57% vs a previous checkpoint","8","t3_1xlerw1","8|t3_1xlerw1
+","https://www.reddit.com/r/LocalLLaMA/comments/1xlerw1/an_updated_23bpw_model_for_qwen_27b_12_gb_cards/","/Evidence/rss-8-t3_1xlerw1.txt","FeedExcerpt","Ready","2026-11-01T21:19:36Z","2026-11-02T01:14:06Z"
+"Well, my local AI addiction officially got out of hand tonight.","8","t3_1xklq96","8|t3_1xklq96
+","https://www.reddit.com/r/LocalLLaMA/comments/1xklq96/well_my_local_ai_addiction_officially_got_out_of/","/Evidence/rss-8-t3_1xklq96.txt","FeedExcerpt","Ready","2026-10-31T21:21:02Z","2026-11-02T01:14:07Z"
+"Am I Crazy Or GLM 5.3 Flash is Hilarious?","8","t3_1xkz4mo","8|t3_1xkz4mo
+","https://www.reddit.com/r/LocalLLaMA/comments/1xkz4mo/am_i_crazy_or_glm_53_flash_is_hilarious/","/Evidence/rss-8-t3_1xkz4mo.txt","FeedExcerpt","Ready","2026-11-01T09:49:38Z","2026-11-02T01:14:09Z"
+"7900xtx got speedup","8","t3_1xl65xy","8|t3_1xl65xy
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl65xy/7900xtx_got_speedup/","/Evidence/rss-8-t3_1xl65xy.txt","FeedExcerpt","Ready","2026-11-01T15:39:54Z","2026-11-02T01:14:10Z"
+"Infernix - New Release!","8","t3_1xl4pf6","8|t3_1xl4pf6
+","https://www.reddit.com/r/LocalLLaMA/comments/1xl4pf6/infernix_new_release/","/Evidence/rss-8-t3_1xl4pf6.txt","FeedExcerpt","Ready","2026-11-01T14:40:04Z","2026-11-02T01:14:11Z"
+"[D] Simple Questions Thread","9","t3_1xl6og2","9|t3_1xl6og2
+","https://www.reddit.com/r/MachineLearning/comments/1xl6og2/d_simple_questions_thread/","/Evidence/rss-9-t3_1xl6og2.txt","FeedExcerpt","Ready","2026-11-01T16:00:36Z","2026-11-02T01:14:16Z"
+"[D] Monthly Who's Hiring and Who wants to be Hired?","9","t3_1xjyo89","9|t3_1xjyo89
+","https://www.reddit.com/r/MachineLearning/comments/1xjyo89/d_monthly_whos_hiring_and_who_wants_to_be_hired/","/Evidence/rss-9-t3_1xjyo89.txt","FeedExcerpt","Ready","2026-10-31T02:30:21Z","2026-11-02T01:14:17Z"
+"Why do all NN optimizers have weird names? [d]","9","t3_1xl7yv0","9|t3_1xl7yv0
+","https://www.reddit.com/r/MachineLearning/comments/1xl7yv0/why_do_all_nn_optimizers_have_weird_names_d/","/Evidence/rss-9-t3_1xl7yv0.txt","FeedExcerpt","Ready","2026-11-01T16:51:18Z","2026-11-02T01:14:19Z"
+"Are there fundamental repeating patterns in ML techniques across modalities (text, image, audio) that let us group them? [R]","9","t3_1xkp8e9","9|t3_1xkp8e9
+","https://www.reddit.com/r/MachineLearning/comments/1xkp8e9/are_there_fundamental_repeating_patterns_in_ml/","/Evidence/rss-9-t3_1xkp8e9.txt","FeedExcerpt","Ready","2026-11-01T00:07:04Z","2026-11-02T01:14:20Z"
+"LSREP: A Longitudinal State-Replay Protocol for Evaluating Conversational Memory [R]","9","t3_1xkzwz9","9|t3_1xkzwz9
+","https://www.reddit.com/r/MachineLearning/comments/1xkzwz9/lsrep_a_longitudinal_statereplay_protocol_for/","/Evidence/rss-9-t3_1xkzwz9.txt","FeedExcerpt","Ready","2026-11-01T10:38:34Z","2026-11-02T01:14:21Z"
+"Data augmentation question. How do I characterise an original and augmented datasets where the augmentation parameters were zoom and crop? [P]","9","t3_1xl1uba","9|t3_1xl1uba
+","https://www.reddit.com/r/MachineLearning/comments/1xl1uba/data_augmentation_question_how_do_i_characterise/","/Evidence/rss-9-t3_1xl1uba.txt","FeedExcerpt","Ready","2026-11-01T12:28:22Z","2026-11-02T01:14:22Z"
+"Best option for local models [D]","9","t3_1xkwrp3","9|t3_1xkwrp3
+","https://www.reddit.com/r/MachineLearning/comments/1xkwrp3/best_option_for_local_models_d/","/Evidence/rss-9-t3_1xkwrp3.txt","FeedExcerpt","Ready","2026-11-01T07:16:53Z","2026-11-02T01:14:23Z"
+"I animated what GPT-4o's tokenizer does to ""strawberry"": real token ids, a tiny BPE run, and why the space belongs to the word (6 min video) [D]","9","t3_1xl9sv7","9|t3_1xl9sv7
+","https://www.reddit.com/r/MachineLearning/comments/1xl9sv7/i_animated_what_gpt4os_tokenizer_does_to/","/Evidence/rss-9-t3_1xl9sv7.txt","FeedExcerpt","Ready","2026-11-01T18:01:28Z","2026-11-02T01:14:25Z"
+"Hierarchical detection of neonatal brain pathologies using a two-stage deep learning framework from magnetic resonance imaging [R]","9","t3_1xkcy83","9|t3_1xkcy83
+","https://www.reddit.com/r/MachineLearning/comments/1xkcy83/hierarchical_detection_of_neonatal_brain/","/Evidence/rss-9-t3_1xkcy83.txt","FeedExcerpt","Ready","2026-10-31T15:21:39Z","2026-11-02T01:14:26Z"
+"Multi-Token Prediction Done Right [R]","9","t3_1xjnz40","9|t3_1xjnz40
+","https://www.reddit.com/r/MachineLearning/comments/1xjnz40/multitoken_prediction_done_right_r/","/Evidence/rss-9-t3_1xjnz40.txt","FeedExcerpt","Ready","2026-10-30T18:53:20Z","2026-11-02T01:14:27Z"
+"I built a scikit-learn for RSI [P]","9","t3_1xkeq7d","9|t3_1xkeq7d
+","https://www.reddit.com/r/MachineLearning/comments/1xkeq7d/i_built_a_scikitlearn_for_rsi_p/","/Evidence/rss-9-t3_1xkeq7d.txt","FeedExcerpt","Ready","2026-10-31T16:33:26Z","2026-11-02T01:14:29Z"
+"Freind of mine published a paper with fabricated results in a top journal and got accepted and i feel disgusted [d]","9","t3_1xj8tvc","9|t3_1xj8tvc
+","https://www.reddit.com/r/MachineLearning/comments/1xj8tvc/freind_of_mine_published_a_paper_with_fabricated/","/Evidence/rss-9-t3_1xj8tvc.txt","FeedExcerpt","Ready","2026-10-30T07:25:23Z","2026-11-02T01:14:31Z"
+"Is neuro-evolution relevant? [D]","9","t3_1xkh5bw","9|t3_1xkh5bw
+","https://www.reddit.com/r/MachineLearning/comments/1xkh5bw/is_neuroevolution_relevant_d/","/Evidence/rss-9-t3_1xkh5bw.txt","FeedExcerpt","Ready","2026-10-31T18:09:53Z","2026-11-02T01:14:33Z"
+"Is it okay to share my experiments implementing research papers on my own LLM here? [P]","9","t3_1xkgtly","9|t3_1xkgtly
+","https://www.reddit.com/r/MachineLearning/comments/1xkgtly/is_it_okay_to_share_my_experiments_implementing/","/Evidence/rss-9-t3_1xkgtly.txt","FeedExcerpt","Ready","2026-10-31T17:57:22Z","2026-11-02T01:14:35Z"
+"Advice on dealing with Cold Start forecasting [D]","9","t3_1xjmgju","9|t3_1xjmgju
+","https://www.reddit.com/r/MachineLearning/comments/1xjmgju/advice_on_dealing_with_cold_start_forecasting_d/","/Evidence/rss-9-t3_1xjmgju.txt","FeedExcerpt","Ready","2026-10-30T17:56:26Z","2026-11-02T01:14:36Z"
+"Paid Research Survey for conference papers [D]","9","t3_1xjtpio","9|t3_1xjtpio
+","https://www.reddit.com/r/MachineLearning/comments/1xjtpio/paid_research_survey_for_conference_papers_d/","/Evidence/rss-9-t3_1xjtpio.txt","FeedExcerpt","Ready","2026-10-30T22:42:27Z","2026-11-02T01:14:37Z"
+"The International System of Units (SI) is the modern metric system and the world's most widely used measurement framework managed by the International Bureau of Weights and Measures.","10","t3_1xl9mbk","10|t3_1xl9mbk
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl9mbk/the_international_system_of_units_si_is_the/","/Evidence/rss-10-t3_1xl9mbk.txt","FeedExcerpt","Ready","2026-11-01T17:54:45Z","2026-11-02T01:14:42Z"
+"OpenAI wants to rebrand its data centers as ""AI compute campuses"" after the midterms, what would be a better name? Wrong answers only.","10","t3_1xl8j7q","10|t3_1xl8j7q
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl8j7q/openai_wants_to_rebrand_its_data_centers_as_ai/","/Evidence/rss-10-t3_1xl8j7q.txt","FeedExcerpt","Ready","2026-11-01T17:12:50Z","2026-11-02T01:14:43Z"
+"I evolved my creatures' brains offline for one night. On unseen rounds they went from 7% to 62% wins","10","t3_1xl8j6y","10|t3_1xl8j6y
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl8j6y/i_evolved_my_creatures_brains_offline_for_one/","/Evidence/rss-10-t3_1xl8j6y.txt","FeedExcerpt","Ready","2026-11-01T17:12:49Z","2026-11-02T01:14:44Z"
+"AI models are becoming more agentic, but can humans actually keep up?","10","t3_1xl1xdr","10|t3_1xl1xdr
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl1xdr/ai_models_are_becoming_more_agentic_but_can/","/Evidence/rss-10-t3_1xl1xdr.txt","FeedExcerpt","Ready","2026-11-01T12:32:51Z","2026-11-02T01:14:45Z"
+"AI is getting a little annoying with images and posters","10","t3_1xlflyh","10|t3_1xlflyh
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xlflyh/ai_is_getting_a_little_annoying_with_images_and/","/Evidence/rss-10-t3_1xlflyh.txt","FeedExcerpt","Ready","2026-11-01T21:54:41Z","2026-11-02T01:14:46Z"
+"Anthropic and a finance research firm had Claude design scorpion toxin binders: 17 of 211 lab-tested designs bound","10","t3_1xkwdwh","10|t3_1xkwdwh
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xkwdwh/anthropic_and_a_finance_research_firm_had_claude/","/Evidence/rss-10-t3_1xkwdwh.txt","FeedExcerpt","Ready","2026-11-01T06:53:11Z","2026-11-02T01:14:48Z"
+"Moralitybench.ai: Updated with new models and moral choice (aka Trolley Problem) results","10","t3_1xlf0tn","10|t3_1xlf0tn
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xlf0tn/moralitybenchai_updated_with_new_models_and_moral/","/Evidence/rss-10-t3_1xlf0tn.txt","FeedExcerpt","Ready","2026-11-01T21:29:59Z","2026-11-02T01:14:49Z"
+"Which AI is best for helping as a business assistant?","10","t3_1xljg3g","10|t3_1xljg3g
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xljg3g/which_ai_is_best_for_helping_as_a_business/","/Evidence/rss-10-t3_1xljg3g.txt","FeedExcerpt","Ready","2026-11-02T00:48:08Z","2026-11-02T01:14:50Z"
+"Resources for learning AI as a beginner?","10","t3_1xl39pg","10|t3_1xl39pg
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl39pg/resources_for_learning_ai_as_a_beginner/","/Evidence/rss-10-t3_1xl39pg.txt","FeedExcerpt","Ready","2026-11-01T13:37:27Z","2026-11-02T01:14:51Z"
+"Top-cited AI researchers in Switzerland, the US and Hong Kong get the most citations per paper","10","t3_1xl1yrx","10|t3_1xl1yrx
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl1yrx/topcited_ai_researchers_in_switzerland_the_us_and/","/Evidence/rss-10-t3_1xl1yrx.txt","FeedExcerpt","Ready","2026-11-01T12:34:59Z","2026-11-02T01:14:53Z"
+"project godoudama","10","t3_1xl9neg","10|t3_1xl9neg
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl9neg/project_godoudama/","/Evidence/rss-10-t3_1xl9neg.txt","FeedExcerpt","Ready","2026-11-01T17:55:51Z","2026-11-02T01:14:54Z"
+"What would you do if you could live to 400 years old?","10","t3_1xkuxns","10|t3_1xkuxns
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xkuxns/what_would_you_do_if_you_could_live_to_400_years/","/Evidence/rss-10-t3_1xkuxns.txt","FeedExcerpt","Ready","2026-11-01T05:21:51Z","2026-11-02T01:14:55Z"
+"19 LLMs played 376 games of a word-association game against each other. The team with the better guesser won 68% of the time, the one with better clues only 53%","10","t3_1xld7w9","10|t3_1xld7w9
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xld7w9/19_llms_played_376_games_of_a_wordassociation/","/Evidence/rss-10-t3_1xld7w9.txt","FeedExcerpt","Ready","2026-11-01T20:16:16Z","2026-11-02T01:14:56Z"
+"Live by the Claude, Die by the Claude","10","t3_1xlb7uv","10|t3_1xlb7uv
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xlb7uv/live_by_the_claude_die_by_the_claude/","/Evidence/rss-10-t3_1xlb7uv.txt","FeedExcerpt","Ready","2026-11-01T18:57:19Z","2026-11-02T01:14:57Z"
+"In a real classroom experiment, students couldn't spot misinformation from a confident AI chatbot - we open-sourced the tools (featured in an EBS documentary)","10","t3_1xlb2fa","10|t3_1xlb2fa
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xlb2fa/in_a_real_classroom_experiment_students_couldnt/","/Evidence/rss-10-t3_1xlb2fa.txt","FeedExcerpt","Ready","2026-11-01T18:51:14Z","2026-11-02T01:14:59Z"
+"Sam Altman wants your ram","10","t3_1xk3p4m","10|t3_1xk3p4m
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xk3p4m/sam_altman_wants_your_ram/","/Evidence/rss-10-t3_1xk3p4m.txt","FeedExcerpt","Ready","2026-10-31T07:15:21Z","2026-11-02T01:15:00Z"
+"X/Twitter makes AI dev look effortless, but I keep burning tokens on unfinished projects. How are you actually shipping full apps?","10","t3_1xl7zck","10|t3_1xl7zck
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl7zck/xtwitter_makes_ai_dev_look_effortless_but_i_keep/","/Evidence/rss-10-t3_1xl7zck.txt","FeedExcerpt","Ready","2026-11-01T16:51:49Z","2026-11-02T01:15:02Z"
+"How different AIs ""chose"" a random number","10","t3_1xklfyy","10|t3_1xklfyy
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xklfyy/how_different_ais_chose_a_random_number/","/Evidence/rss-10-t3_1xklfyy.txt","FeedExcerpt","Ready","2026-10-31T21:08:27Z","2026-11-02T01:15:05Z"
+"I built a helicopter escape game for eight AI controllers. Helping does not reserve a seat.","10","t3_1xl1msn","10|t3_1xl1msn
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl1msn/i_built_a_helicopter_escape_game_for_eight_ai/","/Evidence/rss-10-t3_1xl1msn.txt","FeedExcerpt","Ready","2026-11-01T12:17:14Z","2026-11-02T01:15:06Z"
+"People search ""AI for teachers"" 28 times more often than ""will AI replace teachers""","10","t3_1xkz50r","10|t3_1xkz50r
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xkz50r/people_search_ai_for_teachers_28_times_more_often/","/Evidence/rss-10-t3_1xkz50r.txt","FeedExcerpt","Ready","2026-11-01T09:50:21Z","2026-11-02T01:15:07Z"
+"As a noob can you explain this to me","10","t3_1xku6zl","10|t3_1xku6zl
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xku6zl/as_a_noob_can_you_explain_this_to_me/","/Evidence/rss-10-t3_1xku6zl.txt","FeedExcerpt","Ready","2026-11-01T04:37:35Z","2026-11-02T01:15:10Z"
+"The inherent problem with cloud language models","10","t3_1xkt4um","10|t3_1xkt4um
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xkt4um/the_inherent_problem_with_cloud_language_models/","/Evidence/rss-10-t3_1xkt4um.txt","FeedExcerpt","Ready","2026-11-01T03:36:42Z","2026-11-02T01:15:11Z"
+"ORANGE ALERT- on the dangers of assumed humanity in the digital age","10","t3_1xl7v8x","10|t3_1xl7v8x
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xl7v8x/orange_alert_on_the_dangers_of_assumed_humanity/","/Evidence/rss-10-t3_1xl7v8x.txt","FeedExcerpt","Ready","2026-11-01T16:47:15Z","2026-11-02T01:15:13Z"
+"I just need to harden the sandboxes","10","t3_1xkd7wj","10|t3_1xkd7wj
+","https://www.reddit.com/r/ArtificialInteligence/comments/1xkd7wj/i_just_need_to_harden_the_sandboxes/","/Evidence/rss-10-t3_1xkd7wj.txt","FeedExcerpt","Ready","2026-10-31T15:32:30Z","2026-11-02T01:15:15Z"
