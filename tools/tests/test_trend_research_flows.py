@@ -242,5 +242,183 @@ class DigestTests(unittest.TestCase):
         self.assertNotIn("notified", text.lower())
 
 
+BUSINESS_CASE = "Workflows/TRBusinessCase-9373450F-FA1E-44C2-ACE2-2D86CA9249C7.json"
+REQUEST = "body('Get_Request')"
+REQUIRED_REQUEST_FIELDS = ["Title", "Product", "DecisionQuestion", "Geographies", "TimeHorizon", "Alternatives",
+                           "StrategicObjectives", "InputPublicationIds", "ReviewerEmail", "AudienceKey"]
+
+
+class BusinessCaseValidateClaimTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", BUSINESS_CASE)
+        cls.definition = cls.doc["properties"]["definition"]
+        cls.trigger = cls.definition["triggers"]["When_a_request_is_submitted"]
+
+    def _branch(self, condition, branch):
+        a = find_action(self.doc, condition)
+        return a["actions"] if branch == "yes" else a["else"]["actions"]
+
+    def test_trigger_fires_only_on_submitted(self):
+        self.assertEqual(["When_a_request_is_submitted"], list(self.definition["triggers"]))
+        self.assertEqual("GetOnUpdatedItems", self.trigger["inputs"]["host"]["operationId"])
+        p = self.trigger["inputs"]["parameters"]
+        self.assertEqual("@parameters('Site URL (tr_SiteURL)')", p["dataset"])
+        table = p["table"][len("@parameters('"):-2]
+        self.assertEqual("tr_BusinessCaseRequestsList", self.definition["parameters"][table]["metadata"]["schemaName"])
+        self.assertEqual("@equals(triggerOutputs()?['body/Status/Value'], 'Submitted')",
+                         self.trigger["conditions"][0]["expression"])
+        self.assertEqual(1, len(self.trigger["conditions"]))
+        self.assertEqual(1, self.trigger["runtimeConfiguration"]["concurrency"]["runs"])
+        self.assertIn("splitOn", self.trigger)
+
+    def test_request_reread_and_validated(self):
+        get = find_action(self.doc, "Get_Request")
+        self.assertEqual("GetItem", get["inputs"]["host"]["operationId"])
+        self.assertEqual("@triggerOutputs()?['body/ID']", get["inputs"]["parameters"]["id"])
+        expression = dumps(find_action(self.doc, "If_Request_Valid")["expression"])
+        self.assertIn("%s?['Status']?['Value']" % REQUEST, expression)
+        self.assertIn('"Submitted"', expression)
+        for field in REQUIRED_REQUEST_FIELDS:
+            self.assertIn("trim(coalesce(%s?['%s'], ''))" % (REQUEST, field), expression, field)
+        version = "coalesce(%s?['Version'], 0)" % REQUEST
+        self.assertIn('{"greaterOrEquals": ["@%s", 1]}' % version, expression)
+        self.assertIn('{"lessOrEquals": ["@mod(%s, 1)", 0]}' % version, expression)
+        # membership in an array, never a substring match on the raw setting
+        self.assertIn("\"contains\": [\"@body('Select_Approved_Reviewers')\", "
+                      "\"@toLower(trim(coalesce(%s?['ReviewerEmail'], '')))\"]" % REQUEST, expression)
+        self.assertIn("\"contains\": [\"@body('Select_Approved_Audiences')\", "
+                      "\"@trim(coalesce(%s?['AudienceKey'], ''))\"]" % REQUEST, expression)
+        for select, schema in (("Select_Approved_Reviewers", "tr_ApprovedReviewers"),
+                               ("Select_Approved_Audiences", "tr_ApprovedAudiences")):
+            a = find_action(self.doc, select)
+            self.assertEqual("Select", a["type"])
+            name = next(k for k, v in self.definition["parameters"].items()
+                        if v.get("metadata", {}).get("schemaName") == schema)
+            self.assertEqual("@split(coalesce(parameters('%s'), ''), ';')" % name, a["inputs"]["from"])
+            self.assertEqual([], path_to(self.doc, select))
+
+    def test_invalid_request_leaves_status_unchanged(self):
+        actions = self._branch("If_Request_Valid", "else")
+        self.assertEqual(["Terminate_Invalid_Request"], list(actions))
+        t = actions["Terminate_Invalid_Request"]
+        self.assertEqual("Terminate", t["type"])
+        self.assertEqual("Failed", t["inputs"]["runStatus"])
+        self.assertTrue(t["inputs"]["runError"]["message"])
+        es = find_action(load_built("es", BUSINESS_CASE), "Terminate_Invalid_Request")
+        self.assertNotEqual(t["inputs"]["runError"]["message"], es["inputs"]["runError"]["message"])
+
+    def test_existing_key_skips_ai(self):
+        self.assertEqual("businesscase|@{%s?['ID']}|v@{%s?['Version']}" % (REQUEST, REQUEST),
+                         find_action(self.doc, "Build_Publication_Key")["inputs"])
+        p = params(self.doc, "Get_Existing_Publication")
+        self.assertEqual("field_1 eq '@{outputs('Build_Publication_Key')}'", p["$filter"])
+        self.assertEqual("1", str(p["$top"]))
+        self.assertIn("Publications", self.definition["parameters"][p["table"][len("@parameters('"):-2]]
+                      ["metadata"]["schemaName"])
+        gate = find_action(self.doc, "If_No_Existing_Publication")
+        self.assertIn("@body('Get_Existing_Publication')?['value']", dumps(gate["expression"]))
+        self.assertIn("empty", dumps(gate["expression"]))
+        trail = path_to(self.doc, "Generate_Case")
+        self.assertIn("If_No_Existing_Publication", trail)
+        self.assertNotIn("If_No_Existing_Publication/else", trail)
+        self.assertIn("If_No_Existing_Publication", path_to(self.doc, "Claim_Request"))
+        found = self._branch("If_No_Existing_Publication", "else")
+        self.assertEqual(["Terminate_Existing_Publication"], list(found))
+        self.assertEqual("Succeeded", found["Terminate_Existing_Publication"]["inputs"]["runStatus"])
+
+    def test_claim_uses_etag(self):
+        claim = find_action(self.doc, "Claim_Request")
+        self.assertEqual("HttpRequest", claim["inputs"]["host"]["operationId"])
+        p = claim["inputs"]["parameters"]
+        self.assertEqual("POST", p["parameters/method"])
+        headers = p["parameters/headers"]
+        self.assertEqual("@{%s?['@odata.etag']}" % REQUEST, headers["IF-MATCH"])
+        self.assertEqual("MERGE", headers["X-HTTP-Method"])
+        list_param = next(k for k, v in self.definition["parameters"].items()
+                          if v.get("metadata", {}).get("schemaName") == "tr_BusinessCaseRequestsList")
+        self.assertEqual("_api/web/lists/GetByTitle('@{parameters('%s')}')/items(@{%s?['ID']})"
+                         % (list_param, REQUEST), p["parameters/uri"])
+        self.assertEqual({"Status": "Generating"}, json.loads(p["parameters/body"]))
+        self.assertEqual(["If_Request_Valid", "If_No_Existing_Publication"], path_to(self.doc, "Claim_Request"))
+        # a lost claim (412) cancels; any other claim failure stops the run; only a won claim continues
+        conflict = find_action(self.doc, "If_Claim_Conflict")
+        self.assertEqual({"Claim_Request": ["Failed", "TimedOut"]}, conflict["runAfter"])
+        self.assertIn("@outputs('Claim_Request')?['statusCode']", dumps(conflict["expression"]))
+        self.assertIn("412", dumps(conflict["expression"]))
+        won = conflict["actions"]["Terminate_Claim_Conflict"]["inputs"]
+        self.assertEqual("Cancelled", won["runStatus"])
+        self.assertEqual("Failed", conflict["else"]["actions"]["Terminate_Claim_Failed"]["inputs"]["runStatus"])
+        self.assertEqual({"Claim_Request": ["Succeeded"]}, find_action(self.doc, "Split_Input_Ids")["runAfter"])
+
+    def test_input_ids_bounds(self):
+        split = find_action(self.doc, "Split_Input_Ids")
+        self.assertEqual("@split(coalesce(%s?['InputPublicationIds'], ''), ',')" % REQUEST, split["inputs"]["from"])
+        self.assertEqual("@trim(item())", split["inputs"]["select"])
+        parse = find_action(self.doc, "Parse_Input_Ids")
+        self.assertEqual("Query", parse["type"])
+        self.assertEqual("@body('Split_Input_Ids')", parse["inputs"]["from"])
+        self.assertEqual("@not(empty(item()))", parse["inputs"]["where"])
+        # int() throws on a non-number; the Scope catches it and InputIdsValid stays false
+        self.assertEqual(["Check_Input_Ids"], path_to(self.doc, "Filter_Invalid_Ids")[-1:])
+        self.assertEqual("Scope", find_action(self.doc, "Check_Input_Ids")["type"])
+        where = find_action(self.doc, "Filter_Invalid_Ids")["inputs"]["where"]
+        self.assertEqual("@not(and(equals(string(int(item())), item()), greater(int(item()), 0)))", where)
+        ids = "body('Parse_Input_Ids')"
+        value = find_action(self.doc, "Set_InputIdsValid")["inputs"]["value"]
+        self.assertIn("empty(body('Filter_Invalid_Ids'))", value)
+        self.assertIn("greaterOrEquals(length(%s), 1)" % ids, value)
+        self.assertIn("lessOrEquals(length(%s), 5)" % ids, value)
+        self.assertIn("equals(length(union(%s, %s)), length(%s))" % (ids, ids, ids), value)
+        init = find_action(self.doc, "Initialize_InputIdsValid")["inputs"]["variables"][0]
+        self.assertIs(False, init["value"])
+        gate = find_action(self.doc, "If_Input_Ids_Valid")
+        self.assertEqual({"Check_Input_Ids": ["Succeeded", "Failed", "TimedOut"]}, gate["runAfter"])
+        self.assertIn("@variables('InputIdsValid')", dumps(gate["expression"]))
+        failed = gate["else"]["actions"]
+        self.assertEqual("Failed", failed["Set_Failed_Input_Ids"]["inputs"]["parameters"]["item/Status"])
+        self.assertTrue(failed["Set_Failed_Input_Ids"]["inputs"]["parameters"]["item/LastError"])
+        self.assertEqual("Failed", failed["Terminate_Invalid_Input_Ids"]["inputs"]["runStatus"])
+        self.assertIn("If_Input_Ids_Valid", path_to(self.doc, "Generate_Case"))
+        self.assertNotIn("If_Input_Ids_Valid/else", path_to(self.doc, "Generate_Case"))
+
+    def test_wrong_product_fails_before_ai(self):
+        self.assertEqual({"Validate_Each_Digest": ["Succeeded"]}, find_action(self.doc, "Generate_Case")["runAfter"])
+        loop = find_action(self.doc, "Validate_Each_Digest")
+        self.assertEqual("Foreach", loop["type"])
+        self.assertEqual("@body('Parse_Input_Ids')", loop["foreach"])
+        get = params(self.doc, "Get_Digest")
+        self.assertEqual("@int(items('Validate_Each_Digest'))", get["id"])
+        self.assertIn("tr_PublicationsList", self.definition["parameters"][get["table"][len("@parameters('"):-2]]
+                      ["metadata"]["schemaName"])
+        check = find_action(self.doc, "If_Digest_Invalid")
+        expression = dumps(check["expression"])
+        self.assertIn("body('Get_Digest')?['PublicationType']?['Value']", expression)
+        self.assertIn('"Digest"', expression)
+        self.assertIn("trim(coalesce(body('Get_Digest')?['Product'], ''))", expression)
+        self.assertIn("trim(coalesce(%s?['Product'], ''))" % REQUEST, expression)
+        self.assertIn("trim(coalesce(body('Get_Digest')?['field_3'], ''))", expression)
+        self.assertIn("Reject_Invalid_Digest", check["actions"])
+        self.assertEqual({}, check["else"]["actions"])
+        handler = find_action(self.doc, "Set_Failed_Digests")
+        self.assertEqual({"Validate_Each_Digest": ["Failed", "TimedOut"]}, handler["runAfter"])
+        self.assertEqual("Failed", handler["inputs"]["parameters"]["item/Status"])
+        self.assertEqual({"Set_Failed_Digests": ["Succeeded", "Failed", "TimedOut"]},
+                         find_action(self.doc, "Terminate_Invalid_Digest")["runAfter"])
+        self.assertEqual("Failed", find_action(self.doc, "Terminate_Invalid_Digest")["inputs"]["runStatus"])
+
+    def test_failure_messages_are_safe_and_localized(self):
+        es = load_built("es", BUSINESS_CASE)
+        for name in ("Set_Failed_Input_Ids", "Set_Failed_Digests"):
+            message = params(self.doc, name)["item/LastError"]
+            self.assertNotIn("@", message)  # a fixed message: no request, digest or response content
+            self.assertNotEqual(message, params(es, name)["item/LastError"])
+
+    def test_business_case_localized(self):
+        for locale, name in (("en", "TR Business Case"), ("es", "VT Caso de Negocio")):
+            xml = ET.fromstring(built_text(locale, "customizations.xml").lstrip("﻿"))
+            self.assertIn(name, [w.get("Name") for w in xml.iter("Workflow")])
+
+
 if __name__ == "__main__":
     unittest.main()

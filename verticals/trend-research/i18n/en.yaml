@@ -19,6 +19,9 @@ flows:
   processDocuments:
     name: TR Process Documents
     description: Every 5 minutes. Reads text files uploaded under SourceUploads/PublicData, saves them as evidence and SourceItems (deduplicated by file ID). Other file types are recorded as metadata only.
+  businessCase:
+    name: TR Business Case
+    description: Every 5 minutes. Picks up BusinessCaseRequests set to Submitted, validates the request and its 1-5 input digests, and claims it for generation.
 
 connections:
   sharepoint:
@@ -55,7 +58,13 @@ env:
     description: Title or ID (GUID) of the publications list.
   tr_BusinessCaseRequestsList:
     name: Business Case Requests list
-    description: Title or ID (GUID) of the business case requests list.
+    description: Title of the business case requests list. Use the title, not the GUID; the claim step calls the SharePoint REST API by list title.
+  tr_ApprovedReviewers:
+    name: Approved reviewers
+    description: Semicolon-separated email addresses allowed as ReviewerEmail on a business case request. Empty means no request is accepted.
+  tr_ApprovedAudiences:
+    name: Approved audiences
+    description: Semicolon-separated audience keys allowed as AudienceKey on a business case request. Empty means no request is accepted.
   tr_DailyClassificationLimit:
     name: Daily Classification Limit
     description: Maximum SourceItems classified per daily run (each item is classified once per enabled brief).
@@ -101,6 +110,13 @@ digest:
   question: Research question
   noFindings: No findings for this objective in the reporting window.
   alertTags: Alert tags
+
+businessCase:
+  errors:
+    invalidRequest: The business case request is not valid. Check that Status is Submitted, every required field is filled in, Version is a positive whole number, and ReviewerEmail and AudienceKey are approved values.
+    claimFailed: The business case request could not be claimed for generation. Try again later.
+    invalidInputIds: InputPublicationIds must hold 1 to 5 distinct positive whole-number IDs separated by commas.
+    invalidDigests: An input publication does not exist, is not a digest, belongs to another product, or has no report URL.
 
 codes:
   dimension: {Market: Market, Technology: Technology, Regulatory: Regulatory, Competition: Competition}

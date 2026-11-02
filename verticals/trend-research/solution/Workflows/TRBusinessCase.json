@@ -1,0 +1,700 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Business Case Requests list (tr_BusinessCaseRequestsList)": {
+          "defaultValue": "{{list:BusinessCaseRequests}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_BusinessCaseRequestsList"
+          }
+        },
+        "Publications list (tr_PublicationsList)": {
+          "defaultValue": "{{list:Publications}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_PublicationsList"
+          }
+        },
+        "Approved reviewers (tr_ApprovedReviewers)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_ApprovedReviewers"
+          }
+        },
+        "Approved audiences (tr_ApprovedAudiences)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_ApprovedAudiences"
+          }
+        }
+      },
+      "triggers": {
+        "When_a_request_is_submitted": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnUpdatedItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "recurrence": {
+            "frequency": "Minute",
+            "interval": 5
+          },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          },
+          "conditions": [
+            {
+              "expression": "@equals(triggerOutputs()?['body/Status/Value'], 'Submitted')"
+            }
+          ],
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Initialize_InputIdsValid": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "InputIdsValid",
+                "type": "boolean",
+                "value": false
+              }
+            ]
+          }
+        },
+        "Get_Request": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')",
+              "id": "@triggerOutputs()?['body/ID']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItem"
+            }
+          },
+          "runAfter": {
+            "Initialize_InputIdsValid": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Get request (re-read: the item may have changed since the trigger polled)"
+          }
+        },
+        "Select_Approved_Reviewers": {
+          "type": "Select",
+          "inputs": {
+            "from": "@split(coalesce(parameters('Approved reviewers (tr_ApprovedReviewers)'), ''), ';')",
+            "select": "@toLower(trim(item()))"
+          },
+          "runAfter": {
+            "Get_Request": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Approved reviewers"
+          }
+        },
+        "Select_Approved_Audiences": {
+          "type": "Select",
+          "inputs": {
+            "from": "@split(coalesce(parameters('Approved audiences (tr_ApprovedAudiences)'), ''), ';')",
+            "select": "@trim(item())"
+          },
+          "runAfter": {
+            "Select_Approved_Reviewers": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Approved audiences"
+          }
+        },
+        "If_Request_Valid": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@body('Get_Request')?['Status']?['Value']",
+                  "Submitted"
+                ]
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['Title'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['Product'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['DecisionQuestion'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['Geographies'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['TimeHorizon'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['Alternatives'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['StrategicObjectives'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['InputPublicationIds'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['ReviewerEmail'], ''))"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "empty": [
+                    "@trim(coalesce(body('Get_Request')?['AudienceKey'], ''))"
+                  ]
+                }
+              },
+              {
+                "greaterOrEquals": [
+                  "@coalesce(body('Get_Request')?['Version'], 0)",
+                  1
+                ]
+              },
+              {
+                "lessOrEquals": [
+                  "@mod(coalesce(body('Get_Request')?['Version'], 0), 1)",
+                  0
+                ]
+              },
+              {
+                "contains": [
+                  "@body('Select_Approved_Reviewers')",
+                  "@toLower(trim(coalesce(body('Get_Request')?['ReviewerEmail'], '')))"
+                ]
+              },
+              {
+                "contains": [
+                  "@body('Select_Approved_Audiences')",
+                  "@trim(coalesce(body('Get_Request')?['AudienceKey'], ''))"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Build_Publication_Key": {
+              "type": "Compose",
+              "inputs": "businesscase|@{body('Get_Request')?['ID']}|v@{body('Get_Request')?['Version']}",
+              "metadata": {
+                "description": "Build publication key"
+              }
+            },
+            "Get_Existing_Publication": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Publications list (tr_PublicationsList)')",
+                  "$filter": "field_1 eq '@{outputs('Build_Publication_Key')}'",
+                  "$top": 1
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetItems"
+                }
+              },
+              "runAfter": {
+                "Build_Publication_Key": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Get existing Publication"
+              }
+            },
+            "If_No_Existing_Publication": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "empty": [
+                      "@body('Get_Existing_Publication')?['value']"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Claim_Request": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "parameters/method": "POST",
+                      "parameters/uri": "_api/web/lists/GetByTitle('@{parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')}')/items(@{body('Get_Request')?['ID']})",
+                      "parameters/headers": {
+                        "Accept": "application/json;odata=nometadata",
+                        "Content-Type": "application/json;odata=nometadata",
+                        "IF-MATCH": "@{body('Get_Request')?['@odata.etag']}",
+                        "X-HTTP-Method": "MERGE"
+                      },
+                      "parameters/body": "{\"Status\": \"Generating\"}"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "HttpRequest"
+                    }
+                  },
+                  "metadata": {
+                    "description": "Claim request: Submitted to Generating only if unchanged since Get request (ETag)"
+                  }
+                },
+                "If_Claim_Conflict": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@outputs('Claim_Request')?['statusCode']",
+                          412
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Terminate_Claim_Conflict": {
+                      "type": "Terminate",
+                      "inputs": {
+                        "runStatus": "Cancelled"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Terminate_Claim_Failed": {
+                        "type": "Terminate",
+                        "inputs": {
+                          "runStatus": "Failed",
+                          "runError": {
+                            "code": "ClaimFailed",
+                            "message": "{{t:businessCase.errors.claimFailed}}"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Claim_Request": [
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "If claim lost to a concurrent run (412)"
+                  }
+                },
+                "Split_Input_Ids": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@split(coalesce(body('Get_Request')?['InputPublicationIds'], ''), ',')",
+                    "select": "@trim(item())"
+                  },
+                  "runAfter": {
+                    "Claim_Request": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Split and trim input IDs"
+                  }
+                },
+                "Parse_Input_Ids": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('Split_Input_Ids')",
+                    "where": "@not(empty(item()))"
+                  },
+                  "runAfter": {
+                    "Split_Input_Ids": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Parse input IDs (non-empty)"
+                  }
+                },
+                "Check_Input_Ids": {
+                  "type": "Scope",
+                  "actions": {
+                    "Filter_Invalid_Ids": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@body('Parse_Input_Ids')",
+                        "where": "@not(and(equals(string(int(item())), item()), greater(int(item()), 0)))"
+                      },
+                      "metadata": {
+                        "description": "IDs that are not ^[1-9][0-9]*$ (int() throws on non-numbers)"
+                      }
+                    },
+                    "Set_InputIdsValid": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "InputIdsValid",
+                        "value": "@and(empty(body('Filter_Invalid_Ids')), greaterOrEquals(length(body('Parse_Input_Ids')), 1), lessOrEquals(length(body('Parse_Input_Ids')), 5), equals(length(union(body('Parse_Input_Ids'), body('Parse_Input_Ids'))), length(body('Parse_Input_Ids'))))"
+                      },
+                      "runAfter": {
+                        "Filter_Invalid_Ids": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "1-5 positive integer IDs, no duplicates"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Parse_Input_Ids": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Check input IDs"
+                  }
+                },
+                "If_Input_Ids_Valid": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@variables('InputIdsValid')",
+                          true
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Validate_Each_Digest": {
+                      "type": "Foreach",
+                      "foreach": "@body('Parse_Input_Ids')",
+                      "actions": {
+                        "Get_Digest": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Publications list (tr_PublicationsList)')",
+                              "id": "@int(items('Validate_Each_Digest'))"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItem"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Get input digest Publication"
+                          }
+                        },
+                        "If_Digest_Invalid": {
+                          "type": "If",
+                          "expression": {
+                            "or": [
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@body('Get_Digest')?['PublicationType']?['Value']",
+                                    "Digest"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "equals": [
+                                    "@trim(coalesce(body('Get_Digest')?['Product'], ''))",
+                                    "@trim(coalesce(body('Get_Request')?['Product'], ''))"
+                                  ]
+                                }
+                              },
+                              {
+                                "empty": [
+                                  "@trim(coalesce(body('Get_Digest')?['field_3'], ''))"
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Reject_Invalid_Digest": {
+                              "type": "Compose",
+                              "inputs": "@int('digest-not-eligible')",
+                              "metadata": {
+                                "description": "Fail this iteration on purpose: not a Digest, another Product, or no ReportUrl"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {}
+                          },
+                          "runAfter": {
+                            "Get_Digest": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "If digest invalid"
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "Validate each input digest"
+                      }
+                    },
+                    "Generate_Case": {
+                      "type": "Compose",
+                      "inputs": "@body('Parse_Input_Ids')",
+                      "runAfter": {
+                        "Validate_Each_Digest": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Stub: Task B5 replaces this with the agent node"
+                      }
+                    },
+                    "Set_Failed_Digests": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')",
+                          "id": "@body('Get_Request')?['ID']",
+                          "item/Status": "Failed",
+                          "item/LastError": "{{t:businessCase.errors.invalidDigests}}"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PatchItem"
+                        }
+                      },
+                      "runAfter": {
+                        "Validate_Each_Digest": [
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Set request Failed with a safe error"
+                      }
+                    },
+                    "Terminate_Invalid_Digest": {
+                      "type": "Terminate",
+                      "inputs": {
+                        "runStatus": "Failed",
+                        "runError": {
+                          "code": "InvalidDigest",
+                          "message": "{{t:businessCase.errors.invalidDigests}}"
+                        }
+                      },
+                      "runAfter": {
+                        "Set_Failed_Digests": [
+                          "Succeeded",
+                          "Failed",
+                          "TimedOut"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_Failed_Input_Ids": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                            "table": "@parameters('Business Case Requests list (tr_BusinessCaseRequestsList)')",
+                            "id": "@body('Get_Request')?['ID']",
+                            "item/Status": "Failed",
+                            "item/LastError": "{{t:businessCase.errors.invalidInputIds}}"
+                          },
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline",
+                            "operationId": "PatchItem"
+                          }
+                        },
+                        "metadata": {
+                          "description": "Set request Failed with a safe error"
+                        }
+                      },
+                      "Terminate_Invalid_Input_Ids": {
+                        "type": "Terminate",
+                        "inputs": {
+                          "runStatus": "Failed",
+                          "runError": {
+                            "code": "InvalidInputIds",
+                            "message": "{{t:businessCase.errors.invalidInputIds}}"
+                          }
+                        },
+                        "runAfter": {
+                          "Set_Failed_Input_Ids": [
+                            "Succeeded",
+                            "Failed",
+                            "TimedOut"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Check_Input_Ids": [
+                      "Succeeded",
+                      "Failed",
+                      "TimedOut"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "If input IDs valid"
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Terminate_Existing_Publication": {
+                    "type": "Terminate",
+                    "inputs": {
+                      "runStatus": "Succeeded"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Get_Existing_Publication": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "If no Publication has this key"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Terminate_Invalid_Request": {
+                "type": "Terminate",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "InvalidRequest",
+                    "message": "{{t:businessCase.errors.invalidRequest}}"
+                  }
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "Select_Approved_Audiences": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "If request valid"
+          }
+        }
+      },
+      "outputs": {},
+      "metadata": {
+        "telemetryMetadata": {
+          "creationSource": "WorkflowDesigner",
+          "modifiedSources": "WorkflowDesigner"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

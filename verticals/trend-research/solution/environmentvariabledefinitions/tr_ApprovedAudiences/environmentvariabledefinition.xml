@@ -1,0 +1,13 @@
+<environmentvariabledefinition schemaname="tr_ApprovedAudiences">
+  <description default="{{t:env.tr_ApprovedAudiences.description}}">
+    <label description="{{t:env.tr_ApprovedAudiences.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_ApprovedAudiences.name}}">
+    <label description="{{t:env.tr_ApprovedAudiences.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.3.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

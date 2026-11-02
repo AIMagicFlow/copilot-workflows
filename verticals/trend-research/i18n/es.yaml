@@ -20,6 +20,9 @@ flows:
   processDocuments:
     name: VT Procesar Documentos
     description: Cada 5 minutos. Lee los archivos de texto cargados en SourceUploads/PublicData, los guarda como evidencia y SourceItems (sin duplicados por ID de archivo). Los demás tipos se registran solo con metadatos.
+  businessCase:
+    name: VT Caso de Negocio
+    description: Cada 5 minutos. Toma las solicitudes de caso de negocio en estado Submitted, valida la solicitud y sus 1 a 5 resúmenes de entrada, y la reserva para su generación.
 
 connections:
   sharepoint:
@@ -56,7 +59,13 @@ env:
     description: Título o ID (GUID) de la lista de publicaciones.
   tr_BusinessCaseRequestsList:
     name: Lista de solicitudes de caso de negocio
-    description: Título o ID (GUID) de la lista de solicitudes de caso de negocio.
+    description: Título de la lista de solicitudes de caso de negocio. Use el título, no el GUID; el paso de reserva llama a la API REST de SharePoint por título de lista.
+  tr_ApprovedReviewers:
+    name: Revisores aprobados
+    description: Correos electrónicos separados por punto y coma permitidos como ReviewerEmail en una solicitud de caso de negocio. Si está vacío, no se acepta ninguna solicitud.
+  tr_ApprovedAudiences:
+    name: Audiencias aprobadas
+    description: Claves de audiencia separadas por punto y coma permitidas como AudienceKey en una solicitud de caso de negocio. Si está vacío, no se acepta ninguna solicitud.
   tr_DailyClassificationLimit:
     name: Límite diario de clasificación
     description: Máximo de ElementosFuente clasificados por ejecución diaria (cada elemento se clasifica una vez por brief habilitado).
@@ -102,6 +111,13 @@ digest:
   question: Pregunta de investigación
   noFindings: Sin hallazgos para este objetivo en el periodo del informe.
   alertTags: Etiquetas de alerta
+
+businessCase:
+  errors:
+    invalidRequest: La solicitud de caso de negocio no es válida. Compruebe que Status sea Submitted, que todos los campos obligatorios estén completos, que Version sea un número entero positivo y que ReviewerEmail y AudienceKey sean valores aprobados.
+    claimFailed: No se pudo reservar la solicitud de caso de negocio para su generación. Inténtelo de nuevo más tarde.
+    invalidInputIds: InputPublicationIds debe contener de 1 a 5 ID distintos, enteros positivos, separados por comas.
+    invalidDigests: Una publicación de entrada no existe, no es un resumen, pertenece a otro producto o no tiene URL del informe.
 
 codes:
   dimension: {Market: Mercado, Technology: Tecnología, Regulatory: Regulación, Competition: Competencia}
