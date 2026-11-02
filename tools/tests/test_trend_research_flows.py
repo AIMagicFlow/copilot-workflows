@@ -15,6 +15,41 @@ def dumps(node):
     return json.dumps(node)
 
 
+def request_body(text):
+    """Parse an HttpRequest JSON body. An unquoted @{...} (a number, such as PublicationId) is read as its
+    expression string, so the test can assert it; quoted interpolations stay inside their JSON strings."""
+    out, i, quoted = [], 0, False
+    while i < len(text):
+        ch = text[i]
+        if quoted:
+            out.append(ch)
+            if ch == "\\":
+                out.append(text[i + 1])
+                i += 1
+            elif ch == '"':
+                quoted = False
+        elif ch == '"':
+            quoted = True
+            out.append(ch)
+        elif text.startswith("@{", i):
+            depth, inner, j = 1, False, i + 2
+            while depth:
+                if text[j] == "'":
+                    inner = not inner
+                elif not inner and text[j] == "{":
+                    depth += 1
+                elif not inner and text[j] == "}":
+                    depth -= 1
+                j += 1
+            out.append(json.dumps(text[i:j]))
+            i = j
+            continue
+        else:
+            out.append(ch)
+        i += 1
+    return json.loads("".join(out))
+
+
 class ProcessDocumentsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -268,7 +303,7 @@ class BusinessCaseValidateClaimTests(unittest.TestCase):
         self.assertEqual("*", p["parameters/headers"]["IF-MATCH"])
         self.assertEqual("MERGE", p["parameters/headers"]["X-HTTP-Method"])
         for locale in ("en", "es"):
-            body = json.loads(params(load_built(locale, BUSINESS_CASE), name)["parameters/body"])
+            body = request_body(params(load_built(locale, BUSINESS_CASE), name)["parameters/body"])
             self.assertEqual(["Status", "LastError"], list(body))
             self.assertEqual("Failed", body["Status"])
 
@@ -811,7 +846,7 @@ class BusinessCaseGenerateTests(unittest.TestCase):
         for name, action in flow_actions(self.definition["actions"]):
             inputs = action.get("inputs")
             if isinstance(inputs, dict) and inputs.get("host", {}).get("operationId") == "HttpRequest":
-                body = json.loads(action["inputs"]["parameters"]["parameters/body"])
+                body = request_body(action["inputs"]["parameters"]["parameters/body"])
                 self.assertNotEqual("Submitted", body.get("Status"), name)
                 self.assertEqual([], [k for k, v in body.items() if k != "LastError" and "Submitted" in str(v)], name)
 
@@ -861,7 +896,7 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
     assert_failed_write = BusinessCaseValidateClaimTests.assert_failed_write
 
     def body(self, name, doc=None):
-        return json.loads(params(doc or self.doc, name)["parameters/body"])
+        return request_body(params(doc or self.doc, name)["parameters/body"])
 
     def assert_request_write(self, name):
         """A MERGE on the request this run owns: IF-MATCH * (the recheck changed the ETag)."""
@@ -912,7 +947,10 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
         self.assert_request_write("Set_Request_InReview")
         self.assertEqual({"Set_Publication_InReview": ["Succeeded"]},
                          find_action(self.doc, "Set_Request_InReview")["runAfter"])
-        self.assertEqual({"Status": "InReview"}, self.body("Set_Request_InReview"))
+        # the request records its Publication: an unquoted integer from the created item, with InReview
+        self.assertEqual({"Status": "InReview", "PublicationId": "@{outputs('Create_Case_Publication')?['body/ID']}"},
+                         self.body("Set_Request_InReview"))
+        self.assertIn('"PublicationId": @{outputs(', params(self.doc, "Set_Request_InReview")["parameters/body"])
         wait = find_action(self.doc, "Wait_For_Approval")
         self.assertEqual("OpenApiConnectionWebhook", wait["type"])
         self.assertEqual("WaitForAnApproval", wait["inputs"]["host"]["operationId"])
@@ -988,7 +1026,7 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
             if operation(action) == "PatchItem":
                 values = action["inputs"]["parameters"].values()
             elif operation(action) == "HttpRequest":
-                values = json.loads(action["inputs"]["parameters"]["parameters/body"]).values()
+                values = request_body(action["inputs"]["parameters"]["parameters/body"]).values()
             else:
                 continue
             if "Approved" in values:
@@ -1012,7 +1050,12 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
             {"equals": ["@body('Get_Draft_Version')?['ETag']", "@body('Capture_Draft_Version')?['ETag']"]},
         ]}, gate["expression"])
         changed = gate["else"]["actions"]
-        self.assertEqual(["Set_Failed_Edited", "Terminate_Edited_After_Approval"], list(changed))
+        self.assertEqual(["Set_Publication_Voided", "Set_Failed_Edited", "Terminate_Edited_After_Approval"],
+                         list(changed))
+        # the voided draft does not stay in review (Rejected, although no reviewer rejected it)
+        self.assertEqual("Rejected", self.assert_publication_update("Set_Publication_Voided")["item/ReviewStatus"])
+        self.assertEqual({"Set_Publication_Voided": ["Succeeded", "Failed", "TimedOut"]},
+                         changed["Set_Failed_Edited"]["runAfter"])
         self.assert_failed_write("Set_Failed_Edited")
         message = self.body("Set_Failed_Edited")["LastError"]
         self.assertIn("edited after the approval request", message)
@@ -1021,8 +1064,10 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
                          changed["Terminate_Edited_After_Approval"]["runAfter"])
         self.assertEqual("Failed", changed["Terminate_Edited_After_Approval"]["inputs"]["runStatus"])
         for name, action in flow_actions(changed):
-            self.assertNotIn(operation(action), ("CopyFileAsync", "PatchItem", "PostMessageToConversation",
+            self.assertNotIn(operation(action), ("CopyFileAsync", "PostMessageToConversation",
                                                  "PostMessageToSelf"), name)
+            if operation(action) == "PatchItem":
+                self.assertEqual("Set_Publication_Voided", name)
 
     def test_delivery_uncertain_on_timeout(self):
         audience = next(k for k, v in self.definition["parameters"].items()
@@ -1133,6 +1178,18 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
             self.assertIn("set Status back to Submitted", self.body(name)["LastError"], name)
         for name in ("Terminate_Claim_Failed", "Terminate_Recheck_Failed"):
             self.assertIn("set it back to Submitted", find_action(self.doc, name)["inputs"]["runError"]["message"])
+        # once a Publication exists for the key, the same Version stops at If_No_Existing_Publication:
+        # the analyst must increase Version to retry
+        for name in ("Set_Failed_Review_Publish", "Set_Failed_Edited", "Set_Request_Timed_Out"):
+            self.assertIn("increase Version", self.body(name)["LastError"], name)
+        self.assertIn("v@{%s?['Version']}" % REQUEST, find_action(self.doc, "Build_Publication_Key")["inputs"])
+        for locale in ("en", "es"):
+            env = ET.fromstring(built_text(locale, "environmentvariabledefinitions/tr_NotificationAudience/"
+                                                   "environmentvariabledefinition.xml"))
+            text = env.find("description").get("default")
+            self.assertIn("teamId|channelId", text)
+            for stale in ("Not used", "No lo usan", "Reserv"):
+                self.assertNotIn(stale, text)
 
     def test_last_error_has_no_body_content(self):
         checked = 0
@@ -1140,7 +1197,7 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
             for name, action in flow_actions(doc["properties"]["definition"]["actions"]):
                 if operation(action) != "HttpRequest":
                     continue
-                body = json.loads(action["inputs"]["parameters"]["parameters/body"])
+                body = request_body(action["inputs"]["parameters"]["parameters/body"])
                 if "LastError" not in body:
                     continue
                 checked += 1
@@ -1176,7 +1233,7 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
                 continue
             # the recheck MERGE changed the ETag; the owning run writes with IF-MATCH *
             self.assertEqual("*", headers["IF-MATCH"], name)
-        statuses = {n: json.loads(a["inputs"]["parameters"]["parameters/body"]).get("Status") for n, a in writes.items()}
+        statuses = {n: request_body(a["inputs"]["parameters"]["parameters/body"]).get("Status") for n, a in writes.items()}
         self.assertEqual({"Generating", "InReview", "Approved", "Rejected", "Failed", None}, set(statuses.values()))
         self.assertEqual(["Claim_Request", "Recheck_Claim"], [n for n, s in statuses.items() if s == "Generating"])
 

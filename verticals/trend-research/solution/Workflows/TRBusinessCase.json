@@ -1607,7 +1607,7 @@
                                             "IF-MATCH": "*",
                                             "X-HTTP-Method": "MERGE"
                                           },
-                                          "parameters/body": "{\"Status\": \"InReview\"}"
+                                          "parameters/body": "{\"Status\": \"InReview\", \"PublicationId\": @{outputs('Create_Case_Publication')?['body/ID']}}"
                                         },
                                         "host": {
                                           "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
@@ -1621,7 +1621,7 @@
                                         ]
                                       },
                                       "metadata": {
-                                        "description": "Set request InReview (owning run, IF-MATCH *: the recheck changed the ETag)"
+                                        "description": "Set request InReview and its PublicationId (owning run, IF-MATCH *: the recheck changed the ETag)"
                                       }
                                     },
                                     "Wait_For_Approval": {
@@ -1997,6 +1997,25 @@
                                           },
                                           "else": {
                                             "actions": {
+                                              "Set_Publication_Voided": {
+                                                "type": "OpenApiConnection",
+                                                "inputs": {
+                                                  "parameters": {
+                                                    "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                                    "table": "@parameters('Publications list (tr_PublicationsList)')",
+                                                    "id": "@outputs('Create_Case_Publication')?['body/ID']",
+                                                    "item/ReviewStatus": "Rejected"
+                                                  },
+                                                  "host": {
+                                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                    "connectionName": "shared_sharepointonline",
+                                                    "operationId": "PatchItem"
+                                                  }
+                                                },
+                                                "metadata": {
+                                                  "description": "The approved draft changed: void it (Rejected); it must not stay in review"
+                                                }
+                                              },
                                               "Set_Failed_Edited": {
                                                 "type": "OpenApiConnection",
                                                 "inputs": {
@@ -2017,6 +2036,13 @@
                                                     "connectionName": "shared_sharepointonline",
                                                     "operationId": "HttpRequest"
                                                   }
+                                                },
+                                                "runAfter": {
+                                                  "Set_Publication_Voided": [
+                                                    "Succeeded",
+                                                    "Failed",
+                                                    "TimedOut"
+                                                  ]
                                                 },
                                                 "metadata": {
                                                   "description": "Set request Failed: the draft changed after the approval request (owning run, IF-MATCH *)"

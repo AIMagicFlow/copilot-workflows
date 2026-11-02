@@ -77,7 +77,7 @@ env:
     description: Reservado para investigaciones profundas. No lo usan los flujos actuales.
   tr_NotificationAudience:
     name: Audiencia de notificación
-    description: Reservado para entregas por audiencia. No lo usan los flujos actuales.
+    description: "Canal de Teams que recibe los enlaces de casos de negocio aprobados, como teamId|channelId. Déjelo vacío para enviarlos al propietario del flujo."
   tr_SourceUploadsLibrary:
     name: Biblioteca de cargas de fuentes
     description: Título o ID (GUID) de la biblioteca de documentos que recibe las fuentes cargadas. Si el desencadenador rechaza el título, escriba el GUID de la biblioteca.
@@ -130,10 +130,10 @@ businessCase:
     storageFailed: No se pudo escribir el borrador del caso de negocio o su registro en Publicaciones.
     validateFailed: "No se pudo validar la solicitud de caso de negocio. Corrija la causa y vuelva a poner Status en Submitted para reintentar. Paso con error:"
     generateFailed: "No se pudo generar ni guardar el caso de negocio; no se publicó nada. Corrija la causa y vuelva a poner Status en Submitted para reintentar. Paso con error:"
-    reviewPublishFailed: "Falló la revisión o la publicación del caso de negocio. Se conservan el borrador, su registro en Publicaciones y cualquier archivo copiado; para reintentar, cree una nueva solicitud con la versión siguiente. Paso con error:"
+    reviewPublishFailed: "Falló la revisión o la publicación del caso de negocio. Se conservan el borrador, su registro en Publicaciones y cualquier archivo copiado; para reintentar, aumente Version y vuelva a poner Status en Submitted. Paso con error:"
     afterApprovalFailed: "El caso de negocio se aprobó y se publicó, pero falló un paso posterior. Paso con error:"
-    editedAfterApproval: "El borrador se editó después de la solicitud de aprobación, por lo que no se publicó; vuelva a enviarlo como una nueva versión de la solicitud."
-    approvalTimedOut: "La solicitud de aprobación no tuvo respuesta en 14 días. El borrador no se publicó."
+    editedAfterApproval: "El borrador se editó después de la solicitud de aprobación, por lo que no se publicó. Para volver a enviarlo, aumente Version y vuelva a poner Status en Submitted."
+    approvalTimedOut: "La solicitud de aprobación no tuvo respuesta en 14 días. El borrador no se publicó. Para volver a enviarlo, aumente Version y vuelva a poner Status en Submitted."
   outputLanguage: Spanish (español neutro latinoamericano)
   publicationTitle: Caso de negocio
   approvalTitle: Revisar la solicitud de caso de negocio

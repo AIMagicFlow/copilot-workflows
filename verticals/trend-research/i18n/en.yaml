@@ -76,7 +76,7 @@ env:
     description: Reserved for deep-research jobs. Not used by the current flows.
   tr_NotificationAudience:
     name: Notification Audience
-    description: Reserved for audience-based delivery. Not used by the current flows.
+    description: "Teams channel that receives approved business case links, as teamId|channelId. Leave empty to post to the flow owner instead."
   tr_SourceUploadsLibrary:
     name: Source Uploads library
     description: Title or ID (GUID) of the document library that receives uploaded sources. If the trigger rejects the title, enter the library GUID.
@@ -129,10 +129,10 @@ businessCase:
     storageFailed: The business case draft or its Publication record could not be written.
     validateFailed: "The business case request could not be validated. Fix the cause, then set Status back to Submitted to retry. Failed step:"
     generateFailed: "The business case could not be generated or stored; nothing was published. Fix the cause, then set Status back to Submitted to retry. Failed step:"
-    reviewPublishFailed: "The business case review or publication failed. The draft, its Publication record and any copied file are kept; to try again, create a new revision request. Failed step:"
+    reviewPublishFailed: "The business case review or publication failed. The draft, its Publication record and any copied file are kept; to retry, increase Version and set Status back to Submitted. Failed step:"
     afterApprovalFailed: "The business case was approved and published, but a later step failed. Failed step:"
-    editedAfterApproval: "The draft was edited after the approval request, so it was not published; resubmit it as a new request version."
-    approvalTimedOut: "The approval request had no response within 14 days. The draft was not published."
+    editedAfterApproval: "The draft was edited after the approval request, so it was not published. To resubmit, increase Version and set Status back to Submitted."
+    approvalTimedOut: "The approval request had no response within 14 days. The draft was not published. To resubmit, increase Version and set Status back to Submitted."
   outputLanguage: English
   publicationTitle: Business case
   approvalTitle: Review business case request
