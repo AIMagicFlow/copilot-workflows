@@ -175,4 +175,3 @@ Import the new zip with **Solutions → Import solution**, as in step 3. The sol
 2. Import the new solution. It asks for the two new environment variables, *Source Uploads library* and *Maximum upload size*.
 3. Turn **TR Process Documents** on and add `Upload` rows to **Sources** (step 5).
 4. Read the 1.2.0.0 entry in `CHANGELOG.md` before upgrading. It describes the ItemKey fix in `TR Collect RSS`; its effect on existing items is pending dev-tenant verification.
-

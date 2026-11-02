@@ -187,4 +187,3 @@ Importe el zip nuevo con **Soluciones → Importar solución**, igual que en el 
 2. Importe la solución nueva. Pedirá las dos variables de entorno nuevas, *Biblioteca de cargas de fuentes* y *Tamaño máximo de carga*.
 3. Active **VT Procesar Documentos** y agregue filas `Upload` en **Fuentes** (paso 5).
 4. Lea la entrada 1.2.0.0 de `CHANGELOG.md` antes de actualizar. Describe la corrección del ItemKey en `VT Recolectar RSS`; su efecto sobre los elementos existentes está pendiente de verificación en el tenant de desarrollo.
-

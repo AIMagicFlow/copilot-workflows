@@ -17,7 +17,7 @@ A test flow built by Boss showed that flow expressions cannot do the redaction. 
 - `.txt`, `.md`, `.csv`, `.html` and `.htm` are read as UTF-8 text. The extension check is case-insensitive. `.htm` was added as the same format as `.html`.
 - Any other file type becomes a `MetadataOnly` SourceItem. The classifier sees the file name and folder, not the content.
 - A text file larger than `tr_MaxUploadBytes` (default `1000000`) is also `MetadataOnly`. The cap keeps runs cheap and predictable.
-- The flow reads only files whose folder is under `/SourceUploads/PublicData/`. A file directly in `PublicData`, a file in any other folder (including `PrivateData`), and a file whose folder has no enabled `Upload` row in Sources are ignored, even if a Sources row points at them.
+- The flow reads only files whose folder is under `/SourceUploads/PublicData/`. A file directly in `PublicData`, a file in any other folder (including `PrivateData`), and a file whose folder has no enabled `Upload` row in Sources are ignored. The flow ignores private folders, and any folder outside `PublicData`, even when a Sources row points at them.
 - There is no redaction. Private documents must not be uploaded.
 - Dedupe uses the file's list item ID: `ItemKey` = `<Source ID>|<list item ID>`. Re-uploading, editing or renaming a processed file creates no second item.
 
@@ -31,7 +31,7 @@ A test flow built by Boss showed that flow expressions cannot do the redaction. 
 
 ## Add-on (not scheduled)
 
-Redaction and document conversion are decided but not scheduled. The options are a customer-hosted Azure Function released separately, with the solution carrying a custom connector, environment variables and flow branches, and a Dataverse plug-in as a possible "no Azure" tier. See `docs/addons/document-sanitizer-design.md` and its distribution decision in `docs/addons/`.
+Redaction and document conversion are decided but not scheduled. They belong to the Document Sanitizer add-on, designed under `docs/addons/` and not yet committed. The options are a customer-hosted Azure Function released separately, with the solution carrying a custom connector, environment variables and flow branches, and a Dataverse plug-in as a possible "no Azure" tier.
 
 It plugs into `TR Process Documents` in two places:
 
