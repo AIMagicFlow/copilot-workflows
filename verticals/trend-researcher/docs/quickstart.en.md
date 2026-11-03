@@ -1,6 +1,6 @@
 # Trend Researcher: quick start
 
-This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 minutes. When you finish you have six automated flows:
+This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 minutes. When you finish you have seven automated flows:
 
 | Flow | Runs (UTC) | What it does |
 |---|---|---|
@@ -10,6 +10,7 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 | **TR Process Documents** | Every 5 minutes | Reads text files uploaded to `SourceUploads/PublicData` as evidence (step 5). |
 | **TR Business Case** | Every 5 minutes | Builds a business-case draft from selected digests, sends it for approval, then publishes it (step 6). |
 | **TR Clean Up Signals** | Monthly (day 1), 03:00 | Deletes old `Rejected` and `Monitor` signals and their evidence files (step 5). |
+| **TR Refresh Stats** | Daily, 17:00 | Counts signals by status, relevance and alert tag, and writes the numbers to the **Stats** list (step 5). |
 
 ## What you need
 
@@ -26,7 +27,7 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 
 ## 2. Create the lists and libraries (choose one option)
 
-The flows depend on each column's **internal name** (for example `field_3`), not its display name. Both options create the same six lists (`ResearchBriefs`, `Sources`, `SourceItems`, `Signals`, `Publications`, `BusinessCaseRequests`) and four libraries (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
+The flows depend on each column's **internal name** (for example `field_3`), not its display name. Both options create the same seven lists (`ResearchBriefs`, `Sources`, `SourceItems`, `Signals`, `Publications`, `BusinessCaseRequests`, `Stats`) and four libraries (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
 
 | | Option A: CSV files | Option B: PnP PowerShell |
 |---|---|---|
@@ -64,8 +65,9 @@ The flows depend on each column's **internal name** (for example `field_3`), not
 | SourceItems | Status | `Field=field_9` |
 | Signals | Status | `Field=field_11` |
 | Publications | PublicationKey | `Field=field_1` |
+| Stats | MetricKey | `Field=MetricKey` |
 
-Also confirm that **ItemKey** (SourceItems), **AnalysisKey** (Signals) and **PublicationKey** (Publications) have **Enforce unique values: Yes**. That constraint is what prevents duplicates.
+Also confirm that **ItemKey** (SourceItems), **AnalysisKey** (Signals), **PublicationKey** (Publications) and **MetricKey** (Stats) have **Enforce unique values: Yes**. That constraint is what prevents duplicates.
 
 If a `Field=` value differs, **stop**: the flows will not find that column. Delete that list and use option B, or send us a screenshot of the URL.
 
@@ -136,6 +138,9 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
    | Notification Audience (`tr_NotificationAudience`) | Optional. The Teams channel that receives approved business cases, written `teamId|channelId`. If it is empty, the message goes to the flow owner instead. |
    | Business case maximum input (characters) | `60000` (default). The most digest text one request can send to the AI. A larger request goes to `Failed` before any AI call. |
    | Signal retention (days) (`tr_RetentionDays`) | `90`. `0` turns the cleanup off. |
+   | Stats list (`tr_StatsList`) | Prefilled with the list title (`Stats`). A list ID (GUID) also works. |
+   | Reject below relevance (`tr_RejectBelow`) | `40` (default). A signal with a lower relevance gets `Rejected`. Do not set it above *tr_DigestFrom*. |
+   | Digest from relevance (`tr_DigestFrom`) | `70` (default). A signal with this relevance or higher gets `Digest`; values in between get `Monitor`. |
 
    The other variables are reserved for future versions. Leave them empty.
 
@@ -144,7 +149,7 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
 ## 4. Turn the flows on
 
 1. In **Solutions**, open **Trend Researcher → Cloud flows**.
-2. Check that **TR Collect RSS**, **TR Classify Items**, **TR Weekly Digest**, **TR Process Documents**, **TR Business Case** and **TR Clean Up Signals** are **On**. If one is off, select it and choose **Turn on**.
+2. Check that **TR Collect RSS**, **TR Classify Items**, **TR Weekly Digest**, **TR Process Documents**, **TR Business Case**, **TR Clean Up Signals** and **TR Refresh Stats** are **On**. If one is off, select it and choose **Turn on**.
 
 The same flows appear in Copilot Studio under **Flows**.
 
@@ -180,6 +185,24 @@ The same flows appear in Copilot Studio under **Flows**.
   A tag is a label for review, not a notification: nothing is sent when a signal is tagged. If the model returns a tag outside the three allowed codes, the signal is saved without the invalid tag, its *Status* is `NeedsReview` and the invalid tags are written to *EvidenceNotes*. Review those signals by hand.
 - **Retention cleanup.** On the 1st of each month, **TR Clean Up Signals** deletes `Rejected` and `Monitor` signals older than *tr_RetentionDays* (default 90; `0` turns the cleanup off). `Digest` and `NeedsReview` signals are kept at any age. When a deleted signal was the last one for its source item, the flow also deletes that item's evidence file and marks the SourceItem *ContentStatus* `Purged` with an empty *EvidenceUrl*. The row stays, so the item is not collected again. Uploaded originals, publications and business-case drafts are never touched.
 - **Digest layout.** The weekly digest shows the brief's product, dimension and question in its header, and groups signals under one heading per objective, in the order Anticipate, Minimize risks, Compare, Innovate, Cooperate. A signal with several objectives appears under each; an objective with no signals says so.
+
+### Tune the classifier
+
+**TR Refresh Stats** runs daily at 17:00 UTC and fills the **Stats** list with 19 rows: signal totals, one row per status, ten relevance bands, the three alert tags and signals with any tag. Each row shows the last 7 days, the 7 days before that and the last 30 days. Do not edit the rows by hand; the flow overwrites them and recreates a deleted one on its next run.
+
+Show it on the site home:
+
+1. Edit the site home and add a **List** web part pointing to **Stats**.
+2. Create a view sorted by **SortOrder** that shows **Metric** (internal name `Title`), **Last7Days**, **Previous7Days**, **Last30Days** and **UpdatedAt**. Optionally group it by **MetricGroup**.
+
+How to read it:
+
+- **Monitor share.** If most signals are `Monitor`, the thresholds may be too strict or the brief too broad: look at the relevance rows to see where the signals sit.
+- **Relevance rows next to the thresholds.** Compare the bands with *tr_RejectBelow* (default 40) and *tr_DigestFrom* (default 70). Many signals just under *tr_DigestFrom* mean it may be too high.
+- **A tag on everything or on nothing.** A tag row that matches almost every signal, or none, means the classifier prompt or the brief needs a look.
+- **`NeedsReview`.** These signals had a tag outside the three allowed codes, so they are the model inventing tags. Review them by hand.
+
+To change the thresholds, edit *tr_RejectBelow* and *tr_DigestFrom* in the solution's environment variables, then turn **TR Classify Items** off and on. **The new values apply only to items classified afterwards; existing signals keep their status.** **Do not set *tr_RejectBelow* above *tr_DigestFrom*:** no signal could get `Monitor`, and the flow does not check it.
 
 ## 6. Request and approve a business case
 
@@ -235,6 +258,7 @@ Run each flow once with **Test → Manually**, in this order:
 | An environment variable change has no effect | Turn the flow off and on again. Changes can take up to an hour to propagate. |
 | `Input exceeds the maximum length of 255` | A multi-line column was created as single-line text. Run `provision.ps1 -VerifyOnly` to find it. |
 | A business-case request stays `Submitted` and nothing happens | The request failed validation and the flow left it unchanged. Check that every required column is filled, *Version* is a whole number of 1 or more, and *ReviewerEmail* and *AudienceKey* are in the approved lists. The flow's run history shows the reason. |
+| **UpdatedAt** in **Stats** stopped moving | One status has passed 5,000 signals, so the daily query fails and **Stats** keeps the previous numbers (`Digest` is the usual one, because nothing deletes it). The other possibility is that **TR Refresh Stats** is off: check it in step 4. |
 | A business-case request is `Failed` | Read *LastError*, then follow the retry rule in step 6 (increase *Version* first if a Publication already exists). |
 
 ## Upgrading
@@ -274,6 +298,15 @@ Read the 1.3.0.0 entry in `CHANGELOG.md` before upgrading.
 4. Turn **TR Clean Up Signals** on.
 
 Deleted signals and evidence files go to the site recycle bin, where they can be restored for 93 days (to verify: not yet confirmed in a tenant).
+
+### Upgrading from 1.4 to 1.5
+
+1.5.0.0 adds the **Stats** list, the **TR Refresh Stats** flow and three variables: *tr_StatsList*, *tr_RejectBelow* and *tr_DigestFrom*. **TR Classify Items** now reads its thresholds from the last two; the defaults (40 and 70) keep today's behavior. Read the 1.5.0.0 entry in `CHANGELOG.md` before upgrading. Then:
+
+1. Import the solution.
+2. Create **Stats**: with option A, follow the generated `upgrade-1.5.0.0.en.md` inside the SharePoint kit zip; with option B, run `provision.ps1` again.
+3. Turn **TR Refresh Stats** on and run it once by hand. The 19 rows appear.
+4. Add the **List** web part to the site home (step 5, "Tune the classifier").
 
 ### Known limits of 1.3 (not verified in a tenant)
 

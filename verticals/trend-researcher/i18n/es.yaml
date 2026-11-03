@@ -26,6 +26,9 @@ flows:
   cleanupSignals:
     name: VT Limpiar Señales
     description: Mensual. Elimina las señales Rejected y Monitor más antiguas que tr_RetentionDays y el archivo de evidencia de un elemento fuente cuando ya no le queda ninguna señal. Las filas de SourceItems se conservan y se marcan como Purged.
+  refreshStats:
+    name: VT Actualizar Estadísticas
+    description: Diario. Cuenta las señales de los últimos 30 días por estado, franja de relevancia y etiqueta de alerta, y escribe los totales en la lista de estadísticas para ajustar el clasificador.
 
 connections:
   sharepoint:
@@ -66,6 +69,9 @@ env:
   tr_BusinessCaseRequestsList:
     name: Lista de solicitudes de caso de negocio
     description: Título de la lista de solicitudes de caso de negocio. Use el título, no el GUID; el paso de reserva llama a la API REST de SharePoint por título de lista.
+  tr_StatsList:
+    name: Lista de estadísticas
+    description: Título o ID (GUID) de la lista de estadísticas.
   tr_ApprovedReviewers:
     name: Revisores aprobados
     description: Correos electrónicos separados por punto y coma permitidos como ReviewerEmail en una solicitud de caso de negocio. Si está vacío, no se acepta ninguna solicitud.
@@ -87,6 +93,12 @@ env:
   tr_RetentionDays:
     name: Retención de señales (días)
     description: Las señales Rejected y Monitor más antiguas que este número de días se eliminan el día 1 de cada mes, junto con su archivo de evidencia cuando ninguna otra señal lo usa. 0 desactiva la limpieza.
+  tr_RejectBelow:
+    name: Rechazar por debajo de relevancia
+    description: Las señales con relevancia inferior a este valor reciben el estado Rejected. Se aplica a los elementos clasificados después del cambio; las señales existentes conservan su estado.
+  tr_DigestFrom:
+    name: Resumen desde relevancia
+    description: Las señales con relevancia igual o superior a este valor reciben el estado Digest; los valores entre los dos umbrales reciben Monitor. Manténgalo por encima de tr_RejectBelow o ninguna señal recibirá Monitor.
   tr_MaxUploadBytes:
     name: Tamaño máximo de carga (bytes)
     description: Los archivos cargados que superen este tamaño se registran solo con metadatos y no se lee su contenido.
@@ -180,3 +192,11 @@ codes:
   dimension: {Market: Mercado, Technology: Tecnología, Regulatory: Regulación, Competition: Competencia}
   objective: {Anticipate: Anticipar, MinimizeRisks: Minimizar riesgos, Compare: Comparar, Innovate: Innovar, Cooperate: Cooperar}
   alertTag: {CompetitorLaunch: Lanzamiento de competidor, RegulatoryAlert: Alerta regulatoria, NewTechnology: Nueva tecnología}
+
+stats:
+  groupSignals: Señales
+  groupRelevance: Relevancia
+  groupAlertTags: Etiquetas de alerta
+  total: total
+  alertTag: Etiqueta de alerta
+  anyTag: cualquiera

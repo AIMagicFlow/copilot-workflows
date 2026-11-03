@@ -1,0 +1,63 @@
+# SharePoint list schema: Stats
+# Internal names (name) are stable contracts used by the flows. Never rename them;
+# change only display labels. New in 1.5.0.0, so fields carry no tenant-export ids.
+list: Stats
+since: "1.5.0.0"
+title:
+  en: Stats
+  es: Estadísticas
+description:
+  en: Classifier tuning metrics, refreshed daily by TR Refresh Stats. Do not edit by hand.
+  es: Métricas para ajustar el clasificador; TR Refresh Stats las actualiza cada día. No las edite a mano.
+fields:
+- name: Title
+  type: Text
+  builtin: true
+  since: "1.5.0.0"
+  display:
+    en: Metric
+    es: Métrica
+- name: MetricKey
+  type: Text
+  unique: true
+  indexed: true
+  since: "1.5.0.0"
+  display:
+    en: MetricKey
+    es: Clave
+- name: MetricGroup
+  type: Text
+  since: "1.5.0.0"
+  display:
+    en: MetricGroup
+    es: Grupo
+- name: SortOrder
+  type: Number
+  since: "1.5.0.0"
+  display:
+    en: SortOrder
+    es: Orden
+- name: Last7Days
+  type: Number
+  since: "1.5.0.0"
+  display:
+    en: Last7Days
+    es: Últimos 7 días
+- name: Previous7Days
+  type: Number
+  since: "1.5.0.0"
+  display:
+    en: Previous7Days
+    es: 7 días anteriores
+- name: Last30Days
+  type: Number
+  since: "1.5.0.0"
+  display:
+    en: Last30Days
+    es: Últimos 30 días
+- name: UpdatedAt
+  type: DateTime
+  since: "1.5.0.0"
+  display:
+    en: UpdatedAt
+    es: Actualizado

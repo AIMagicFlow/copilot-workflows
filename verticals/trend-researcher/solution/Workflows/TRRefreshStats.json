@@ -1,0 +1,573 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Signals list (tr_SignalsList)": {
+          "defaultValue": "{{list:Signals}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SignalsList"
+          }
+        },
+        "Stats list (tr_StatsList)": {
+          "defaultValue": "{{list:Stats}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_StatsList"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [
+                17
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "Now": {
+          "type": "Compose",
+          "inputs": "@utcNow()",
+          "metadata": {
+            "description": "One timestamp for the whole run so every window and UpdatedAt agree"
+          }
+        },
+        "Since30": {
+          "type": "Compose",
+          "inputs": "@formatDateTime(addDays(outputs('Now'), -30), 'yyyy-MM-ddTHH:mm:ssZ')",
+          "runAfter": {
+            "Now": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Start of the 30-day window"
+          }
+        },
+        "Since14": {
+          "type": "Compose",
+          "inputs": "@formatDateTime(addDays(outputs('Now'), -14), 'yyyy-MM-ddTHH:mm:ssZ')",
+          "runAfter": {
+            "Since30": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Start of the previous 7-day window"
+          }
+        },
+        "Since7": {
+          "type": "Compose",
+          "inputs": "@formatDateTime(addDays(outputs('Now'), -7), 'yyyy-MM-ddTHH:mm:ssZ')",
+          "runAfter": {
+            "Since14": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Start of the last 7-day window; a signal created exactly then counts as last 7 days"
+          }
+        },
+        "Init_Signals": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Signals",
+                "type": "array",
+                "value": []
+              }
+            ]
+          },
+          "runAfter": {
+            "Since7": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Holds the projected signals of all statuses for in-memory counting"
+          }
+        },
+        "Loop_Statuses": {
+          "type": "Foreach",
+          "foreach": "@createArray('Digest', 'Monitor', 'Rejected', 'NeedsReview')",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
+          "actions": {
+            "Get_Signals": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                  "table": "@parameters('Signals list (tr_SignalsList)')",
+                  "$filter": "field_11 eq '@{items('Loop_Statuses')}' and Created ge '@{outputs('Since30')}'",
+                  "$top": 5000
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetItems"
+                }
+              },
+              "metadata": {
+                "description": "Read the last 30 days of one status, paginated past the default page size"
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Project_Signals": {
+              "type": "Select",
+              "inputs": {
+                "from": "@outputs('Get_Signals')?['body/value']",
+                "select": {
+                  "ID": "@item()?['ID']",
+                  "Created": "@item()?['Created']",
+                  "Status": "@item()?['field_11']",
+                  "Bucket": "@if(empty(string(item()?['field_7'])), -1, min(max(div(int(first(split(string(item()?['field_7']), '.'))), 10), 0), 9))",
+                  "TagsText": "@string(coalesce(item()?['AlertTags'], json('[]')))",
+                  "HasTag": "@not(empty(coalesce(item()?['AlertTags'], json('[]'))))"
+                }
+              },
+              "runAfter": {
+                "Get_Signals": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Keep ID so union() does not merge identical signals of different briefs"
+              }
+            },
+            "Join_Signals": {
+              "type": "Compose",
+              "inputs": "@union(variables('Signals'), body('Project_Signals'))",
+              "runAfter": {
+                "Project_Signals": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Append this status to the running list without reading the variable being set"
+              }
+            },
+            "Set_Signals": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "Signals",
+                "value": "@outputs('Join_Signals')"
+              },
+              "runAfter": {
+                "Join_Signals": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Store the joined list"
+              }
+            }
+          },
+          "runAfter": {
+            "Init_Signals": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Read each status separately so each query stays selective and under the item limit"
+          }
+        },
+        "Get_Stats_Rows": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+              "table": "@parameters('Stats list (tr_StatsList)')",
+              "$top": 100
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            }
+          },
+          "runAfter": {
+            "Loop_Statuses": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Read the existing Stats rows to decide between update and create"
+          }
+        },
+        "Metrics": {
+          "type": "Compose",
+          "inputs": [
+            {
+              "Key": "signals-total",
+              "Label": "{{t:stats.groupSignals}}: {{t:stats.total}}",
+              "Group": "{{t:stats.groupSignals}}",
+              "Order": 1,
+              "Kind": "all",
+              "Value": ""
+            },
+            {
+              "Key": "status-Digest",
+              "Label": "{{t:stats.groupSignals}}: Digest",
+              "Group": "{{t:stats.groupSignals}}",
+              "Order": 2,
+              "Kind": "status",
+              "Value": "Digest"
+            },
+            {
+              "Key": "status-Monitor",
+              "Label": "{{t:stats.groupSignals}}: Monitor",
+              "Group": "{{t:stats.groupSignals}}",
+              "Order": 3,
+              "Kind": "status",
+              "Value": "Monitor"
+            },
+            {
+              "Key": "status-Rejected",
+              "Label": "{{t:stats.groupSignals}}: Rejected",
+              "Group": "{{t:stats.groupSignals}}",
+              "Order": 4,
+              "Kind": "status",
+              "Value": "Rejected"
+            },
+            {
+              "Key": "status-NeedsReview",
+              "Label": "{{t:stats.groupSignals}}: NeedsReview",
+              "Group": "{{t:stats.groupSignals}}",
+              "Order": 5,
+              "Kind": "status",
+              "Value": "NeedsReview"
+            },
+            {
+              "Key": "relevance-0",
+              "Label": "{{t:stats.groupRelevance}} 0–9",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 6,
+              "Kind": "bucket",
+              "Value": 0
+            },
+            {
+              "Key": "relevance-1",
+              "Label": "{{t:stats.groupRelevance}} 10–19",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 7,
+              "Kind": "bucket",
+              "Value": 1
+            },
+            {
+              "Key": "relevance-2",
+              "Label": "{{t:stats.groupRelevance}} 20–29",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 8,
+              "Kind": "bucket",
+              "Value": 2
+            },
+            {
+              "Key": "relevance-3",
+              "Label": "{{t:stats.groupRelevance}} 30–39",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 9,
+              "Kind": "bucket",
+              "Value": 3
+            },
+            {
+              "Key": "relevance-4",
+              "Label": "{{t:stats.groupRelevance}} 40–49",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 10,
+              "Kind": "bucket",
+              "Value": 4
+            },
+            {
+              "Key": "relevance-5",
+              "Label": "{{t:stats.groupRelevance}} 50–59",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 11,
+              "Kind": "bucket",
+              "Value": 5
+            },
+            {
+              "Key": "relevance-6",
+              "Label": "{{t:stats.groupRelevance}} 60–69",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 12,
+              "Kind": "bucket",
+              "Value": 6
+            },
+            {
+              "Key": "relevance-7",
+              "Label": "{{t:stats.groupRelevance}} 70–79",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 13,
+              "Kind": "bucket",
+              "Value": 7
+            },
+            {
+              "Key": "relevance-8",
+              "Label": "{{t:stats.groupRelevance}} 80–89",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 14,
+              "Kind": "bucket",
+              "Value": 8
+            },
+            {
+              "Key": "relevance-9",
+              "Label": "{{t:stats.groupRelevance}} 90–100",
+              "Group": "{{t:stats.groupRelevance}}",
+              "Order": 15,
+              "Kind": "bucket",
+              "Value": 9
+            },
+            {
+              "Key": "tag-CompetitorLaunch",
+              "Label": "{{t:stats.alertTag}}: CompetitorLaunch",
+              "Group": "{{t:stats.groupAlertTags}}",
+              "Order": 16,
+              "Kind": "tag",
+              "Value": "CompetitorLaunch"
+            },
+            {
+              "Key": "tag-RegulatoryAlert",
+              "Label": "{{t:stats.alertTag}}: RegulatoryAlert",
+              "Group": "{{t:stats.groupAlertTags}}",
+              "Order": 17,
+              "Kind": "tag",
+              "Value": "RegulatoryAlert"
+            },
+            {
+              "Key": "tag-NewTechnology",
+              "Label": "{{t:stats.alertTag}}: NewTechnology",
+              "Group": "{{t:stats.groupAlertTags}}",
+              "Order": 18,
+              "Kind": "tag",
+              "Value": "NewTechnology"
+            },
+            {
+              "Key": "tag-Any",
+              "Label": "{{t:stats.alertTag}}: {{t:stats.anyTag}}",
+              "Group": "{{t:stats.groupAlertTags}}",
+              "Order": 19,
+              "Kind": "anytag",
+              "Value": ""
+            }
+          ],
+          "runAfter": {
+            "Get_Stats_Rows": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Fixed list of the 19 metrics so a status with no signals still gets a row of zeros"
+          }
+        },
+        "Loop_Metrics": {
+          "type": "Foreach",
+          "foreach": "@outputs('Metrics')",
+          "runtimeConfiguration": {
+            "concurrency": {
+              "repetitions": 1
+            }
+          },
+          "actions": {
+            "Filter_Metric": {
+              "type": "Query",
+              "inputs": {
+                "from": "@variables('Signals')",
+                "where": "@or(equals(items('Loop_Metrics')?['Kind'], 'all'), and(equals(items('Loop_Metrics')?['Kind'], 'status'), equals(item()?['Status'], items('Loop_Metrics')?['Value'])), and(equals(items('Loop_Metrics')?['Kind'], 'bucket'), equals(item()?['Bucket'], items('Loop_Metrics')?['Value'])), and(equals(items('Loop_Metrics')?['Kind'], 'tag'), contains(item()?['TagsText'], string(items('Loop_Metrics')?['Value']))), and(equals(items('Loop_Metrics')?['Kind'], 'anytag'), item()?['HasTag']))"
+              },
+              "metadata": {
+                "description": "Signals that belong to this metric over the 30 days"
+              }
+            },
+            "Filter_Last7": {
+              "type": "Query",
+              "inputs": {
+                "from": "@body('Filter_Metric')",
+                "where": "@greaterOrEquals(ticks(item()?['Created']), ticks(outputs('Since7')))"
+              },
+              "runAfter": {
+                "Filter_Metric": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Of those, the ones from the last 7 days"
+              }
+            },
+            "Filter_Previous7": {
+              "type": "Query",
+              "inputs": {
+                "from": "@body('Filter_Metric')",
+                "where": "@and(greaterOrEquals(ticks(item()?['Created']), ticks(outputs('Since14'))), less(ticks(item()?['Created']), ticks(outputs('Since7'))))"
+              },
+              "runAfter": {
+                "Filter_Last7": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Of those, the ones from the 7 days before that"
+              }
+            },
+            "Find_Row": {
+              "type": "Query",
+              "inputs": {
+                "from": "@outputs('Get_Stats_Rows')?['body/value']",
+                "where": "@equals(item()?['MetricKey'], items('Loop_Metrics')?['Key'])"
+              },
+              "runAfter": {
+                "Filter_Previous7": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Find the Stats row of this metric"
+              }
+            },
+            "If_Row_Exists": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "empty": [
+                        "@body('Find_Row')"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Update_Row": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Stats list (tr_StatsList)')",
+                      "id": "@first(body('Find_Row'))?['ID']",
+                      "item/Title": "@items('Loop_Metrics')?['Label']",
+                      "item/MetricKey": "@items('Loop_Metrics')?['Key']",
+                      "item/MetricGroup": "@items('Loop_Metrics')?['Group']",
+                      "item/SortOrder": "@items('Loop_Metrics')?['Order']",
+                      "item/Last7Days": "@length(body('Filter_Last7'))",
+                      "item/Previous7Days": "@length(body('Filter_Previous7'))",
+                      "item/Last30Days": "@length(body('Filter_Metric'))",
+                      "item/UpdatedAt": "@outputs('Now')"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "PatchItem"
+                    }
+                  },
+                  "metadata": {
+                    "description": "Refresh the existing row of this metric"
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Create_Row": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                        "table": "@parameters('Stats list (tr_StatsList)')",
+                        "item/Title": "@items('Loop_Metrics')?['Label']",
+                        "item/MetricKey": "@items('Loop_Metrics')?['Key']",
+                        "item/MetricGroup": "@items('Loop_Metrics')?['Group']",
+                        "item/SortOrder": "@items('Loop_Metrics')?['Order']",
+                        "item/Last7Days": "@length(body('Filter_Last7'))",
+                        "item/Previous7Days": "@length(body('Filter_Previous7'))",
+                        "item/Last30Days": "@length(body('Filter_Metric'))",
+                        "item/UpdatedAt": "@outputs('Now')"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PostItem"
+                      }
+                    },
+                    "metadata": {
+                      "description": "First run, or the row was deleted by hand: create it"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Find_Row": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Update the row if it exists, otherwise create it"
+              }
+            }
+          },
+          "runAfter": {
+            "Metrics": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "description": "Write one Stats row per metric, one at a time"
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

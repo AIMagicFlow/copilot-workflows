@@ -2,7 +2,7 @@
 id: trend-researcher
 solution:
   uniqueName: TrendResearcher     # never change: Dataverse matches upgrades on this name (was TrendResearchFlow before 1.3.0.0 shipped)
-  version: 1.4.0.0                # bump before every release (major.minor.build.revision)
+  version: 1.5.0.0                # bump before every release (major.minor.build.revision)
 locales:
   en: {lcid: 1033}
   es: {lcid: 3082}

@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_DigestFrom">
+  <defaultvalue>70</defaultvalue>
+  <description default="{{t:env.tr_DigestFrom.description}}">
+    <label description="{{t:env.tr_DigestFrom.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_DigestFrom.name}}">
+    <label description="{{t:env.tr_DigestFrom.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.5.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>

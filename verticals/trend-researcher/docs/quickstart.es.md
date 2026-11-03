@@ -1,6 +1,6 @@
 # Vigilante de Tendencias: guía de inicio rápido
 
-Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en unos 45 minutos. Al terminar tendrá seis flujos automáticos:
+Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en unos 45 minutos. Al terminar tendrá siete flujos automáticos:
 
 | Flujo | Cuándo se ejecuta (UTC) | Qué hace |
 |---|---|---|
@@ -10,6 +10,7 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 | **VT Procesar Documentos** | Cada 5 minutos | Lee como evidencia los archivos de texto cargados en `SourceUploads/PublicData` (paso 5). |
 | **VT Caso de Negocio** | Cada 5 minutos | Genera un borrador de caso de negocio a partir de resúmenes elegidos, lo envía a aprobación y luego lo publica (paso 6). |
 | **VT Limpiar Señales** | Mensual (día 1), 03:00 | Elimina las señales `Rejected` y `Monitor` antiguas y sus archivos de evidencia (paso 5). |
+| **VT Actualizar Estadísticas** | Todos los días, 17:00 | Cuenta las señales por estado, relevancia y etiqueta de alerta, y escribe los totales en la lista **Estadísticas** (paso 5). |
 
 ## Qué necesita
 
@@ -27,7 +28,7 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 
 ## 2. Cree las listas y bibliotecas (elija una opción)
 
-Los flujos dependen del **nombre interno** de cada columna (por ejemplo `field_3`), no del nombre visible. Las dos opciones crean las mismas seis listas (`Briefs`, `Fuentes`, `ElementosFuente`, `Señales`, `Publicaciones`, `SolicitudesCasoNegocio`) y las cuatro bibliotecas (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
+Los flujos dependen del **nombre interno** de cada columna (por ejemplo `field_3`), no del nombre visible. Las dos opciones crean las mismas siete listas (`Briefs`, `Fuentes`, `ElementosFuente`, `Señales`, `Publicaciones`, `SolicitudesCasoNegocio`, `Estadísticas`) y las cuatro bibliotecas (`Evidence`, `PublishedReports`, `ResearchDrafts`, `SourceUploads`).
 
 | | Opción A: archivos CSV | Opción B: PnP PowerShell |
 |---|---|---|
@@ -74,8 +75,9 @@ Para cada una: **Nuevo → Biblioteca de documentos → En blanco**, escriba el 
 | ElementosFuente | Estado | `Field=field_9` |
 | Señales | Estado | `Field=field_11` |
 | Publicaciones | Clave de publicación | `Field=field_1` |
+| Estadísticas | Clave | `Field=MetricKey` |
 
-Compruebe también que **Clave del elemento** (ElementosFuente), **Clave de análisis** (Señales) y **Clave de publicación** (Publicaciones) tengan activado **Aplicar valores únicos: Sí**. Esa restricción impide duplicados.
+Compruebe también que **Clave del elemento** (ElementosFuente), **Clave de análisis** (Señales), **Clave de publicación** (Publicaciones) y **Clave** (Estadísticas) tengan activado **Aplicar valores únicos: Sí**. Esa restricción impide duplicados.
 
 Si algún `Field=` es distinto, **no continúe**: los flujos no encontrarán esa columna. Borre esa lista y use la opción B, o avísenos con una captura de la URL.
 
@@ -146,6 +148,9 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
    | Audiencia de notificación (`tr_NotificationAudience`) | Opcional. El canal de Teams que recibe los casos de negocio aprobados, escrito `teamId|channelId`. Si está vacía, el mensaje va al propietario del flujo. |
    | Entrada máxima del caso de negocio (caracteres) | `60000` (valor por defecto). El máximo de texto de resúmenes que una solicitud puede enviar a la IA. Una solicitud mayor pasa a `Failed` antes de llamar a la IA. |
    | Retención de señales (días) (`tr_RetentionDays`) | `90`. `0` desactiva la limpieza. |
+   | Lista de estadísticas (`tr_StatsList`) | Ya viene con el título de la lista (`Estadísticas`). También acepta el ID (GUID) de la lista. |
+   | Rechazar por debajo de relevancia (`tr_RejectBelow`) | `40` (por defecto). Una señal con relevancia menor recibe `Rejected`. No la configure por encima de *tr_DigestFrom*. |
+   | Resumen desde relevancia (`tr_DigestFrom`) | `70` (por defecto). Una señal con esta relevancia o mayor recibe `Digest`; los valores intermedios reciben `Monitor`. |
 
    El resto de variables están reservadas para versiones futuras. Déjelas vacías.
 
@@ -154,7 +159,7 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
 ## 4. Active los flujos
 
 1. En **Soluciones**, abra **Vigilante de Tendencias → Flujos de nube**.
-2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos**, **VT Resumen Semanal**, **VT Procesar Documentos**, **VT Caso de Negocio** y **VT Limpiar Señales** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
+2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos**, **VT Resumen Semanal**, **VT Procesar Documentos**, **VT Caso de Negocio**, **VT Limpiar Señales** y **VT Actualizar Estadísticas** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
 
 Los mismos flujos aparecen en Copilot Studio en **Flujos**.
 
@@ -190,6 +195,24 @@ Los mismos flujos aparecen en Copilot Studio en **Flujos**.
   Una etiqueta sirve para revisar, no es una notificación: al etiquetar una señal no se envía nada. Si el modelo devuelve una etiqueta fuera de los tres códigos permitidos, la señal se guarda sin la etiqueta inválida, su *Estado* queda en `NeedsReview` y las etiquetas inválidas se escriben en *Notas de evidencia*. Revise esas señales a mano.
 - **Limpieza por retención.** El día 1 de cada mes, **VT Limpiar Señales** elimina las señales `Rejected` y `Monitor` más antiguas que *tr_RetentionDays* (por defecto 90; `0` desactiva la limpieza). Las señales `Digest` y `NeedsReview` se conservan a cualquier antigüedad. Cuando una señal eliminada era la última de su elemento de fuente, el flujo también elimina el archivo de evidencia de ese elemento y marca el ElementoFuente con *ContentStatus* `Purged` y *EvidenceUrl* vacío. La fila se conserva, así que el elemento no se vuelve a recolectar. Los originales cargados, las publicaciones y los borradores de caso de negocio nunca se tocan.
 - **Formato del resumen.** El resumen semanal muestra en el encabezado el producto, la dimensión y la pregunta del brief, y agrupa las señales bajo un título por objetivo, en este orden: Anticipar, Minimizar riesgos, Comparar, Innovar, Cooperar. Una señal con varios objetivos aparece bajo cada uno; un objetivo sin señales lo indica.
+
+### Ajuste el clasificador
+
+**VT Actualizar Estadísticas** se ejecuta todos los días a las 17:00 UTC y llena la lista **Estadísticas** con 19 filas: totales de señales, una fila por estado, diez franjas de relevancia, las tres etiquetas de alerta y las señales con cualquier etiqueta. Cada fila muestra los últimos 7 días, los 7 días anteriores y los últimos 30 días. No edite las filas a mano: el flujo las sobrescribe y vuelve a crear una fila eliminada en su próxima ejecución.
+
+Muéstrela en la página de inicio del sitio:
+
+1. Edite la página de inicio del sitio y agregue un elemento web **Lista** que apunte a **Estadísticas**.
+2. Cree una vista ordenada por **Orden** (`SortOrder`) que muestre **Métrica** (`Title`), **Últimos 7 días** (`Last7Days`), **7 días anteriores** (`Previous7Days`), **Últimos 30 días** (`Last30Days`) y **Actualizado** (`UpdatedAt`). Opcionalmente, agrúpela por **Grupo** (`MetricGroup`).
+
+Cómo leerla:
+
+- **Proporción de `Monitor`.** Si la mayoría de las señales son `Monitor`, los umbrales pueden ser demasiado estrictos o el brief demasiado amplio: revise las filas de relevancia para ver dónde se ubican las señales.
+- **Filas de relevancia junto a los umbrales.** Compare las franjas con *tr_RejectBelow* (por defecto 40) y *tr_DigestFrom* (por defecto 70). Muchas señales justo por debajo de *tr_DigestFrom* indican que quizá esté demasiado alto.
+- **Una etiqueta en todo o en nada.** Una fila de etiqueta que coincide con casi todas las señales, o con ninguna, indica que hay que revisar el prompt del clasificador o el brief.
+- **`NeedsReview`.** Estas señales traían una etiqueta fuera de los tres códigos permitidos: el modelo inventó etiquetas. Revíselas a mano.
+
+Para cambiar los umbrales, edite *tr_RejectBelow* y *tr_DigestFrom* en las variables de entorno de la solución y luego desactive y active **VT Clasificar Elementos**. **Los valores nuevos se aplican solo a los elementos clasificados después; las señales existentes conservan su estado.** **No configure *tr_RejectBelow* por encima de *tr_DigestFrom*:** ninguna señal podría recibir `Monitor` y el flujo no lo comprueba.
 
 ## 6. Solicite y apruebe un caso de negocio
 
@@ -247,6 +270,7 @@ Las columnas de estado (*Estado*, *Impacto*, *Horizonte*) guardan códigos en in
 | Cambié una variable de entorno y el flujo sigue usando el valor anterior | Desactive y vuelva a activar el flujo. El cambio puede tardar hasta una hora en propagarse. |
 | `Input exceeds the maximum length of 255` | Una columna de texto largo se creó como texto de una línea. Ejecute `provision.ps1 -VerifyOnly` para encontrarla. |
 | Una solicitud de caso de negocio sigue en `Submitted` y no pasa nada | La solicitud no superó la validación y el flujo la dejó sin cambios. Compruebe que todas las columnas obligatorias estén completas, que *Versión* sea un entero de 1 o más y que *Correo del revisor* y *Clave de audiencia* estén en las listas aprobadas. El historial de ejecuciones del flujo muestra el motivo. |
+| **Actualizado** (`UpdatedAt`) en **Estadísticas** dejó de avanzar | Un estado superó las 5000 señales, así que la consulta diaria falla y **Estadísticas** conserva los números anteriores (lo habitual es `Digest`, porque nada lo elimina). La otra posibilidad es que **VT Actualizar Estadísticas** esté desactivado: compruébelo en el paso 4. |
 | Una solicitud de caso de negocio está en `Failed` | Lea *Último error* y siga la regla de reintento del paso 6 (aumente antes la *Versión* si ya existe una Publicación). |
 
 ## Actualizar a una versión nueva
@@ -286,6 +310,15 @@ Lea la entrada 1.3.0.0 de `CHANGELOG.md` antes de actualizar.
 4. Active **VT Limpiar Señales**.
 
 Las señales y los archivos de evidencia eliminados van a la papelera de reciclaje del sitio, desde donde se pueden restaurar durante 93 días (por verificar: aún no confirmado en un tenant).
+
+### Actualizar de 1.4 a 1.5
+
+1.5.0.0 agrega la lista **Estadísticas**, el flujo **VT Actualizar Estadísticas** y tres variables: *tr_StatsList*, *tr_RejectBelow* y *tr_DigestFrom*. **VT Clasificar Elementos** ahora lee sus umbrales de las dos últimas; los valores por defecto (40 y 70) mantienen el comportamiento actual. Lea la entrada 1.5.0.0 de `CHANGELOG.md` antes de actualizar. Después:
+
+1. Importe la solución.
+2. Cree **Estadísticas**: con la opción A, siga el `upgrade-1.5.0.0.es.md` generado dentro del zip del kit de SharePoint; con la opción B, vuelva a ejecutar `provision.ps1`.
+3. Active **VT Actualizar Estadísticas** y ejecútelo una vez a mano. Aparecen las 19 filas.
+4. Agregue el elemento web **Lista** a la página de inicio del sitio (paso 5, "Ajuste el clasificador").
 
 ### Límites conocidos de 1.3 (no verificados en un tenant)
 
