@@ -13,7 +13,7 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 
 ## What you need
 
-- The two release files from `releases/trend-researcher/<version>/`:
+- The two release files from the [GitHub Release for your version](https://github.com/AIMagicFlow/copilot-workflows/releases) (tag `trend-researcher-<version>`):
   - `TrendResearcher_<version>_en.zip`: the Power Platform solution. **Do not unzip it.**
   - `TrendResearcher_<version>_en_sharepoint.zip`: the SharePoint kit. **Unzip it.**
 - A Power Platform environment with Dataverse and a Copilot Studio license (agent flows).

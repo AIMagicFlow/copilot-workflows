@@ -13,7 +13,7 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 
 ## Qué necesita
 
-- Dos archivos de la versión publicada (carpeta `releases/trend-researcher/<versión>/`):
+- Dos archivos de la versión publicada, en la [Release de GitHub de su versión](https://github.com/AIMagicFlow/copilot-workflows/releases) (etiqueta `trend-researcher-<versión>`):
   - `TrendResearcher_<versión>_es.zip`: la solución de Power Platform. **No lo descomprima.**
   - `TrendResearcher_<versión>_es_sharepoint.zip`: el kit de SharePoint. **Descomprímalo.**
 - Un entorno de Power Platform con Dataverse y licencia de Copilot Studio (flujos de agente).

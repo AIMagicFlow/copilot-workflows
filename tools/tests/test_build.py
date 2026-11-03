@@ -426,6 +426,21 @@ class SharePointKitTests(unittest.TestCase):
 PNP = "{http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema}"
 
 
+class ReleaseTests(unittest.TestCase):
+    def test_release_writes_upload_set_and_refuses_overwrite(self):
+        vertical = build.Vertical(build.ROOT, "trend-researcher")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            zip_path = out / "TrendResearcher_9_9_9_9_en.zip"
+            zip_path.write_bytes(b"zip")
+            target = build.release(vertical, [zip_path], out, False)
+            self.assertEqual(target, out / "release" / "trend-researcher" / vertical.version)
+            self.assertEqual((target / zip_path.name).read_bytes(), b"zip")
+            self.assertIn(zip_path.name, (target / "SHA256SUMS").read_text())
+            with self.assertRaisesRegex(build.BuildError, "already exists"):
+                build.release(vertical, [zip_path], out, False)
+
+
 class PnPTemplateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

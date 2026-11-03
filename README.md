@@ -24,8 +24,7 @@ verticals/<vertical>/
   settings/                 deployment-settings example for pac CLI imports
   docs/                     quickstarts, design history, plans
 tools/build.py              renders + validates + zips each vertical per locale
-releases/<vertical>/<ver>/  committed release zips + SHA256SUMS
-dist/                       local build output (git-ignored)
+dist/                       local build output and release upload sets (git-ignored)
 ```
 
 ## Build and release
@@ -36,8 +35,17 @@ Requires Python 3.10+, PyYAML and lxml (`pip install -r requirements.txt`). No W
 python3 tools/build.py                          # build every vertical and locale into dist/
 python3 tools/build.py trend-researcher --locale es
 python3 -m unittest discover -s tools/tests     # tests
-python3 tools/build.py trend-researcher --release # copy the build into releases/ (bump the version first)
+python3 tools/build.py trend-researcher --release # write the upload set to dist/release/ (bump the version first)
 ```
+
+Release zips are not stored in git. Each version is a GitHub Release, tagged `<vertical>-<version>` (for example `trend-researcher-1.4.0.0`), with the zips and `SHA256SUMS` attached. To publish a version, after merging to `main`:
+
+```bash
+gh release create trend-researcher-1.4.0.0 --title "Trend Researcher 1.4.0.0" --notes-file notes.md \
+  dist/release/trend-researcher/1.4.0.0/*
+```
+
+The tag is created on the commit you are on, so run it from the commit that contains the release's source.
 
 Each locale produces two files:
 

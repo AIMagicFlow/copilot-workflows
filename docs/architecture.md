@@ -24,7 +24,7 @@ flowchart LR
             docs["docs/quickstart.*.md"]
         end
         build["tools/build.py"]
-        releases["releases/&lt;v&gt;/&lt;version&gt;/"]
+        release["dist/release/&lt;v&gt;/&lt;version&gt;/<br/>(upload set, git-ignored)"]
     end
     subgraph tenant["Customer tenant"]
         pp["Power Platform environment<br/>(solution: flows, env vars,<br/>connection references)"]
@@ -37,10 +37,11 @@ flowchart LR
     i18n --> build
     lists --> build
     docs --> build
-    build -->|"&lt;Solution&gt;_&lt;ver&gt;_&lt;locale&gt;.zip"| releases
-    build -->|"&lt;Solution&gt;_&lt;ver&gt;_&lt;locale&gt;_sharepoint.zip"| releases
-    releases -->|"Import solution"| pp
-    releases -->|"provision.ps1 (PnP template)<br/>or New list from CSV"| sp
+    build -->|"&lt;Solution&gt;_&lt;ver&gt;_&lt;locale&gt;.zip"| release
+    build -->|"&lt;Solution&gt;_&lt;ver&gt;_&lt;locale&gt;_sharepoint.zip"| release
+    release -->|"gh release create (tag trend-researcher-&lt;ver&gt;)"| gh["GitHub Release<br/>(zips + SHA256SUMS)"]
+    gh -->|"Download, then import solution"| pp
+    gh -->|"Download, then provision.ps1 (PnP template)<br/>or New list from CSV"| sp
     pp -->|"@parameters(site, list) via connection reference"| sp
 ```
 
@@ -52,7 +53,7 @@ sequenceDiagram
     participant B as tools/build.py
     participant R as Renderer (per locale)
     participant V as Validator
-    participant Z as dist/ and releases/
+    participant Z as dist/ and dist/release/
     Dev->>B: build.py trend-researcher --release
     B->>B: load vertical.yaml, list schemas, shared + vertical i18n
     loop each locale (en, es)
@@ -71,7 +72,7 @@ sequenceDiagram
         B->>R: render PnP template + expected-schema.json + provision.ps1
         B->>Z: SharePoint kit zip (+ quickstart)
     end
-    B->>Z: copy into releases/ + SHA256SUMS (refuses to overwrite a version)
+    B->>Z: copy into dist/release/<vertical>/<version>/ + SHA256SUMS (refuses to overwrite a version)
 ```
 
 ## Portability rules
@@ -136,5 +137,6 @@ A runtime core solution (shared env vars or connection references with a depende
 ## Versioning
 
 - `vertical.yaml: solution.version` is the Dataverse solution version (`major.minor.build.revision`). Bump it before `--release`; the build refuses to overwrite an existing release folder.
+- Release zips are not committed. Each version is a GitHub Release with the tag `<vertical>-<version>` (for example `trend-researcher-1.4.0.0`), and its assets are the two zips per locale plus `SHA256SUMS`. The tag points at the commit that contains the release's source.
 - `solution.uniqueName` never changes. Dataverse matches upgrades on it.
 - Bump a prompt's version whenever its text changes.

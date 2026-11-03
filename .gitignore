@@ -1,4 +1,4 @@
-# Build output (releases/ is committed; dist/ is not)
+# Build output, including the release upload set (dist/release/); release zips go to GitHub Releases
 dist/
 __pycache__/
 *.pyc

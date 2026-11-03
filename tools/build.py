@@ -18,7 +18,7 @@ Source files contain {{kind:arg}} tokens that are resolved per locale:
 Usage:
   python3 tools/build.py                       # all verticals, all locales
   python3 tools/build.py trend-researcher --locale es
-  python3 tools/build.py trend-researcher --release   # also copy into releases/ (committed)
+  python3 tools/build.py trend-researcher --release   # also write the upload set to dist/release/ (see README)
 """
 import argparse
 import hashlib
@@ -658,8 +658,8 @@ def build(vertical, locales, out_root):
     return built
 
 
-def release(vertical, built, force):
-    target = ROOT / "releases" / vertical.id / vertical.version
+def release(vertical, built, out_root, force):
+    target = out_root / "release" / vertical.id / vertical.version
     if target.exists() and not force:
         raise BuildError(f"{target} already exists: bump solution.version in vertical.yaml (or pass --force)")
     target.mkdir(parents=True, exist_ok=True)
@@ -676,7 +676,7 @@ def main(argv=None):
     parser.add_argument("verticals", nargs="*", help="vertical ids (default: all)")
     parser.add_argument("--locale", action="append", help="locale to build (repeatable; default: all declared)")
     parser.add_argument("--out", default=str(ROOT / "dist"), help="output directory (default: dist/)")
-    parser.add_argument("--release", action="store_true", help="copy the build into releases/<vertical>/<version>/")
+    parser.add_argument("--release", action="store_true", help="write the upload set to <out>/release/<vertical>/<version>/")
     parser.add_argument("--force", action="store_true", help="with --release, overwrite an existing release folder")
     args = parser.parse_args(argv)
 
@@ -688,7 +688,7 @@ def main(argv=None):
             for path in built:
                 print(f"built   {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
             if args.release:
-                print(f"release {release(vertical, built, args.force).relative_to(ROOT)}")
+                print(f"release {release(vertical, built, Path(args.out), args.force)}")
     except BuildError as exc:
         print(f"build failed:\n{exc}", file=sys.stderr)
         return 1
