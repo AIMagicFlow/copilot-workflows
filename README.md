@@ -52,5 +52,5 @@ The build fails if a token is unresolved, a flow uses an undeclared environment 
 - [Environment variables](docs/environment-variables.md): how flows use them, and why the designer doesn't show them.
 - [Localization](docs/localization.md): what is translated where.
 - [Adding a vertical](docs/adding-a-vertical.md).
-- [Document Sanitizer add-on](docs/addons/document-sanitizer-design.md) (designed, not built): customer-hosted Azure Function for document conversion and redaction; [how it ships](docs/addons/adr-001-document-sanitizer-distribution.md).
+- [Document Sanitizer add-on](docs/addons/document-sanitizer-design.md) (phase 1 built, hardening and large-file phases not started): customer-hosted Azure Function for document conversion and redaction; [how it ships](docs/addons/adr-001-document-sanitizer-distribution.md).
 - Trend Research: [quickstart (es)](verticals/trend-research/docs/quickstart.es.md), [quickstart (en)](verticals/trend-research/docs/quickstart.en.md), [next workflows plan](verticals/trend-research/docs/plans/2026-11-02-doc-processing-and-business-case-plan.md).
