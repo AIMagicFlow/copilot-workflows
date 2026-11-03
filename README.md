@@ -4,7 +4,7 @@ A library of Microsoft Copilot Studio / Power Automate automation workflows, pac
 
 | Vertical | Status | Solution | Spanish name |
 |---|---|---|---|
-| [Trend Researcher](verticals/trend-researcher/) | 1.4.0.0: RSS and document collection, classification, weekly digest, business cases, monthly signal cleanup | `TrendResearcher` | Vigilante de Tendencias |
+| [Trend Researcher](verticals/trend-researcher/) | 1.5.0.0: RSS and document collection, classification, weekly digest, business cases, monthly signal cleanup, daily classifier stats | `TrendResearcher` | Vigilante de Tendencias |
 | Lead generation, content creation, social media research | planned | — | — |
 
 ## Repository layout

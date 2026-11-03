@@ -1294,6 +1294,33 @@ class CleanupSchemaTests(unittest.TestCase):
         self.assertEqual("100000001", el.findtext("type"))
 
 
+class ThresholdTests(unittest.TestCase):
+    REJECT = "parameters('Reject below relevance (tr_RejectBelow)')"
+    DIGEST = "parameters('Digest from relevance (tr_DigestFrom)')"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", CLASSIFY)
+        cls.status = params(cls.doc, "Create_Signal")["item/field_11"]
+
+    def test_thresholds_from_env_vars(self):
+        self.assertIn(self.REJECT, self.status)
+        self.assertIn(self.DIGEST, self.status)
+        self.assertIsNone(re.search(r"\b(40|70)\b", self.status))
+
+    def test_needs_review_checked_first(self):
+        self.assertTrue(self.status.startswith("@if("))
+        self.assertLess(self.status.index("'NeedsReview'"), self.status.index("'Rejected'"))
+
+    def test_threshold_env_defaults(self):
+        v = build.Vertical(build.ROOT, "trend-researcher")
+        files = build.render_solution(v, "en")
+        for name, default in (("tr_RejectBelow", "40"), ("tr_DigestFrom", "70")):
+            el = ET.fromstring(files["environmentvariabledefinitions/%s/environmentvariabledefinition.xml" % name])
+            self.assertEqual(default, el.findtext("defaultvalue"))
+            self.assertEqual("100000001", el.findtext("type"))
+
+
 class DeploymentSettingsExampleTests(unittest.TestCase):
     def test_example_lists_new_env_vars_and_approvals_connection(self):
         import pathlib
@@ -1302,7 +1329,8 @@ class DeploymentSettingsExampleTests(unittest.TestCase):
         env = {e["SchemaName"] for e in data["EnvironmentVariables"]}
         for name in ("tr_SourceUploadsLibrary", "tr_MaxUploadBytes", "tr_BusinessCaseRequestsList",
                      "tr_ApprovedReviewers", "tr_ApprovedAudiences", "tr_BusinessCaseMaxInputChars",
-                     "tr_NotificationAudience", "tr_RetentionDays"):
+                     "tr_NotificationAudience", "tr_RetentionDays",
+                     "tr_RejectBelow", "tr_DigestFrom", "tr_StatsList"):
             self.assertIn(name, env)
         conns = {c["LogicalName"]: c for c in data["ConnectionReferences"]}
         self.assertIn("tr_sharedapprovals", conns)
@@ -1404,4 +1432,153 @@ class CleanupSignalsTests(unittest.TestCase):
             root = ET.fromstring(build.render_solution(build.Vertical(build.ROOT, "trend-researcher"), locale)
                                  ["customizations.xml"])
             names = [w.get("Name") for w in root.iter("Workflow")]
+            self.assertIn(name, names)
+
+
+class StatsSchemaTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.v = build.Vertical(build.ROOT, "trend-researcher")
+
+    def test_stats_list_schema(self):
+        stats = self.v.list_by_key("Stats")
+        self.assertEqual(["Title", "MetricKey", "MetricGroup", "SortOrder", "Last7Days",
+                          "Previous7Days", "Last30Days", "UpdatedAt"],
+                         [f["name"] for f in stats["fields"]])
+        key = next(f for f in stats["fields"] if f["name"] == "MetricKey")
+        self.assertIs(True, key.get("unique"))
+        self.assertIs(True, key.get("indexed"))
+
+    def test_stats_list_env_var(self):
+        files = build.render_solution(self.v, "en")
+        el = ET.fromstring(files["environmentvariabledefinitions/tr_StatsList/environmentvariabledefinition.xml"])
+        self.assertEqual("Stats", el.findtext("defaultvalue"))
+        self.assertEqual("100000000", el.findtext("type"))
+
+    def test_stats_in_upgrade_notes(self):
+        kit = build.render_sharepoint_kit(self.v, "en")
+        notes = kit["upgrade-1.5.0.0.en.md"].decode("utf-8")
+        self.assertIn("Stats", notes)
+
+
+STATS = "Workflows/TRRefreshStats-3F6C2A8E-5B1D-4E7A-9C40-8D2F61B7A913.json"
+STATS_LIST = "@parameters('Stats list (tr_StatsList)')"
+BUCKET = ("@if(empty(string(item()?['field_7'])), -1, "
+          "min(max(div(int(first(split(string(item()?['field_7']), '.'))), 10), 0), 9))")
+
+
+def op_id(action):
+    inputs = action.get("inputs")
+    return inputs.get("host", {}).get("operationId") if isinstance(inputs, dict) else None
+
+
+def all_actions(actions):
+    for name, action in actions.items():
+        yield name, action
+        for _, inner in flowtest_children(action):
+            yield from all_actions(inner)
+
+
+class RefreshStatsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", STATS)
+
+    def test_daily_schedule_single_run(self):
+        trigger = self.doc["properties"]["definition"]["triggers"]["Recurrence"]
+        self.assertEqual({"frequency": "Day", "interval": 1, "schedule": {"hours": [17], "minutes": [0]}},
+                         trigger["recurrence"])
+        self.assertEqual(1, trigger["runtimeConfiguration"]["concurrency"]["runs"])
+
+    def test_reads_each_status_once(self):
+        doc = self.doc
+        self.assertEqual("@createArray('Digest', 'Monitor', 'Rejected', 'NeedsReview')",
+                         find_action(doc, "Loop_Statuses")["foreach"])
+        self.assertEqual("field_11 eq '@{items('Loop_Statuses')}' and Created ge '@{outputs('Since30')}'",
+                         params(doc, "Get_Signals")["$filter"])
+        gets = [n for n, a in all_actions(doc["properties"]["definition"]["actions"])
+                if op_id(a) == "GetItems"
+                and a["inputs"]["parameters"].get("table") == SIGNALS]
+        self.assertEqual(["Get_Signals"], gets)
+
+    def test_projection_keeps_id(self):
+        select = find_action(self.doc, "Project_Signals")["inputs"]["select"]
+        self.assertEqual({"ID", "Created", "Status", "Bucket", "TagsText", "HasTag"}, set(select))
+
+    def test_bucket_expression(self):
+        select = find_action(self.doc, "Project_Signals")["inputs"]["select"]
+        self.assertEqual(BUCKET, select["Bucket"])
+
+    def test_nineteen_metrics_in_order(self):
+        metrics = find_action(self.doc, "Metrics")["inputs"]
+        self.assertEqual(19, len(metrics))
+        self.assertEqual(["signals-total", "status-Digest", "status-Monitor", "status-Rejected", "status-NeedsReview"]
+                         + [f"relevance-{i}" for i in range(10)]
+                         + ["tag-CompetitorLaunch", "tag-RegulatoryAlert", "tag-NewTechnology", "tag-Any"],
+                         [m["Key"] for m in metrics])
+        self.assertEqual(list(range(1, 20)), [m["Order"] for m in metrics])
+        self.assertEqual("Relevance 90–100", next(m for m in metrics if m["Key"] == "relevance-9")["Label"])
+
+    def test_metrics_localized(self):
+        metrics = find_action(load_built("es", STATS), "Metrics")["inputs"]
+        by_key = {m["Key"]: m for m in metrics}
+        self.assertEqual("Señales: Monitor", by_key["status-Monitor"]["Label"])
+        self.assertEqual("Etiqueta de alerta: cualquiera", by_key["tag-Any"]["Label"])
+
+    def test_filter_metric_where(self):
+        self.assertEqual(
+            "@or(equals(items('Loop_Metrics')?['Kind'], 'all'), "
+            "and(equals(items('Loop_Metrics')?['Kind'], 'status'), equals(item()?['Status'], items('Loop_Metrics')?['Value'])), "
+            "and(equals(items('Loop_Metrics')?['Kind'], 'bucket'), equals(item()?['Bucket'], items('Loop_Metrics')?['Value'])), "
+            "and(equals(items('Loop_Metrics')?['Kind'], 'tag'), contains(item()?['TagsText'], string(items('Loop_Metrics')?['Value']))), "
+            "and(equals(items('Loop_Metrics')?['Kind'], 'anytag'), item()?['HasTag']))",
+            find_action(self.doc, "Filter_Metric")["inputs"]["where"])
+
+    def test_get_signals_pagination(self):
+        self.assertEqual(5000, find_action(self.doc, "Get_Signals")
+                         ["runtimeConfiguration"]["paginationPolicy"]["minimumItemCount"])
+
+    def test_window_boundaries(self):
+        doc = self.doc
+        self.assertEqual("@greaterOrEquals(ticks(item()?['Created']), ticks(outputs('Since7')))",
+                         find_action(doc, "Filter_Last7")["inputs"]["where"])
+        self.assertEqual("@and(greaterOrEquals(ticks(item()?['Created']), ticks(outputs('Since14'))), "
+                         "less(ticks(item()?['Created']), ticks(outputs('Since7'))))",
+                         find_action(doc, "Filter_Previous7")["inputs"]["where"])
+
+    def test_missing_row_is_created(self):
+        doc = self.doc
+        self.assertTrue("/".join(path_to(doc, "Create_Row")).endswith("If_Row_Exists/else"))
+        self.assertEqual("PostItem", find_action(doc, "Create_Row")["inputs"]["host"]["operationId"])
+        self.assertEqual(STATS_LIST, params(doc, "Create_Row")["table"])
+        self.assertEqual("PatchItem", find_action(doc, "Update_Row")["inputs"]["host"]["operationId"])
+        self.assertEqual("@first(body('Find_Row'))?['ID']", params(doc, "Update_Row")["id"])
+
+    def test_row_fields(self):
+        expected = {
+            "item/Title": "@items('Loop_Metrics')?['Label']",
+            "item/MetricKey": "@items('Loop_Metrics')?['Key']",
+            "item/MetricGroup": "@items('Loop_Metrics')?['Group']",
+            "item/SortOrder": "@items('Loop_Metrics')?['Order']",
+            "item/Last7Days": "@length(body('Filter_Last7'))",
+            "item/Previous7Days": "@length(body('Filter_Previous7'))",
+            "item/Last30Days": "@length(body('Filter_Metric'))",
+            "item/UpdatedAt": "@outputs('Now')",
+        }
+        for name in ("Update_Row", "Create_Row"):
+            got = {k: v for k, v in params(self.doc, name).items() if k.startswith("item/")}
+            self.assertEqual(expected, got, name)
+
+    def test_only_stats_is_written(self):
+        writes = [(n, a["inputs"]["parameters"]["table"])
+                  for n, a in all_actions(self.doc["properties"]["definition"]["actions"])
+                  if op_id(a) in ("PostItem", "PatchItem", "DeleteItem")]
+        self.assertEqual(2, len(writes))
+        for name, table in writes:
+            self.assertEqual(STATS_LIST, table, name)
+
+    def test_refresh_stats_localized(self):
+        for locale, name in (("en", "TR Refresh Stats"), ("es", "VT Actualizar Estadísticas")):
+            xml = ET.fromstring(build.render_solution(build.Vertical(build.ROOT, "trend-researcher"), locale)["customizations.xml"])
+            names = [w.get("Name") for w in xml.iter("Workflow")]
             self.assertIn(name, names)

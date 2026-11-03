@@ -66,6 +66,20 @@
           "metadata": {
             "schemaName": "tr_DailyClassificationLimit"
           }
+        },
+        "Reject below relevance (tr_RejectBelow)": {
+          "defaultValue": 40,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_RejectBelow"
+          }
+        },
+        "Digest from relevance (tr_DigestFrom)": {
+          "defaultValue": 70,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_DigestFrom"
+          }
         }
       },
       "triggers": {
@@ -351,7 +365,7 @@
                           "item/field_8": "@body('Classify_TR_Signal')?['structuredOutput/Impact']",
                           "item/field_9": "@body('Classify_TR_Signal')?['structuredOutput/Horizon']",
                           "item/field_10": "Supporting evidence: @{body('Classify_TR_Signal')?['structuredOutput/SupportingPassages']}; Limitations: @{body('Classify_TR_Signal')?['structuredOutput/Limitations']}@{if(or(not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), length(body('Filter_AlertTags')))), not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))), length(body('Filter_Objectives'))))), concat('; Invalid tags: ', string(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), ' ', string(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]')))), '')}",
-                          "item/field_11": "@if(\n  or(\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), length(body('Filter_AlertTags')))),\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))), length(body('Filter_Objectives'))))\n  ),\n  'NeedsReview',\n  if(\n  less(\n    body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n    40\n  ),\n  'Rejected',\n  if(\n    less(\n      body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n      70\n    ),\n    'Monitor',\n    'Digest'\n  )\n)\n)",
+                          "item/field_11": "@if(\n  or(\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/AlertTags'], json('[]'))), length(body('Filter_AlertTags')))),\n    not(equals(length(coalesce(body('Classify_TR_Signal')?['structuredOutput/Objectives'], json('[]'))), length(body('Filter_Objectives'))))\n  ),\n  'NeedsReview',\n  if(\n  less(\n    body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n    parameters('Reject below relevance (tr_RejectBelow)')\n  ),\n  'Rejected',\n  if(\n    less(\n      body('Classify_TR_Signal')?['structuredOutput/Relevance'],\n      parameters('Digest from relevance (tr_DigestFrom)')\n    ),\n    'Monitor',\n    'Digest'\n  )\n)\n)",
                           "item/AlertTags": "@body('Filter_AlertTags')",
                           "item/Objectives": "@body('Filter_Objectives')"
                         },

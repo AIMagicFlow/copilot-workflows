@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.5.0.0 (2026-11-03)
+
+### Added
+
+- **Classifier tuning: new flow `TR Refresh Stats`** (es `VT Actualizar Estadísticas`). It runs daily at 17:00 UTC, an hour after `TR Classify Items`. It reads **Signals** once per status (`Digest`, `Monitor`, `Rejected`, `NeedsReview`), counts in memory and writes 19 rows to the new **Stats** list: total signals, one row per status, ten relevance bands (0-9, 10-19 and so on up to 90-100), the three alert tags and a row for signals with any tag. Each row has the counts for the last 7 days, the 7 days before that and the last 30 days. If a row is missing (first run, or deleted by hand), the flow creates it. The flow is the only writer to the list.
+- **New list `Stats`** (es `Estadísticas`, `sharepoint/lists/08-Stats.yaml`): `Title` (metric), `MetricKey` (unique, indexed), `MetricGroup`, `SortOrder`, `Last7Days`, `Previous7Days`, `Last30Days` and `UpdatedAt`. The kit does not create views or pages; the quickstart explains how to show the list on the site home.
+- **Environment variables.** `tr_StatsList` (String, default `Stats`), `tr_RejectBelow` (Number, default `40`) and `tr_DigestFrom` (Number, default `70`). No new connection reference.
+
+### Changed
+
+- **`TR Classify Items` reads its relevance thresholds from `tr_RejectBelow` and `tr_DigestFrom`** instead of the literals 40 and 70. The defaults are the old values, so behavior is unchanged until you edit them. A change applies only to items classified afterwards; existing signals keep their status, and the thresholds are not part of `AnalysisKey`. The `NeedsReview` rule for invalid tags is unchanged and still checked first.
+
+### Upgrade notes
+
+- **Create the Stats list** on existing sites: follow the generated `upgrade-1.5.0.0.<locale>.md` inside the SharePoint kit zip (option A), or run the new kit's `provision.ps1` again (option B).
+- **Turn on `TR Refresh Stats`** and run it once by hand.
+- **Do not set `tr_RejectBelow` above `tr_DigestFrom`.** No signal could then get `Monitor`, and the flow does not check it.
+
+### Known open points (not verified in a tenant)
+
+The four acceptance items from the design spec (`docs/design/2026-11-03-tr-stats-design.md`), all pending:
+
+1. On a site with signals of every status, the 19 rows appear after the first run. Their `Last30Days` values match a manual filter on **Signals**.
+2. Deleting a Stats row brings it back on the next run.
+3. Setting `tr_DigestFrom` to `75` changes the status of signals classified afterwards and leaves existing ones untouched.
+4. The List web part on the site home shows the view in the order of `SortOrder`.
+
+Also check:
+
+5. The shape that `GetItems` returns for the multi-choice `AlertTags` column. The tag rows depend on it; the check in item 1 (tag rows match a manual filter) confirms it.
+6. The 5,000-per-status limit. Each status query is narrowed by the `Status` index, so it works while each status has fewer than 5,000 signals in the list in total, not only in the window. `Digest` is never cleaned up and is the one to watch. When a status passes 5,000, the run fails at that status and **Stats** keeps the previous day's numbers (`UpdatedAt` stops moving).
+7. If `tr_RetentionDays` is under 30, the cleanup deletes `Rejected` and `Monitor` signals before they leave the 30-day window, so `Last30Days` undercounts them.
+
 ## 1.4.0.0 (2026-11-03)
 
 ### Added

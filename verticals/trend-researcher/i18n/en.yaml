@@ -25,6 +25,9 @@ flows:
   cleanupSignals:
     name: TR Clean Up Signals
     description: Monthly. Deletes Rejected and Monitor signals older than tr_RetentionDays, and the evidence file of a source item once none of its signals is left. SourceItems rows are kept and marked Purged.
+  refreshStats:
+    name: TR Refresh Stats
+    description: Daily. Counts signals of the last 30 days by status, relevance band and alert tag, and writes the totals to the Stats list for tuning the classifier.
 
 connections:
   sharepoint:
@@ -65,6 +68,9 @@ env:
   tr_BusinessCaseRequestsList:
     name: Business Case Requests list
     description: Title of the business case requests list. Use the title, not the GUID; the claim step calls the SharePoint REST API by list title.
+  tr_StatsList:
+    name: Stats list
+    description: Title or ID (GUID) of the Stats list.
   tr_ApprovedReviewers:
     name: Approved reviewers
     description: Semicolon-separated email addresses allowed as ReviewerEmail on a business case request. Empty means no request is accepted.
@@ -86,6 +92,12 @@ env:
   tr_RetentionDays:
     name: Signal retention (days)
     description: Rejected and Monitor signals older than this are deleted on the 1st of each month, with their evidence file once no other signal uses it. 0 turns the cleanup off.
+  tr_RejectBelow:
+    name: Reject below relevance
+    description: Signals with a relevance below this value get Status Rejected. Applies to items classified after a change; existing signals keep their status.
+  tr_DigestFrom:
+    name: Digest from relevance
+    description: Signals with a relevance at or above this value get Status Digest; values between the two thresholds get Monitor. Keep it above tr_RejectBelow, or no signal gets Monitor.
   tr_MaxUploadBytes:
     name: Maximum upload size (bytes)
     description: Uploaded files larger than this are recorded as metadata only and their content is not read.
@@ -179,3 +191,11 @@ codes:
   dimension: {Market: Market, Technology: Technology, Regulatory: Regulatory, Competition: Competition}
   objective: {Anticipate: Anticipate, MinimizeRisks: Minimize risks, Compare: Compare, Innovate: Innovate, Cooperate: Cooperate}
   alertTag: {CompetitorLaunch: Competitor launch, RegulatoryAlert: Regulatory alert, NewTechnology: New technology}
+
+stats:
+  groupSignals: Signals
+  groupRelevance: Relevance
+  groupAlertTags: Alert tags
+  total: total
+  alertTag: Alert tag
+  anyTag: any
