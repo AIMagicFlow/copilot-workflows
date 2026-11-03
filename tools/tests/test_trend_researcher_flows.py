@@ -1277,10 +1277,13 @@ class CleanupSchemaTests(unittest.TestCase):
         self.assertIs(True, by_name["field_1"].get("indexed"))
         self.assertIs(True, by_name["field_11"].get("indexed"))
         root = ET.fromstring(build.render_pnp_template(self.v, "en"))
-        indexed = {el.get("Name") for el in root.iter() if el.tag.split("}")[-1] == "Field"
-                   and el.get("Indexed") == "TRUE"}
-        self.assertIn("field_1", indexed)
-        self.assertIn("field_11", indexed)
+        url = build.list_url(signals)
+        instances = [li for li in root.iter() if li.tag.split("}")[-1] == "ListInstance" and li.get("Url") == url]
+        self.assertEqual(1, len(instances), url)
+        indexed = {el.get("Name") for el in instances[0].iter()
+                   if el.tag.split("}")[-1] == "Field" and el.get("Indexed") == "TRUE"}
+        # field_3 (AnalysisKey) is the pre-existing unique index; the cleanup adds field_1 and field_11.
+        self.assertEqual({"field_1", "field_3", "field_11"}, indexed)
 
     def test_retention_days_env_var(self):
         files = build.render_solution(self.v, "en")
