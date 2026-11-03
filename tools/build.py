@@ -342,7 +342,12 @@ def validate_solution(vertical, files):
     library_for_env = vertical.env_library_map()
     url_names = {lib["urlName"] for lib in vertical.libraries}
 
+    manifest = ET.fromstring(files["solution.xml"].decode("utf-8").lstrip("﻿"))
+    root_ids = {r.get("id").lower() for r in manifest.iter("RootComponent") if r.get("type") == "29"}
     for wf in customizations.iter("Workflow"):
+        wf_id = wf.get("WorkflowId")
+        if wf_id.lower() not in root_ids:
+            errors.append(f"solution.xml: workflow {wf_id} is not a RootComponent in solution.xml")
         json_name = wf.findtext("JsonFileName").lstrip("/")
         if json_name not in files:
             errors.append(f"customizations.xml: workflow file {json_name} is missing")

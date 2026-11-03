@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0.0 (unreleased)
+
+### Fixed
+
+- `TR Process Documents` and `TR Business Case` were missing from the solution's root components, so a solution import could leave them out of the solution. Every flow is now a root component, and the build checks it.
+
 ## 1.3.0.0 (unreleased)
 
 ### Added

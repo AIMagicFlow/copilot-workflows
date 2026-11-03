@@ -178,6 +178,23 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(build.BuildError, "connectionName"):
             build.validate_solution(self.v, self.mutate_flow(CLASSIFY, add))
 
+    def test_workflow_not_root_component_fails(self):
+        files = dict(self.files)
+        text = files["solution.xml"].decode("utf-8")
+        lines = [l for l in text.split("\n") if "{f73f937f-667a-8edc-33bf-30cddb0276b6}" not in l.replace("{F73F937F", "{f73f937f")]
+        files["solution.xml"] = "\n".join(lines).encode("utf-8")
+        with self.assertRaisesRegex(build.BuildError, "not a RootComponent"):
+            build.validate_solution(self.v, files)
+
+    def test_every_workflow_is_root_component(self):
+        for locale in ("en", "es"):
+            files = build.render_solution(self.v, locale)
+            cust = ET.fromstring(files["customizations.xml"].decode("utf-8").lstrip("﻿"))
+            sol = ET.fromstring(files["solution.xml"].decode("utf-8").lstrip("﻿"))
+            wf_ids = {w.get("WorkflowId").lower() for w in cust.iter("Workflow")}
+            roots = {r.get("id").lower() for r in sol.iter("RootComponent") if r.get("type") == "29"}
+            self.assertTrue(wf_ids <= roots, f"{locale}: missing {wf_ids - roots}")
+
     def find_action(self, doc, name):
         return dict(build.flow_actions(doc["properties"]["definition"]["actions"]))[name]
 
