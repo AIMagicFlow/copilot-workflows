@@ -15,10 +15,10 @@
     {{t:provision.paramVerifyOnly}}
 
 .EXAMPLE
-    ./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearch -ClientId 00000000-0000-0000-0000-000000000000
+    ./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearcher -ClientId 00000000-0000-0000-0000-000000000000
 
 .EXAMPLE
-    ./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearch -ClientId 00000000-0000-0000-0000-000000000000 -VerifyOnly
+    ./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearcher -ClientId 00000000-0000-0000-0000-000000000000 -VerifyOnly
 #>
 #Requires -Version 7.4
 

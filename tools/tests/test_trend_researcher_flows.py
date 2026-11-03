@@ -1,4 +1,4 @@
-"""Tests for the trend-research flows. Run: python3 -m unittest discover -s tools/tests"""
+"""Tests for the trend-researcher flows. Run: python3 -m unittest discover -s tools/tests"""
 import json
 import re
 import unittest
@@ -671,7 +671,7 @@ class BusinessCaseGenerateTests(unittest.TestCase):
 
     def v_manifest(self):
         import build
-        return build.load_yaml(build.ROOT / "verticals" / "trend-research" / "vertical.yaml")
+        return build.load_yaml(build.ROOT / "verticals" / "trend-researcher" / "vertical.yaml")
 
     def test_unknown_citation_blocks_draft(self):
         loop = find_action(self.doc, "Generate_Until_Valid")
@@ -777,7 +777,7 @@ class BusinessCaseGenerateTests(unittest.TestCase):
     def test_labels_never_inside_expressions(self):
         """An i18n label inside a single-quoted expression literal breaks on an apostrophe (l'été, don't)."""
         import build
-        vertical = build.ROOT / "verticals" / "trend-research"
+        vertical = build.ROOT / "verticals" / "trend-researcher"
         source = json.loads((vertical / "solution" / "Workflows" / "TRBusinessCase.json").read_text(encoding="utf-8"))
         texts = list(build.flow_strings(source))
         texts.append((vertical / "prompts" / "business-case.md").read_text(encoding="utf-8"))
@@ -1268,7 +1268,7 @@ if __name__ == "__main__":
 class DeploymentSettingsExampleTests(unittest.TestCase):
     def test_example_lists_new_env_vars_and_approvals_connection(self):
         import pathlib
-        path = pathlib.Path(__file__).resolve().parents[2] / "verticals/trend-research/settings/deployment-settings.example.json"
+        path = pathlib.Path(__file__).resolve().parents[2] / "verticals/trend-researcher/settings/deployment-settings.example.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         env = {e["SchemaName"] for e in data["EnvironmentVariables"]}
         for name in ("tr_SourceUploadsLibrary", "tr_MaxUploadBytes", "tr_BusinessCaseRequestsList",

@@ -4,7 +4,7 @@ A library of Microsoft Copilot Studio / Power Automate automation workflows, pac
 
 | Vertical | Status | Solution | Spanish name |
 |---|---|---|---|
-| [Trend Research](verticals/trend-research/) | 1.1.0.0: RSS collection, classification, weekly digest | `TrendResearchFlow` | Vigilante de Tendencias |
+| [Trend Researcher](verticals/trend-researcher/) | 1.3.0.0: RSS and document collection, classification, weekly digest, business cases | `TrendResearcher` | Vigilante de Tendencias |
 | Lead generation, content creation, social media research | planned | — | — |
 
 ## Repository layout
@@ -34,9 +34,9 @@ Requires Python 3.10+, PyYAML and lxml (`pip install -r requirements.txt`). No W
 
 ```bash
 python3 tools/build.py                          # build every vertical and locale into dist/
-python3 tools/build.py trend-research --locale es
+python3 tools/build.py trend-researcher --locale es
 python3 -m unittest discover -s tools/tests     # tests
-python3 tools/build.py trend-research --release # copy the build into releases/ (bump the version first)
+python3 tools/build.py trend-researcher --release # copy the build into releases/ (bump the version first)
 ```
 
 Each locale produces two files:
@@ -53,4 +53,4 @@ The build fails if a token is unresolved, a flow uses an undeclared environment 
 - [Localization](docs/localization.md): what is translated where.
 - [Adding a vertical](docs/adding-a-vertical.md).
 - [Document Sanitizer add-on](docs/addons/document-sanitizer-design.md) (phase 1 built, hardening and large-file phases not started): customer-hosted Azure Function for document conversion and redaction; [how it ships](docs/addons/adr-001-document-sanitizer-distribution.md).
-- Trend Research: [quickstart (es)](verticals/trend-research/docs/quickstart.es.md), [quickstart (en)](verticals/trend-research/docs/quickstart.en.md), [next workflows plan](verticals/trend-research/docs/plans/2026-11-02-doc-processing-and-business-case-plan.md).
+- Trend Researcher: [quickstart (es)](verticals/trend-researcher/docs/quickstart.es.md), [quickstart (en)](verticals/trend-researcher/docs/quickstart.en.md), [next workflows plan](verticals/trend-researcher/docs/plans/2026-11-02-doc-processing-and-business-case-plan.md).

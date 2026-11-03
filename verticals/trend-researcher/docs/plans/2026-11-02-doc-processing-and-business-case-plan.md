@@ -4,13 +4,13 @@
 
 **Goal:** Add the document-upload ingestion adapter (`TR Process Documents`) and the business-case MVP (schema and classifier/digest changes, plus `TR Business Case`) to the Trend Research vertical as source code. Ship them as releases 1.2.0.0 and 1.3.0.0 in English and Spanish.
 
-**Architecture:** Every change lands in `verticals/trend-research/` source: list YAML, flow JSON with `{{tokens}}`, prompts, i18n. It ships through `tools/build.py`, whose validator is extended to the new lists, libraries and triggers. Flows are tested statically: Python tests assert the structure of the rendered JSON. Behavior in a tenant is covered by an acceptance checklist per release. In 1.2.0.0, uploads are plain-text public documents only, with no redaction. Binary formats, private documents and redaction wait for a Dataverse or Azure Function add-on (see Open decisions).
+**Architecture:** Every change lands in `verticals/trend-researcher/` source: list YAML, flow JSON with `{{tokens}}`, prompts, i18n. It ships through `tools/build.py`, whose validator is extended to the new lists, libraries and triggers. Flows are tested statically: Python tests assert the structure of the rendered JSON. Behavior in a tenant is covered by an acceptance checklist per release. In 1.2.0.0, uploads are plain-text public documents only, with no redaction. Binary formats, private documents and redaction wait for a Dataverse or Azure Function add-on (see Open decisions).
 
 **Tech Stack:** Power Automate / Copilot Studio agent flow JSON (Workflow Definition Language), SharePoint Online connector, Approvals, Teams, Copilot Studio agent node (`shared_agentnode`), Python 3.12 + PyYAML (`unittest`).
 
 **Spec:**
-- `verticals/trend-research/docs/design/tr-process-documents-design.md`: Part A.
-- `verticals/trend-research/docs/design/2026-11-02-tr-business-case-design.md`: Part B.
+- `verticals/trend-researcher/docs/design/tr-process-documents-design.md`: Part A.
+- `verticals/trend-researcher/docs/design/2026-11-02-tr-business-case-design.md`: Part B.
 - `docs/architecture.md`: portability rules every task must follow.
 
 The two parts are independent. Part A can ship without Part B and vice versa; Part 0 is needed by both.
@@ -77,19 +77,19 @@ flowchart TD
 |---|---|---|
 | `tools/build.py` | Choice/MultiChoice fields, `since` upgrade notes, flow lint rules, `{{library:}}` token, library folders | 0.1, 0.2, A1 |
 | `tools/tests/test_build.py` | build-level tests | 0.1, 0.2, A1 |
-| `tools/tests/test_trend_research_flows.py` (new) | static structure tests for TR flows | A2, B2–B6 |
+| `tools/tests/test_trend_researcher_flows.py` (new) | static structure tests for TR flows | A2, B2–B6 |
 | `tools/tests/flowtest.py` (new) | helpers: `find_action(doc, name)`, `run_after(doc, name)`, `params(doc, name)`, `path_to(doc, name)` | A2 |
 | `shared/flow-snippets/{sharepoint,approvals,teams}/*.json`, `README.md` (new) | sanitized connector shapes from real exports, plus the authoring rules learned from them | 0.2 |
-| `verticals/trend-research/solution/Workflows/TR{CollectRSS,ClassifyItems,WeeklyDigest}-*.json` | designer newline and loop-concurrency fixes | 0.3 |
-| `verticals/trend-research/sharepoint/lists/*.yaml` | schema changes, new `07-BusinessCaseRequests.yaml` | A1, B1 |
-| `verticals/trend-research/sharepoint/libraries.yaml` | `SourceUploads` (with the `PublicData` folder) | A1 |
-| `verticals/trend-research/docs/design/adr-001-text-only-uploads.md` (new) | text-only public uploads, no redaction, add-on seams | A3 |
-| `verticals/trend-research/solution/Workflows/TRProcessDocuments-58BCA39F-6F0F-4947-BA05-D2291EA1E08D.json` (new) | Part A flow | A2 |
-| `verticals/trend-research/solution/Workflows/TRBusinessCase-9373450F-FA1E-44C2-ACE2-2D86CA9249C7.json` (new) | Part B flow | B4–B6 |
-| `verticals/trend-research/prompts/classify-signal.md` | v3: product, dimension, alert tags, objectives | B2 |
-| `verticals/trend-research/prompts/business-case.md` (new) | business-case generation prompt | B5 |
-| `verticals/trend-research/i18n/{en,es}.yaml`, `customizations.xml`, `environmentvariabledefinitions/` | names, env vars, connection refs | each flow task |
-| `verticals/trend-research/docs/quickstart.{es,en}.md`, `CHANGELOG.md` | customer docs per release | A3, B7 |
+| `verticals/trend-researcher/solution/Workflows/TR{CollectRSS,ClassifyItems,WeeklyDigest}-*.json` | designer newline and loop-concurrency fixes | 0.3 |
+| `verticals/trend-researcher/sharepoint/lists/*.yaml` | schema changes, new `07-BusinessCaseRequests.yaml` | A1, B1 |
+| `verticals/trend-researcher/sharepoint/libraries.yaml` | `SourceUploads` (with the `PublicData` folder) | A1 |
+| `verticals/trend-researcher/docs/design/adr-001-text-only-uploads.md` (new) | text-only public uploads, no redaction, add-on seams | A3 |
+| `verticals/trend-researcher/solution/Workflows/TRProcessDocuments-58BCA39F-6F0F-4947-BA05-D2291EA1E08D.json` (new) | Part A flow | A2 |
+| `verticals/trend-researcher/solution/Workflows/TRBusinessCase-9373450F-FA1E-44C2-ACE2-2D86CA9249C7.json` (new) | Part B flow | B4–B6 |
+| `verticals/trend-researcher/prompts/classify-signal.md` | v3: product, dimension, alert tags, objectives | B2 |
+| `verticals/trend-researcher/prompts/business-case.md` (new) | business-case generation prompt | B5 |
+| `verticals/trend-researcher/i18n/{en,es}.yaml`, `customizations.xml`, `environmentvariabledefinitions/` | names, env vars, connection refs | each flow task |
+| `verticals/trend-researcher/docs/quickstart.{es,en}.md`, `CHANGELOG.md` | customer docs per release | A3, B7 |
 
 ---
 
@@ -201,7 +201,7 @@ Both problems come from the designer and are in the flows as built in the UI.
   - **If it doesn't,** SharePoint strips the line break on save. Then the 1.1 dedupe filter never matched, and every Collect run has been creating duplicates. The CHANGELOG says that instead, with a cleanup note.
 - [ ] **Step 2:** Remove the two trailing `\n`. Add `"runtimeConfiguration": {"concurrency": {"repetitions": 1}}` to the four loops.
 - [ ] **Step 3:** Run all tests. Expected: PASS, including the Task 0.2 rules.
-- [ ] **Step 4:** Commit: `git commit -m "trend-research: remove designer newlines, run variable loops sequentially"`
+- [ ] **Step 4:** Commit: `git commit -m "trend-researcher: remove designer newlines, run variable loops sequentially"`
 
 ---
 
@@ -241,7 +241,7 @@ Both problems come from the designer and are in the flows as built in the UI.
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement the token and folders in the build. Add the YAML, the env var definitions and the i18n keys.
 - [ ] **Step 4:** Run the tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: schema for document uploads"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: schema for document uploads"`
 
 ### Task A2: Flow TR Process Documents
 
@@ -249,7 +249,7 @@ Both problems come from the designer and are in the flows as built in the UI.
 - Create:
   - `solution/Workflows/TRProcessDocuments-58BCA39F-6F0F-4947-BA05-D2291EA1E08D.json`
   - `tools/tests/flowtest.py`
-  - `tools/tests/test_trend_research_flows.py`
+  - `tools/tests/test_trend_researcher_flows.py`
 - Modify:
   - `solution/customizations.xml`: add `<Workflow WorkflowId="{58bca39f-6f0f-4947-ba05-d2291ea1e08d}" Name="{{t:flows.processDocuments.name}}">`. It reuses the existing SharePoint connection reference; no new connector.
   - `i18n/{en,es}.yaml`: en `TR Process Documents`, es `VT Procesar Documentos`, plus descriptions.
@@ -296,7 +296,7 @@ Variables:
   - `params(doc, name) -> dict`
   - `run_after(doc, name) -> dict`
   - `path_to(doc, name) -> list[str]`: the names of the enclosing actions, with `/else` or `/case:<x>` suffixes for branches
-- [ ] **Step 2: Write the failing tests** in `test_trend_research_flows.py`:
+- [ ] **Step 2: Write the failing tests** in `test_trend_researcher_flows.py`:
   - `test_trigger_uses_env_vars`: dataset is `@parameters('Site URL (tr_SiteURL)')`, table is `@parameters('Source Uploads library (tr_SourceUploadsLibrary)')`, operation is `GetOnUpdatedFileItems`.
   - `test_trigger_single_concurrency`
   - `test_only_public_paths_are_read`: `path_to(Get_Upload_Source)` and `path_to(Get_Upload_Content)` both start with `If_Public_Path`, and its expression checks `'/SourceUploads/PublicData/'`.
@@ -311,15 +311,15 @@ Variables:
   - `test_process_documents_localized`: the es customizations contain `Name="VT Procesar Documentos"`.
 - [ ] **Step 3:** Run `python3 -m unittest discover -s tools/tests`. Expected: the new tests FAIL.
 - [ ] **Step 4:** Write the flow JSON from the snippets and the table.
-- [ ] **Step 5:** Run all tests and `python3 tools/build.py trend-research`. Expected: PASS, with no validator errors.
-- [ ] **Step 6:** Commit: `git commit -m "trend-research: TR Process Documents flow"`
+- [ ] **Step 5:** Run all tests and `python3 tools/build.py trend-researcher`. Expected: PASS, with no validator errors.
+- [ ] **Step 6:** Commit: `git commit -m "trend-researcher: TR Process Documents flow"`
 
 ### Task A3: ADR, docs and release 1.2.0.0
 
 **Files:**
 - Create: `docs/design/adr-001-text-only-uploads.md`
 - Modify: `docs/quickstart.{es,en}.md`, `CHANGELOG.md`
-- Release: `releases/trend-research/1.2.0.0/`
+- Release: `releases/trend-researcher/1.2.0.0/`
 
 - [ ] **Step 1:** Write ADR-001:
   - **Context:** the design asked for extraction "by the actions actually exposed by your tenant" and for redaction of private documents. Boss's test flow showed that flow expressions can only replace exact-case keywords, one per action.
@@ -334,7 +334,7 @@ Variables:
   - Add one Sources row per upload subfolder: `SourceType=Upload`, `SourcePath`, `Enabled=1`.
   - Explain which file types are read, the size limit, and that private documents must not be uploaded.
   - Add an "upgrading from 1.1" section that points to `upgrade-1.2.0.0.<locale>.md`.
-- [ ] **Step 3:** Add a CHANGELOG entry, including the Task 0.3 fixes and the upgrade effect found in its Step 1. Run `python3 tools/build.py trend-research --release`. Expected: `releases/trend-research/1.2.0.0/` holds 4 zips and `SHA256SUMS`.
+- [ ] **Step 3:** Add a CHANGELOG entry, including the Task 0.3 fixes and the upgrade effect found in its Step 1. Run `python3 tools/build.py trend-researcher --release`. Expected: `releases/trend-researcher/1.2.0.0/` holds 4 zips and `SHA256SUMS`.
 - [ ] **Step 4 (manual, dev tenant): acceptance.**
   - The trigger accepts the library **title** from `tr_SourceUploadsLibrary`, in an es environment too. If it doesn't, switch the default to "paste the library ID" and update the quickstart.
   - A `.txt` file containing `á ñ ü`, put in `PublicData/VendorDocuments`, gives Evidence with the accents intact and a Ready SourceItem. This confirms `inferContentType: false` and UTF-8.
@@ -346,7 +346,7 @@ Variables:
     - a file in a hand-made `PrivateData/X` folder that has a matching Sources row.
   - Writing to Evidence doesn't trigger the flow again.
   - The next `TR Classify Items` run classifies the new items.
-- [ ] **Step 5:** Commit: `git commit -m "release: trend-research 1.2.0.0"`
+- [ ] **Step 5:** Commit: `git commit -m "release: trend-researcher 1.2.0.0"`
 
 ---
 
@@ -390,11 +390,11 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement the YAML, the env var and the i18n. Set the version to `1.3.0.0`.
 - [ ] **Step 4:** Run the tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: business-case MVP schema"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: business-case MVP schema"`
 
 ### Task B2: Classifier v3 (product, dimension, tags, objectives)
 
-**Files:** `prompts/classify-signal.md`, `vertical.yaml` (prompt version → 3), `solution/Workflows/TRClassifyItems-*.json`, `tools/tests/test_trend_research_flows.py`
+**Files:** `prompts/classify-signal.md`, `vertical.yaml` (prompt version → 3), `solution/Workflows/TRClassifyItems-*.json`, `tools/tests/test_trend_researcher_flows.py`
 
 **Interfaces:**
 - The prompt's RESEARCH BRIEF section adds `Product: @{items('Loop_2')?['Product']}` and `Dimension: @{items('Loop_2')?['Dimension']}`.
@@ -412,7 +412,7 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement. Add `NeedsReview` to the Signals status values documented in `docs/architecture.md`.
 - [ ] **Step 4:** Run the tests and the build. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: classifier v3 with alert tags and objectives"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: classifier v3 with alert tags and objectives"`
 
 ### Task B3: Weekly digest by product, dimension and objective
 
@@ -432,14 +432,14 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run the tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: digest grouped by objective with product and dimension"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: digest grouped by objective with product and dimension"`
 
 ### Task B4: TR Business Case, part 1: validate and claim (nodes 1–5)
 
 **Files:**
 - Create: `solution/Workflows/TRBusinessCase-9373450F-FA1E-44C2-ACE2-2D86CA9249C7.json`
 - Modify: `customizations.xml` (Workflow `{9373450f-fa1e-44c2-ace2-2d86ca9249c7}`; en `TR Business Case`, es `VT Caso de Negocio`; connection reference `tr_sharedapprovals` for `shared_approvals`)
-- Tests in `test_trend_research_flows.py`
+- Tests in `test_trend_researcher_flows.py`
 
 **Interfaces.** Action names, in order:
 
@@ -474,7 +474,7 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement nodes 1–5 and add a stub `Generate_Case` Compose that B5 replaces.
 - [ ] **Step 4:** Run the tests and the build. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: business case request validation and claim"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: business case request validation and claim"`
 
 ### Task B5: TR Business Case, part 2: generate and draft (nodes 6–9)
 
@@ -514,7 +514,7 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run the tests and the build. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: business case generation and draft"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: business case generation and draft"`
 
 ### Task B6: TR Business Case, part 3: review, publish, notify, failures (nodes 10–13)
 
@@ -550,7 +550,7 @@ Variables:
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run the tests and the build. Expected: PASS.
-- [ ] **Step 5:** Commit: `git commit -m "trend-research: business case review, publication and failure handling"`
+- [ ] **Step 5:** Commit: `git commit -m "trend-researcher: business case review, publication and failure handling"`
 
 ### Task B7: Docs and release 1.3.0.0
 
@@ -563,13 +563,13 @@ Variables:
   - How an analyst submits a request: fill in the item and set `Status` to `Submitted`. The flow starts at its next poll. To retry a `Failed` request, set `Submitted` again.
   - Upgrade notes from 1.2.
 - [ ] **Step 2:** Add a CHANGELOG entry: prompt v3, `NeedsReview`, and that existing digests need `PublicationType`/`Product` backfilled before they can be selected.
-- [ ] **Step 3:** Run `python3 tools/build.py trend-research --release`.
+- [ ] **Step 3:** Run `python3 tools/build.py trend-researcher --release`.
 - [ ] **Step 4 (manual, dev tenant): acceptance.** Run every check in the spec's "Business-case acceptance checks" and "Acceptance checks" sections, including:
   - two concurrent starts;
   - a retry after partial file creation;
   - a source-injected instruction inside a digest;
   - an approved file edited after approval.
-- [ ] **Step 5:** Commit: `git commit -m "release: trend-research 1.3.0.0"`
+- [ ] **Step 5:** Commit: `git commit -m "release: trend-researcher 1.3.0.0"`
 
 ---
 

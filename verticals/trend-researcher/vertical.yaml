@@ -1,7 +1,7 @@
-# Trend Research vertical: one Power Platform solution + one SharePoint site.
-id: trend-research
+# Trend Researcher vertical: one Power Platform solution + one SharePoint site.
+id: trend-researcher
 solution:
-  uniqueName: TrendResearchFlow   # never change: Dataverse matches upgrades on this name
+  uniqueName: TrendResearcher     # never change: Dataverse matches upgrades on this name (was TrendResearchFlow before 1.3.0.0 shipped)
   version: 1.3.0.0                # bump before every release (major.minor.build.revision)
 locales:
   en: {lcid: 1033}

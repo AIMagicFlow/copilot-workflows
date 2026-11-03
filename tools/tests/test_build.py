@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import build  # noqa: E402
 
 ROOT = build.ROOT
-TR = "trend-research"
+TR = "trend-researcher"
 CLASSIFY = "Workflows/TRClassifyItems-F73F937F-667A-8EDC-33BF-30CDDB0276B6.json"
 DIGEST = "Workflows/TRWeeklyDigest-D630FC9C-EA1F-8FBE-B44A-2DFEC38D631C.json"
 COLLECT = "Workflows/TRCollectRSS-6FD33E4C-10A9-A672-DC14-C2B643CAF8AD.json"

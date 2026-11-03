@@ -15,7 +15,7 @@ provision:
     so the flows work in any tenant. Safe to run again, for example after an upgrade, because existing
     lists, columns and rows are kept. With -VerifyOnly it only checks an existing site, for example one
     whose lists were created from the CSV files.
-  paramSiteUrl: Full URL of the SharePoint site, for example https://contoso.sharepoint.com/sites/TrendResearch
+  paramSiteUrl: Full URL of the SharePoint site, for example https://contoso.sharepoint.com/sites/TrendResearcher
   paramClientId: Application (client) ID of the Entra ID app registered for PnP PowerShell.
   paramVerifyOnly: Only check the site, change nothing.
   missingModule: PnP.PowerShell is not installed. Run - Install-Module PnP.PowerShell -Scope CurrentUser

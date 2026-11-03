@@ -4,7 +4,7 @@ solution:
     Collects approved RSS sources, classifies new items against research briefs
     with a bounded AI prompt, and publishes a weekly digest to SharePoint.
 publisher:
-  name: Trend Research
+  name: Trend Researcher
 
 flows:
   collectRss:
@@ -26,7 +26,7 @@ flows:
 connections:
   sharepoint:
     name: Trend Researcher - SharePoint
-    description: Account with read/write access to the Trend Research SharePoint site.
+    description: Account with read/write access to the Trend Researcher SharePoint site.
   rss:
     name: Trend Researcher - RSS
     description: RSS connector used to read approved feeds.
@@ -43,7 +43,7 @@ connections:
 env:
   tr_SiteURL:
     name: Site URL
-    description: Full URL of the Trend Research SharePoint site, e.g. https://contoso.sharepoint.com/sites/TrendResearch
+    description: Full URL of the Trend Researcher SharePoint site, e.g. https://contoso.sharepoint.com/sites/TrendResearcher
   tr_ResearchBriefsList:
     name: Research Briefs list
     description: Title or ID (GUID) of the research briefs list.
@@ -91,7 +91,7 @@ env:
     description: Reserved publication switch. Not used by the current flows.
 
 digest:
-  title: Trend Research Weekly Digest
+  title: Trend Researcher Weekly Digest
   briefHeading: Research brief
   reportingWindow: Reporting window
   through: through
@@ -107,7 +107,7 @@ digest:
   openSource: Open original source
   footer: >-
     Generated automatically by Trend Researcher from classified signals.
-    Review the Trend Research SharePoint workspace to inspect signals,
+    Review the Trend Researcher SharePoint workspace to inspect signals,
     sources, evidence, and previous reports.
   publicationTitle: Weekly Digest
   teamsMessage: Trend Researcher digest ready

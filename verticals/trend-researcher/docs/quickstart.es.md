@@ -12,9 +12,9 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 
 ## Qué necesita
 
-- Dos archivos de la versión publicada (carpeta `releases/trend-research/<versión>/`):
-  - `TrendResearchFlow_<versión>_es.zip`: la solución de Power Platform. **No lo descomprima.**
-  - `TrendResearchFlow_<versión>_es_sharepoint.zip`: el kit de SharePoint. **Descomprímalo.**
+- Dos archivos de la versión publicada (carpeta `releases/trend-researcher/<versión>/`):
+  - `TrendResearcher_<versión>_es.zip`: la solución de Power Platform. **No lo descomprima.**
+  - `TrendResearcher_<versión>_es_sharepoint.zip`: el kit de SharePoint. **Descomprímalo.**
 - Un entorno de Power Platform con Dataverse y licencia de Copilot Studio (flujos de agente).
 - Si el idioma base del entorno no es español, el paquete de idioma español habilitado en el entorno.
 - Permiso para crear sitios de SharePoint, o un sitio ya creado del que sea propietario.
@@ -118,7 +118,7 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
 ## 3. Importe la solución
 
 1. Abra [make.powerapps.com](https://make.powerapps.com) y elija el entorno correcto (arriba a la derecha).
-2. Vaya a **Soluciones → Importar solución → Examinar**, elija `TrendResearchFlow_<versión>_es.zip` y seleccione **Siguiente**.
+2. Vaya a **Soluciones → Importar solución → Examinar**, elija `TrendResearcher_<versión>_es.zip` y seleccione **Siguiente**.
 3. **Conexiones.** Para cada referencia de conexión, elija una conexión existente o cree una nueva con la cuenta de servicio acordada:
 
    | Referencia | Conector | Cuenta |

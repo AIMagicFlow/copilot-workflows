@@ -1,4 +1,4 @@
-# Trend Research (Vigilante de Tendencias)
+# Trend Researcher (Vigilante de Tendencias)
 
 Monitors approved sources, classifies new items against research briefs with a bounded AI prompt, and publishes a weekly digest. Everything runs in the customer's tenant: Power Platform flows plus one SharePoint site.
 
@@ -31,4 +31,4 @@ flowchart LR
 | `docs/design/` | design history and implementation guides |
 | `docs/plans/` | implementation plans for the next workflows |
 
-Build: `python3 tools/build.py trend-research` from the repo root. See [CHANGELOG](CHANGELOG.md).
+Build: `python3 tools/build.py trend-researcher` from the repo root. See [CHANGELOG](CHANGELOG.md).

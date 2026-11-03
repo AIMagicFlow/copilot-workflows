@@ -15,7 +15,7 @@ This follows the same pattern as Microsoft's multi-solution repos (CoE Starter K
 flowchart LR
     subgraph repo["Git repository"]
         shared["shared/<br/>i18n, prompt fragments,<br/>SharePoint fragments"]
-        subgraph vertical["verticals/trend-research/"]
+        subgraph vertical["verticals/trend-researcher/"]
             manifest["vertical.yaml"]
             sol["solution/<br/>solution.xml, customizations.xml,<br/>Workflows/*.json, env var defs"]
             prompts["prompts/*.md"]
@@ -53,7 +53,7 @@ sequenceDiagram
     participant R as Renderer (per locale)
     participant V as Validator
     participant Z as dist/ and releases/
-    Dev->>B: build.py trend-research --release
+    Dev->>B: build.py trend-researcher --release
     B->>B: load vertical.yaml, list schemas, shared + vertical i18n
     loop each locale (en, es)
         B->>R: render solution/ files

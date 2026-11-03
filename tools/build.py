@@ -17,8 +17,8 @@ Source files contain {{kind:arg}} tokens that are resolved per locale:
 
 Usage:
   python3 tools/build.py                       # all verticals, all locales
-  python3 tools/build.py trend-research --locale es
-  python3 tools/build.py trend-research --release   # also copy into releases/ (committed)
+  python3 tools/build.py trend-researcher --locale es
+  python3 tools/build.py trend-researcher --release   # also copy into releases/ (committed)
 """
 import argparse
 import hashlib

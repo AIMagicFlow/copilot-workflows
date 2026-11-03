@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import build  # noqa: E402
 
-TR = "trend-research"
+TR = "trend-researcher"
 
 
 @lru_cache(maxsize=None)

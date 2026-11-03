@@ -1,6 +1,6 @@
 # Document Sanitizer add-on: design
 
-An Azure Function that turns an uploaded document into plain text or Markdown and redacts sensitive data before the text reaches a shared SharePoint library. Flows in any vertical call it. The first caller is Trend Research's `TR Process Documents`, which in 1.2.0.0 reads public plain-text files only.
+An Azure Function that turns an uploaded document into plain text or Markdown and redacts sensitive data before the text reaches a shared SharePoint library. Flows in any vertical call it. The first caller is Trend Researcher's `TR Process Documents`, which in 1.2.0.0 reads public plain-text files only.
 
 - **Origin:** `brainstorm/azure-function-document-conversion-pii-redaction-design.md`, adapted to this repo's portability, secrets and packaging rules.
 - **Status:** design only. An implementation plan comes when a customer needs private uploads or binary formats.
@@ -145,7 +145,7 @@ sequenceDiagram
 }
 ```
 
-The response has no output file name. Each caller names its own files: Trend Research writes `Evidence/upload-<ID>.txt` so that original names never collide or leak.
+The response has no output file name. Each caller names its own files: Trend Researcher writes `Evidence/upload-<ID>.txt` so that original names never collide or leak.
 
 ### Errors
 
@@ -239,7 +239,7 @@ addons/document-sanitizer/
     test_type_detection.py  test_extractors.py  test_redaction.py  test_terms.py  fixtures/
 ```
 
-## 9. Integration with Trend Research
+## 9. Integration with Trend Researcher
 
 `TR Process Documents` 1.2.0.0 already has the two places where the sanitizer plugs in:
 
@@ -257,7 +257,7 @@ New SourceItems columns, needed only when the add-on is enabled: `WasRedacted` (
    - caller terms, plus email and phone rules;
    - function-key authentication;
    - Bicep template and custom connector;
-   - Trend Research integration.
+   - Trend Researcher integration.
 2. **Hardening:**
    - Entra ID authentication;
    - private networking;

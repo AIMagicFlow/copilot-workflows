@@ -12,16 +12,16 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 
 ## What you need
 
-- The two release files from `releases/trend-research/<version>/`:
-  - `TrendResearchFlow_<version>_en.zip`: the Power Platform solution. **Do not unzip it.**
-  - `TrendResearchFlow_<version>_en_sharepoint.zip`: the SharePoint kit. **Unzip it.**
+- The two release files from `releases/trend-researcher/<version>/`:
+  - `TrendResearcher_<version>_en.zip`: the Power Platform solution. **Do not unzip it.**
+  - `TrendResearcher_<version>_en_sharepoint.zip`: the SharePoint kit. **Unzip it.**
 - A Power Platform environment with Dataverse and a Copilot Studio license (agent flows).
 - Permission to create SharePoint sites, or ownership of an existing site.
 
 ## 1. Create the SharePoint site
 
-1. In SharePoint select **Create site → Team site**. Name it, for example, `Trend Research`, and set privacy to **Private**.
-2. Copy the site URL, for example `https://contoso.sharepoint.com/sites/TrendResearch`. You need it in steps 2 and 3.
+1. In SharePoint select **Create site → Team site**. Name it, for example, `Trend Researcher`, and set privacy to **Private**.
+2. Copy the site URL, for example `https://contoso.sharepoint.com/sites/TrendResearcher`. You need it in steps 2 and 3.
 
 ## 2. Create the lists and libraries (choose one option)
 
@@ -98,7 +98,7 @@ The kit's `pnp/` folder contains the template (`sharepoint-template.pnp.xml`) an
 
 ```powershell
 cd <kit folder>/pnp
-./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearch -ClientId <application id>
+./provision.ps1 -SiteUrl https://contoso.sharepoint.com/sites/TrendResearcher -ClientId <application id>
 ```
 
 Sign in when the browser opens. It should end with **All lists, libraries and columns match the expected schema.** If any line is red, fix it and run the script again.
@@ -108,7 +108,7 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
 ## 3. Import the solution
 
 1. Open [make.powerapps.com](https://make.powerapps.com) and pick the right environment (top right).
-2. Go to **Solutions → Import solution → Browse**, choose `TrendResearchFlow_<version>_en.zip` and select **Next**.
+2. Go to **Solutions → Import solution → Browse**, choose `TrendResearcher_<version>_en.zip` and select **Next**.
 3. **Connections.** For each connection reference, pick an existing connection or create one with the agreed service account:
 
    | Reference | Connector | Account |

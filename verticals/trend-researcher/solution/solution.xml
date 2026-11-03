@@ -1,6 +1,6 @@
 <ImportExportXml version="9.2.26101.177" SolutionPackageVersion="9.2" languagecode="{{lcid}}" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26101.177" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26101.00177">
   <SolutionManifest>
-    <UniqueName>TrendResearchFlow</UniqueName>
+    <UniqueName>TrendResearcher</UniqueName>
     <LocalizedNames>
       <LocalizedName description="{{t:solution.name}}" languagecode="{{lcid}}" />
     </LocalizedNames>

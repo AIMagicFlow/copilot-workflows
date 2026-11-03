@@ -4,7 +4,7 @@
 
 They are worth it, and they need no designer UI. An environment variable is a solution component with a **definition** (schema name, type, default) and a per-environment **current value**. When you import the solution, the import wizard asks for every variable that has no value. Flows read the variables as workflow parameters.
 
-The Trend Research solution exported from the UI already defined five variables (`tr_SiteURL`, `tr_DailyClassificationLimit`, …), but **no flow used them**: every action hardcoded the site URL and list GUIDs. Version 1.1.0.0 wires them in.
+The Trend Researcher solution exported from the UI already defined five variables (`tr_SiteURL`, `tr_DailyClassificationLimit`, …), but **no flow used them**: every action hardcoded the site URL and list GUIDs. Version 1.1.0.0 wires them in.
 
 ## Why you couldn't find them in the Copilot Studio designer
 
@@ -38,7 +38,7 @@ Two pieces in the flow JSON (`verticals/*/solution/Workflows/*.json`):
 - Types: `String`, `Int` (Number variable), `Float`, `Bool` (Boolean variable). This matches Microsoft's CoE Starter Kit.
 - Every variable needs a definition in `solution/environmentvariabledefinitions/<schema>/environmentvariabledefinition.xml`. The build fails if a flow references a parameter without one.
 
-## Variables in Trend Research 1.1.0.0
+## Variables in Trend Researcher 1.1.0.0
 
 | Schema name | Type | Default | Used by |
 |---|---|---|---|
