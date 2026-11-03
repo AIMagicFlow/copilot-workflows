@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the Document Sanitizer release folder (ADR-001) with no third-party packages.
 
-Writes releases/addons/document-sanitizer/<version>/ holding:
+Writes dist/release/addons/document-sanitizer/<version>/ holding:
   document-sanitizer-<version>.zip  function code only; the Function App installs requirements.txt
   azuredeploy.json                  infra/main.bicep compiled with the Azure CLI's Bicep
   deploy.ps1, quickstart.en.md, quickstart.es.md
@@ -11,7 +11,7 @@ The output is reproducible: fixed zip timestamps, sorted entries, sorted checksu
 An existing version folder is never overwritten (bump VERSION instead).
 
 Usage:
-  python3 package.py                        # into <repo>/releases
+  python3 package.py                        # into <repo>/dist/release (upload with gh release create)
   python3 package.py --out-root <dir> --bicep "az bicep"
 """
 import argparse
@@ -102,7 +102,7 @@ def build_release(addon: Path, out_root: Path, bicep_command: str = "az bicep") 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Build the Document Sanitizer release folder.")
-    parser.add_argument("--out-root", type=Path, default=ADDON.parents[1] / "releases")
+    parser.add_argument("--out-root", type=Path, default=ADDON.parents[1] / "dist" / "release")
     parser.add_argument("--bicep", default="az bicep", help="command that runs 'build' for Bicep")
     args = parser.parse_args(argv)
     try:

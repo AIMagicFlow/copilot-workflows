@@ -35,7 +35,7 @@ Notes:
 
 **Option A.** The Document Sanitizer is a separate, customer-hosted add-on, released from this repo next to the verticals.
 
-The add-on package is `releases/addons/document-sanitizer/<version>/`, holding:
+The add-on package is built to `dist/release/addons/document-sanitizer/<version>/` (git-ignored) and published as a GitHub Release tagged `document-sanitizer-<version>`. The release holds:
 - `document-sanitizer-<version>.zip`: the function code, ready for zip deploy or run-from-package;
 - `azuredeploy.json`: the Bicep template compiled to ARM, for a "Deploy to Azure" button or `az deployment group create`;
 - `deploy.ps1`: deploys the template and the code, then prints the host name to paste into the environment variable;

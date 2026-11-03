@@ -5,12 +5,10 @@ on:
     branches: [main]
     paths:
       - "addons/document-sanitizer/**"
-      - "releases/addons/document-sanitizer/**"
       - ".github/workflows/document-sanitizer.yml"
   pull_request:
     paths:
       - "addons/document-sanitizer/**"
-      - "releases/addons/document-sanitizer/**"
       - ".github/workflows/document-sanitizer.yml"
 
 defaults:
@@ -47,17 +45,3 @@ jobs:
           python3 addons/document-sanitizer/package.py --out-root "$RUNNER_TEMP/a"
           python3 addons/document-sanitizer/package.py --out-root "$RUNNER_TEMP/b"
           diff -r "$RUNNER_TEMP/a" "$RUNNER_TEMP/b"
-
-      - name: Committed release matches a fresh build
-        working-directory: .
-        run: |
-          version=$(tr -d '[:space:]' < addons/document-sanitizer/VERSION)
-          committed="releases/addons/document-sanitizer/$version"
-          if [ ! -d "$committed" ]; then
-            echo "::notice::no committed release for $version yet"
-            exit 0
-          fi
-          fresh="$RUNNER_TEMP/a/addons/document-sanitizer/$version"
-          for name in $(ls "$committed"); do
-            cmp "$committed/$name" "$fresh/$name" || { echo "::error::$name differs from a fresh build"; exit 1; }
-          done

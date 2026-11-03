@@ -11,7 +11,7 @@ A customer-hosted Azure Function that extracts text from uploaded documents and 
 ```bash
 pip install -r requirements.txt      # plus the test dependencies listed in the CI workflow
 python3 -m unittest discover -s tests -v
-python3 package.py                   # writes releases/addons/document-sanitizer/<version>/ (needs Azure CLI with Bicep)
+python3 package.py                   # writes dist/release/addons/document-sanitizer/<version>/ (needs Azure CLI with Bicep)
 ```
 
 `local.settings.json` is git-ignored. Copy `local.settings.example.json` and fill in the endpoint for local runs.
