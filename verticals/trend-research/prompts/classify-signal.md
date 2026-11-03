@@ -203,7 +203,7 @@ Exclusions: @{items('Loop_2')?['field_3']}
 Languages: @{items('Loop_2')?['field_4']}
 Geographies: @{items('Loop_2')?['field_5']}
 Product: @{items('Loop_2')?['Product']}
-Dimension: @{items('Loop_2')?['Dimension']}
+Dimension: @{items('Loop_2')?['Dimension']?['Value']}
 Brief version: @{items('Loop_2')?['field_6']}
 
 SOURCE ITEM:

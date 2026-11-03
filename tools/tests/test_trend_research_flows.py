@@ -57,6 +57,12 @@ class ProcessDocumentsTests(unittest.TestCase):
         cls.definition = cls.doc["properties"]["definition"]
         cls.trigger = next(iter(cls.definition["triggers"].values()))
 
+    def test_trigger_condition_only_files(self):
+        self.assertEqual(
+            [{"expression": "@equals(triggerOutputs()?['body/{IsFolder}'], false)"}],
+            self.trigger["conditions"],
+        )
+
     def test_trigger_uses_env_vars(self):
         self.assertEqual("When_a_file_is_created_or_modified", next(iter(self.definition["triggers"])))
         p = self.trigger["inputs"]["parameters"]
@@ -161,7 +167,8 @@ class ClassifierV3Tests(unittest.TestCase):
     def test_prompt_v3_has_product_dimension(self):
         msg = params(self.doc, "Classify_TR_Signal")["body/message"]
         self.assertIn("Product: @{items('Loop_2')?['Product']}", msg)
-        self.assertIn("Dimension: @{items('Loop_2')?['Dimension']}", msg)
+        self.assertIn("Dimension: @{items('Loop_2')?['Dimension']?['Value']}", msg)
+        self.assertNotIn("Dimension: @{items('Loop_2')?['Dimension']}", msg)
         schema = self._schema()
         for name in ("AlertTags", "Objectives"):
             self.assertEqual({"type": "array", "items": {"type": "string"}}, schema["properties"][name])
@@ -1256,3 +1263,19 @@ class BusinessCaseReviewPublishTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DeploymentSettingsExampleTests(unittest.TestCase):
+    def test_example_lists_new_env_vars_and_approvals_connection(self):
+        import pathlib
+        path = pathlib.Path(__file__).resolve().parents[2] / "verticals/trend-research/settings/deployment-settings.example.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        env = {e["SchemaName"] for e in data["EnvironmentVariables"]}
+        for name in ("tr_SourceUploadsLibrary", "tr_MaxUploadBytes", "tr_BusinessCaseRequestsList",
+                     "tr_ApprovedReviewers", "tr_ApprovedAudiences", "tr_BusinessCaseMaxInputChars",
+                     "tr_NotificationAudience"):
+            self.assertIn(name, env)
+        conns = {c["LogicalName"]: c for c in data["ConnectionReferences"]}
+        self.assertIn("tr_sharedapprovals", conns)
+        self.assertEqual("/providers/Microsoft.PowerApps/apis/shared_approvals", conns["tr_sharedapprovals"]["ConnectorId"])
+        self.assertNotIn("sharepoint.com", json.dumps(data).replace("<tenant>.sharepoint.com", ""))

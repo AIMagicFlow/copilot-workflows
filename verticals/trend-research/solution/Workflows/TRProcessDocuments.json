@@ -84,6 +84,11 @@
               "runs": 1
             }
           },
+          "conditions": [
+            {
+              "expression": "@equals(triggerOutputs()?['body/{IsFolder}'], false)"
+            }
+          ],
           "metadata": {}
         }
       },

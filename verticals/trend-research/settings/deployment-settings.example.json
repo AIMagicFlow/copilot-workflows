@@ -6,12 +6,20 @@
     { "SchemaName": "tr_SourceItemsList", "Value": "SourceItems" },
     { "SchemaName": "tr_SignalsList", "Value": "Signals" },
     { "SchemaName": "tr_PublicationsList", "Value": "Publications" },
-    { "SchemaName": "tr_DailyClassificationLimit", "Value": "50" }
+    { "SchemaName": "tr_DailyClassificationLimit", "Value": "50" },
+    { "SchemaName": "tr_SourceUploadsLibrary", "Value": "SourceUploads" },
+    { "SchemaName": "tr_MaxUploadBytes", "Value": "1000000" },
+    { "SchemaName": "tr_BusinessCaseRequestsList", "Value": "BusinessCaseRequests" },
+    { "SchemaName": "tr_ApprovedReviewers", "Value": "<reviewer-email-1>;<reviewer-email-2>" },
+    { "SchemaName": "tr_ApprovedAudiences", "Value": "<audience-1>;<audience-2>" },
+    { "SchemaName": "tr_BusinessCaseMaxInputChars", "Value": "60000" },
+    { "SchemaName": "tr_NotificationAudience", "Value": "<team-id>|<channel-id>" }
   ],
   "ConnectionReferences": [
     { "LogicalName": "new_sharedsharepointonline_63e80a5a", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline" },
     { "LogicalName": "new_sharedrss_778f004c", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_rss" },
     { "LogicalName": "new_sharedteams_9326dab3", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_teams" },
-    { "LogicalName": "new_sharedagentnode_673fe64a", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_agentnode" }
+    { "LogicalName": "new_sharedagentnode_673fe64a", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_agentnode" },
+    { "LogicalName": "tr_sharedapprovals", "ConnectionId": "<connection-id>", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_approvals" }
   ]
 }
