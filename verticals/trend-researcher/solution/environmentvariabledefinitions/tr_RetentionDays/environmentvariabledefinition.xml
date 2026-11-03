@@ -1,0 +1,14 @@
+<environmentvariabledefinition schemaname="tr_RetentionDays">
+  <defaultvalue>90</defaultvalue>
+  <description default="{{t:env.tr_RetentionDays.description}}">
+    <label description="{{t:env.tr_RetentionDays.description}}" languagecode="{{lcid}}" />
+  </description>
+  <displayname default="{{t:env.tr_RetentionDays.name}}">
+    <label description="{{t:env.tr_RetentionDays.name}}" languagecode="{{lcid}}" />
+  </displayname>
+  <introducedversion>1.4.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000001</type>
+</environmentvariabledefinition>

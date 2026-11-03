@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 
 from flowtest import built_text, find_action, load_built, params, path_to
 from build import flow_actions  # noqa: E402  (flowtest puts tools/ on sys.path)
+import build  # noqa: E402
 
 PROCESS = "Workflows/TRProcessDocuments-58BCA39F-6F0F-4947-BA05-D2291EA1E08D.json"
 PUBLIC = "/SourceUploads/PublicData/"
@@ -1265,6 +1266,31 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class CleanupSchemaTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.v = build.Vertical(build.ROOT, "trend-researcher")
+
+    def test_signals_cleanup_columns_indexed(self):
+        signals = self.v.list_by_key("Signals")
+        by_name = {f["name"]: f for f in signals["fields"]}
+        self.assertIs(True, by_name["field_1"].get("indexed"))
+        self.assertIs(True, by_name["field_11"].get("indexed"))
+        root = ET.fromstring(build.render_pnp_template(self.v, "en"))
+        indexed = {el.get("Name") for el in root.iter() if el.tag.split("}")[-1] == "Field"
+                   and el.get("Indexed") == "TRUE"}
+        self.assertIn("field_1", indexed)
+        self.assertIn("field_11", indexed)
+
+    def test_retention_days_env_var(self):
+        files = build.render_solution(self.v, "en")
+        key = "environmentvariabledefinitions/tr_RetentionDays/environmentvariabledefinition.xml"
+        self.assertIn(key, files)
+        el = ET.fromstring(files[key])
+        self.assertEqual("90", el.findtext("defaultvalue"))
+        self.assertEqual("100000001", el.findtext("type"))
+
+
 class DeploymentSettingsExampleTests(unittest.TestCase):
     def test_example_lists_new_env_vars_and_approvals_connection(self):
         import pathlib
@@ -1273,7 +1299,7 @@ class DeploymentSettingsExampleTests(unittest.TestCase):
         env = {e["SchemaName"] for e in data["EnvironmentVariables"]}
         for name in ("tr_SourceUploadsLibrary", "tr_MaxUploadBytes", "tr_BusinessCaseRequestsList",
                      "tr_ApprovedReviewers", "tr_ApprovedAudiences", "tr_BusinessCaseMaxInputChars",
-                     "tr_NotificationAudience"):
+                     "tr_NotificationAudience", "tr_RetentionDays"):
             self.assertIn(name, env)
         conns = {c["LogicalName"]: c for c in data["ConnectionReferences"]}
         self.assertIn("tr_sharedapprovals", conns)

@@ -18,6 +18,7 @@ fields:
 - name: field_1
   id: 01a64b48-f6af-4f4c-8d16-7d59952f4158
   type: Number
+  indexed: true
   display:
     en: SourceItemId
     es: ID del elemento fuente
@@ -80,6 +81,7 @@ fields:
 - name: field_11
   id: 1d407297-1c67-489f-85f8-611243774d7b
   type: Text
+  indexed: true
   display:
     en: Status
     es: Estado

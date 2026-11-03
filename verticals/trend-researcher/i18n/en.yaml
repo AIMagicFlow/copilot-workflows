@@ -80,6 +80,9 @@ env:
   tr_SourceUploadsLibrary:
     name: Source Uploads library
     description: Title or ID (GUID) of the document library that receives uploaded sources. If the trigger rejects the title, enter the library GUID.
+  tr_RetentionDays:
+    name: Signal retention (days)
+    description: Rejected and Monitor signals older than this are deleted on the 1st of each month, with their evidence file once no other signal uses it. 0 turns the cleanup off.
   tr_MaxUploadBytes:
     name: Maximum upload size (bytes)
     description: Uploaded files larger than this are recorded as metadata only and their content is not read.

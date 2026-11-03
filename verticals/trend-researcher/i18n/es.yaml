@@ -81,6 +81,9 @@ env:
   tr_SourceUploadsLibrary:
     name: Biblioteca de cargas de fuentes
     description: Título o ID (GUID) de la biblioteca de documentos que recibe las fuentes cargadas. Si el desencadenador rechaza el título, escriba el GUID de la biblioteca.
+  tr_RetentionDays:
+    name: Retención de señales (días)
+    description: Las señales Rejected y Monitor más antiguas que este número de días se eliminan el día 1 de cada mes, junto con su archivo de evidencia cuando ninguna otra señal lo usa. 0 desactiva la limpieza.
   tr_MaxUploadBytes:
     name: Tamaño máximo de carga (bytes)
     description: Los archivos cargados que superen este tamaño se registran solo con metadatos y no se lee su contenido.
