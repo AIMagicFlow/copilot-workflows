@@ -21,4 +21,4 @@ Example: lead generation (`verticals/lead-generation`).
 5. **Describe the lists.** For each list, write `sharepoint/lists/NN-<List>.yaml`, taking internal names and field IDs from a SharePoint *Export → CSV with schema*. If two verticals share a list shape, move it to `shared/sharepoint/` instead of copying it.
 6. **Build and test**: `python3 tools/build.py lead-generation` and `python3 -m unittest discover -s tools/tests`. Add a test module for the vertical's specifics.
 7. **Write the quickstarts** and add the vertical to the root README table.
-8. **Release**: set the version, run `python3 tools/build.py lead-generation --release`, and commit `releases/lead-generation/<version>/`.
+8. **Release**: set the version, run `python3 tools/build.py lead-generation --release`, and commit `releases/lead-generation/<version>/`. In the same commit, update the vertical's row in the root README (version and summary), so the table never shows an older release than the one in `releases/`.
