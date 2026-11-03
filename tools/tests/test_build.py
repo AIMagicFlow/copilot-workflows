@@ -369,8 +369,10 @@ class SharePointKitTests(unittest.TestCase):
             self.assertIn(expected, notes)
 
     def test_upgrade_notes_1_3(self):
-        notes = self.kit["es"][f"upgrade-{self.v.version}.es.md"].decode("utf-8")
-        self.assertEqual("1.3.0.0", self.v.version)
+        v = build.Vertical(ROOT, TR)
+        v.version = "1.3.0.0"  # pinned: this test is about the 1.3 upgrade notes, not the live version
+        notes = build.render_sharepoint_kit(v, "es")["upgrade-1.3.0.0.es.md"].decode("utf-8")
+        self.assertEqual("1.3.0.0", v.version)
         for name in ("Product", "Dimension", "BriefType", "AlertTags", "Objectives", "BriefId", "PublicationType",
                      "BusinessCaseRequestId", "InputPublicationIds", "ReviewStatus", "Version"):
             self.assertIn(f"`{name}`", notes)

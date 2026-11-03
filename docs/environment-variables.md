@@ -50,6 +50,7 @@ Two pieces in the flow JSON (`verticals/*/solution/Workflows/*.json`):
 | `tr_PublicationsList` | Text | `Publications` / `Publicaciones` | Digest |
 | `tr_DailyClassificationLimit` | Number | 50 | Classify: `$top` of ready items |
 | `tr_NotificationAudience` | Text | empty | Business Case: Teams channel (`teamId\|channelId`) that receives approved-case links; empty posts to the flow owner |
+| `tr_RetentionDays` | Number | 90 | Clean Up Signals: Rejected and Monitor signals older than this many days are deleted; `0` turns the cleanup off |
 | `tr_DailyResearchLimit`, `tr_PublishingEnabled` | — | — | reserved, unused |
 
 The SharePoint connector's list parameter accepts either the list **title** or its **GUID**, but the Business Case claim calls the list by its title (`GetByTitle`), so the title is the preferred value for the list variables (`tr_BusinessCaseRequestsList` requires it). Defaulting to the title also lets a standard install work without anyone looking up GUIDs. If a customer renames a list, they put the new title in the variable.

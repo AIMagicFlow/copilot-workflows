@@ -1,6 +1,6 @@
 # Vigilante de Tendencias: guía de inicio rápido
 
-Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en unos 45 minutos. Al terminar tendrá cinco flujos automáticos:
+Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en unos 45 minutos. Al terminar tendrá seis flujos automáticos:
 
 | Flujo | Cuándo se ejecuta (UTC) | Qué hace |
 |---|---|---|
@@ -9,6 +9,7 @@ Esta guía instala el Vigilante de Tendencias en su tenant de Microsoft 365 en u
 | **VT Resumen Semanal** | Lunes, 08:00 | Publica un resumen HTML por brief, agrupado por objetivo, y le avisa por Teams. |
 | **VT Procesar Documentos** | Cada 5 minutos | Lee como evidencia los archivos de texto cargados en `SourceUploads/PublicData` (paso 5). |
 | **VT Caso de Negocio** | Cada 5 minutos | Genera un borrador de caso de negocio a partir de resúmenes elegidos, lo envía a aprobación y luego lo publica (paso 6). |
+| **VT Limpiar Señales** | Mensual (día 1), 03:00 | Elimina las señales `Rejected` y `Monitor` antiguas y sus archivos de evidencia (paso 5). |
 
 ## Qué necesita
 
@@ -152,7 +153,7 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
 ## 4. Active los flujos
 
 1. En **Soluciones**, abra **Vigilante de Tendencias → Flujos de nube**.
-2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos**, **VT Resumen Semanal**, **VT Procesar Documentos** y **VT Caso de Negocio** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
+2. Compruebe que **VT Recolectar RSS**, **VT Clasificar Elementos**, **VT Resumen Semanal**, **VT Procesar Documentos**, **VT Caso de Negocio** y **VT Limpiar Señales** están **Activados**. Si alguno aparece desactivado, selecciónelo y elija **Activar**.
 
 Los mismos flujos aparecen en Copilot Studio en **Flujos**.
 
@@ -186,6 +187,7 @@ Los mismos flujos aparecen en Copilot Studio en **Flujos**.
   3. Repita con las otras dos etiquetas. Una señal con varias etiquetas aparece en cada vista.
 
   Una etiqueta sirve para revisar, no es una notificación: al etiquetar una señal no se envía nada. Si el modelo devuelve una etiqueta fuera de los tres códigos permitidos, la señal se guarda sin la etiqueta inválida, su *Estado* queda en `NeedsReview` y las etiquetas inválidas se escriben en *Notas de evidencia*. Revise esas señales a mano.
+- **Limpieza por retención.** El día 1 de cada mes, **VT Limpiar Señales** elimina las señales `Rejected` y `Monitor` más antiguas que *tr_RetentionDays* (por defecto 90; `0` desactiva la limpieza). Las señales `Digest` y `NeedsReview` se conservan a cualquier antigüedad. Cuando una señal eliminada era la última de su elemento de fuente, el flujo también elimina el archivo de evidencia de ese elemento y marca el ElementoFuente con *ContentStatus* `Purged` y *EvidenceUrl* vacío. La fila se conserva, así que el elemento no se vuelve a recolectar. Los originales cargados, las publicaciones y los borradores de caso de negocio nunca se tocan.
 - **Formato del resumen.** El resumen semanal muestra en el encabezado el producto, la dimensión y la pregunta del brief, y agrupa las señales bajo un título por objetivo, en este orden: Anticipar, Minimizar riesgos, Comparar, Innovar, Cooperar. Una señal con varios objetivos aparece bajo cada uno; un objetivo sin señales lo indica.
 
 ## 6. Solicite y apruebe un caso de negocio
@@ -272,6 +274,17 @@ Importe el zip nuevo con **Soluciones → Importar solución**, igual que en el 
 7. Cree las vistas por etiqueta en **Señales** (paso 5).
 
 Lea la entrada 1.3.0.0 de `CHANGELOG.md` antes de actualizar.
+
+### Actualizar de 1.3 a 1.4
+
+1.4.0.0 agrega el flujo **VT Limpiar Señales** y la variable `tr_RetentionDays`. También indexa dos columnas en **Señales**. Lea la entrada 1.4.0.0 de `CHANGELOG.md` antes de actualizar. Después:
+
+1. Importe la solución.
+2. En **Señales**, abra *Configuración de la lista → Columnas indexadas → Crear un índice nuevo* y cree uno para *SourceItemId* y otro para *Status*. Los sitios nuevos los reciben del kit de SharePoint.
+3. Opcionalmente, cambie *tr_RetentionDays* (por defecto 90). Configúrelo antes de activar el flujo.
+4. Active **VT Limpiar Señales**.
+
+Las señales y los archivos de evidencia eliminados van a la papelera de reciclaje del sitio, desde donde se pueden restaurar durante 93 días (por verificar: aún no confirmado en un tenant).
 
 ### Límites conocidos de 1.3 (no verificados en un tenant)
 

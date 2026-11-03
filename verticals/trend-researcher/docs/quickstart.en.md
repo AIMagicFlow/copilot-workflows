@@ -1,6 +1,6 @@
 # Trend Researcher: quick start
 
-This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 minutes. When you finish you have five automated flows:
+This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 minutes. When you finish you have six automated flows:
 
 | Flow | Runs (UTC) | What it does |
 |---|---|---|
@@ -9,6 +9,7 @@ This guide installs Trend Researcher in your Microsoft 365 tenant in about 45 mi
 | **TR Weekly Digest** | Mondays, 08:00 | Publishes one HTML digest per brief, grouped by objective, and notifies you in Teams. |
 | **TR Process Documents** | Every 5 minutes | Reads text files uploaded to `SourceUploads/PublicData` as evidence (step 5). |
 | **TR Business Case** | Every 5 minutes | Builds a business-case draft from selected digests, sends it for approval, then publishes it (step 6). |
+| **TR Clean Up Signals** | Monthly (day 1), 03:00 | Deletes old `Rejected` and `Monitor` signals and their evidence files (step 5). |
 
 ## What you need
 
@@ -142,7 +143,7 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
 ## 4. Turn the flows on
 
 1. In **Solutions**, open **Trend Researcher → Cloud flows**.
-2. Check that **TR Collect RSS**, **TR Classify Items**, **TR Weekly Digest**, **TR Process Documents** and **TR Business Case** are **On**. If one is off, select it and choose **Turn on**.
+2. Check that **TR Collect RSS**, **TR Classify Items**, **TR Weekly Digest**, **TR Process Documents**, **TR Business Case** and **TR Clean Up Signals** are **On**. If one is off, select it and choose **Turn on**.
 
 The same flows appear in Copilot Studio under **Flows**.
 
@@ -176,6 +177,7 @@ The same flows appear in Copilot Studio under **Flows**.
   3. Repeat for the other two tags. A signal with several tags appears in each view.
 
   A tag is a label for review, not a notification: nothing is sent when a signal is tagged. If the model returns a tag outside the three allowed codes, the signal is saved without the invalid tag, its *Status* is `NeedsReview` and the invalid tags are written to *EvidenceNotes*. Review those signals by hand.
+- **Retention cleanup.** On the 1st of each month, **TR Clean Up Signals** deletes `Rejected` and `Monitor` signals older than *tr_RetentionDays* (default 90; `0` turns the cleanup off). `Digest` and `NeedsReview` signals are kept at any age. When a deleted signal was the last one for its source item, the flow also deletes that item's evidence file and marks the SourceItem *ContentStatus* `Purged` with an empty *EvidenceUrl*. The row stays, so the item is not collected again. Uploaded originals, publications and business-case drafts are never touched.
 - **Digest layout.** The weekly digest shows the brief's product, dimension and question in its header, and groups signals under one heading per objective, in the order Anticipate, Minimize risks, Compare, Innovate, Cooperate. A signal with several objectives appears under each; an objective with no signals says so.
 
 ## 6. Request and approve a business case
@@ -260,6 +262,17 @@ Import the new zip with **Solutions → Import solution**, as in step 3. The sol
 7. Create the tag views on **Signals** (step 5).
 
 Read the 1.3.0.0 entry in `CHANGELOG.md` before upgrading.
+
+### Upgrading from 1.3 to 1.4
+
+1.4.0.0 adds the **TR Clean Up Signals** flow and the `tr_RetentionDays` variable. It also indexes two columns on **Signals**. Read the 1.4.0.0 entry in `CHANGELOG.md` before upgrading. Then:
+
+1. Import the solution.
+2. On **Signals**, open *List settings → Indexed columns → Create a new index* and create one for *SourceItemId* and one for *Status*. New sites get both from the SharePoint kit.
+3. Optionally change *tr_RetentionDays* (default 90). Set it before you turn the flow on.
+4. Turn **TR Clean Up Signals** on.
+
+Deleted signals and evidence files go to the site recycle bin, where they can be restored for 93 days (to verify: not yet confirmed in a tenant).
 
 ### Known limits of 1.3 (not verified in a tenant)
 

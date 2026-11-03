@@ -2,6 +2,27 @@
 
 ## 1.4.0.0 (unreleased)
 
+### Added
+
+- **Retention cleanup: new flow `TR Clean Up Signals`** (es `VT Limpiar Señales`). It runs on the 1st of each month at 03:00 UTC and deletes `Rejected` and `Monitor` signals older than `tr_RetentionDays`. Signals with `Digest` or `NeedsReview` are kept at any age. When a deleted signal was the last one for its source item, the flow also deletes that item's evidence file and marks the SourceItems row `ContentStatus=Purged` with an empty `EvidenceUrl`. The row is kept so collectors do not collect the item again. Uploaded originals in `SourceUploads`, publications and business-case drafts are never touched. Each run handles up to 500 signals per status; a large backlog is cleared over several months. The loops run one item at a time.
+- **Environment variable.** `tr_RetentionDays` (Number, default `90`). `0` turns the cleanup off.
+- **Indexes.** Signals `SourceItemId` and `Status` are indexed, so the cleanup queries keep working past the 5,000-item threshold.
+- **`ContentStatus` value `Purged`** on SourceItems: the item's evidence file was deleted by the cleanup.
+
+### Upgrade notes
+
+- **Add the two indexes by hand on existing sites:** on **Signals**, open *List settings → Indexed columns → Create a new index* and create one for *SourceItemId* and one for *Status*. New sites get them from the kit.
+- **Set `tr_RetentionDays` before turning the flow on.** It defaults to 90.
+
+### Known open points (not verified in a tenant)
+
+The four acceptance items from the design spec (`docs/design/2026-11-02-tr-cleanup-signals-design.md`):
+
+1. Deleted signals and evidence files land in the site recycle bin, so they can be restored for 93 days.
+2. The shapes of `DeleteItem`, `DeleteFile` and `GetFileMetadataByPath` match a real export. The new snippets stay `verified: false` until this check.
+3. `GetFileMetadataByPath` accepts the `EvidenceUrl` value as written by `CreateFile` (`body/Path`).
+4. A run with `tr_RetentionDays` set to `1` deletes only the old `Rejected` and `Monitor` signals, and a source item that still has a `Digest` signal keeps its evidence file. This is the dev-tenant run and has not been done.
+
 ### Fixed
 
 - `TR Process Documents` and `TR Business Case` were missing from the solution's root components, so a solution import could leave them out of the solution. Every flow is now a root component, and the build checks it.
