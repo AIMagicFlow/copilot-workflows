@@ -1,400 +1,233 @@
-----------------
-# TR Collect Authenticated Browser Tabs
-
-Another source we need to check how to do with cheap/ compliant (all data uploaded to company's sharepoint) form, would be how to process websites that require some authentication and don't provide an API, i.e. the session lives on the user's comupetr. I presume we could find a cheap way to do computer use (https://learn.microsoft.com/en-us/training/modules/automate-desktop-web-tasks-computer-use-copilot-studio/) maybe power automate already has something? where the user logs into their tabs, and the session is shared with copilot, the data scrapped and uploaded automatically to the Evidence+SourceItems of our system.
-------
-
-Yes. This is the main missing ingestion layer.
-
-Our original design already anticipated approved file submissions alongside RSS/API collection, and explicitly treated browser automation and difficult document extraction as separate source adapters. The important architectural property is that every adapter converges onto the same Evidence → SourceItems → TR Classify Items contract.
-
-I would add two adapters, but keep them independent:
-
-                    SOURCE ADAPTERS
-
-RSS feeds ─────────► TR Collect RSS ───────────┐
-                                               │
-Uploaded files ────► TR Process Documents ─────┼──► Evidence
-                                               │       +
-Authenticated ─────► TR Collect Browser ───────┘    SourceItems
-websites                                             │
-                                                    ▼
-                                           TR Classify Items
-                                                    │
-                                                    ▼
-                                                 Signals
-
-
-
-
--------
-
-
-Executive conclusion
-
-Yes, there is a relatively cheap and compliant pattern for this:
-
-Use Power Automate for desktop on the employee’s Windows computer in attended mode. The user signs into the website normally, Power Automate attaches to that browser session, extracts the permitted data, and uploads only the resulting structured file to the company’s SharePoint. A SharePoint-triggered cloud flow can then continue the Copilot workflow.
-
-The important distinction is that the browser session is not exported or shared with Copilot. The automation runs locally under the same Windows user and controls the already-authenticated browser. Cookies, MFA tokens, and session state remain on the user’s machine.
-
-I would use Power Automate for desktop, rather than Copilot Studio Computer Use, for the initial implementation. It is cheaper, more deterministic, and better suited to extracting structured information from a known website.
-
-1. Recommended architecture
-User's managed Windows computer
-┌─────────────────────────────────────────────────────────────┐
-│ 1. User opens Edge/Chrome and authenticates normally        │
-│    - Password manager / SSO / MFA                            │
-│    - Website session remains local                           │
-│                                                             │
-│ 2. User starts an attended Power Automate desktop flow       │
-│                                                             │
-│ 3. Desktop flow attaches to the running browser              │
-│    - Navigates permitted pages                               │
-│    - Extracts approved fields                                │
-│    - Validates required data                                 │
-│    - Creates JSON/CSV/XLSX and optional evidence             │
-│                                                             │
-│ 4. Desktop flow uploads the output to SharePoint             │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-Company SharePoint library
-┌─────────────────────────────────────────────────────────────┐
-│ Structured result + metadata + processing status            │
-│ SharePoint permissions, retention, sensitivity label        │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-Power Automate cloud flow
-┌─────────────────────────────────────────────────────────────┐
-│ Trigger: file created in SharePoint                          │
-│ - Validate/schema-check data                                 │
-│ - Apply classification or approval                           │
-│ - Update SharePoint List                                     │
-│ - Invoke an approved Copilot/agent workflow                  │
-│ - Notify user or downstream team                             │
-└─────────────────────────────────────────────────────────────┘
-
-
-Power Automate for desktop supports Edge, Chrome and Firefox, can attach to supported browser instances, and provides browser actions for extracting tables, page fields, text, links and other web elements. The browser must run under the same Windows user as Power Automate, which is exactly what preserves the user-owned authenticated session.
-
-Power Automate desktop flows can also call the SharePoint connector directly. Microsoft specifically documents SharePoint actions inside desktop flows, although these require attended RPA entitlement.
-
-2. How session sharing would actually work
-Option A: Attach to the user’s existing authenticated browser
-
-This is the closest match to your idea.
-
-The employee opens an approved Edge browser profile.
-The employee signs into the external website.
-MFA, CAPTCHA, consent screens, or other interactive authentication are completed manually.
-The employee launches a desktop flow.
-The desktop flow uses Attach to running instance.
-The flow finds the expected tab by URL or title.
-It extracts the required data.
-It uploads only the output to SharePoint.
-
-Power Automate can attach to an existing supported browser using its browser extension. It cannot attach to a browser opened under a different Windows identity, and WebDriver mode generally only attaches to browser instances launched by the flow. Therefore, for the existing-session pattern, use the Power Automate browser extension, not WebDriver mode.
-
-What remains local
-Session cookies
-Refresh tokens
-Browser profile
-Password-manager contents
-Authenticator interaction
-Existing tabs
-Website credentials
-What leaves the machine
-
-Ideally, only:
-
-Extracted business fields
-Source URL
-Extraction timestamp
-User identity
-Record count
-Run ID
-Validation status
-Optional approved screenshot or source document
-
-This is substantially safer than trying to copy cookies, browser profiles, session-storage values, or authentication headers into a cloud service.
-
-Option B: Let the flow launch the browser, then have the user authenticate
-
-This may be more reliable than attaching to an arbitrary tab.
-
-Desktop flow launches Edge using an approved work profile.
-It navigates to the website.
-If authentication is needed, the flow pauses.
-The user signs in and completes MFA.
-The user selects Continue.
-Automation resumes and extracts the data.
-
-This gives the automation a known browser instance while still avoiding storage of external-site credentials.
-
-It is a good fallback if attaching to an already-running browser produces problems because of multiple browser profiles, incompatible extension policies, or ambiguous tabs. Microsoft documents browser-extension troubleshooting considerations including multiple browser profiles and enterprise browser policies.
-
-3. Why I would not start with Copilot Studio Computer Use
-
-Copilot Studio Computer Use can operate websites and Windows applications without an API, using visual interpretation, mouse actions and keyboard input. It supports machine selection, end-user versus maker credentials, stored credentials, access-control allowlists, human supervision and structured JSON output.
-
-However, it is not the best first choice for this requirement.
-
-Main concerns
-1. It is model-driven rather than deterministic
-
-Computer Use reads screenshots and reasons about what to click. Microsoft states that its reliability can vary by task, and it can be sensitive to layout changes, timing, custom controls and unexpected dialogs. It can also repeat actions or become stuck.
-
-For structured scraping from known pages, DOM-based Power Automate web actions are generally more predictable.
-
-2. It normally targets a configured machine
-
-Copilot Studio Computer Use asks the maker to select a target machine and connection. It can use end-user credentials for that machine, but this is different from transparently borrowing an arbitrary browser tab already open on the employee’s laptop.
-
-3. Screenshots become part of the agent execution context
-
-Computer Use processes screen pixels and exposes execution screenshots and reasoning information in its activity experience. This requires greater scrutiny if authenticated pages contain PII, confidential data, or unrelated information.
-
-4. It adds Copilot Studio consumption and governance
-
-Computer Use requires a Copilot Studio environment with the feature enabled, generative orchestration, machine configuration, connections and applicable Copilot consumption/licensing. Administrators can disable Computer Use or its hosted browser at the environment or tenant level.
-
-Where Computer Use does fit
-
-Use it later for websites where:
-
-DOM/UI-element selectors do not work.
-The interface changes frequently.
-Content is rendered in canvas or remote desktop.
-Navigation requires visual reasoning.
-The task contains several variable paths.
-The workflow needs the agent to interpret the page, not merely extract known fields.
-
-Even then, Microsoft recommends isolated machines, least-privilege accounts, domain allowlists and restricted applications.
-
-4. Cost comparison
-Model	Best use	Approximate public list price	Authentication modelLocal attended Power Automate desktop flow	User signs in and initiates extraction	$15/user/month, annually	Uses user’s local interactive session
-Unattended Power Automate Process	Scheduled automation without employee present	$150/bot/month, annually	Dedicated automation account/session
-Microsoft-hosted unattended machine	No local VM or computer management	$215/bot/month, annually	Dedicated hosted Windows machine
-Copilot Studio Computer Use	Agentic visual interaction	Consumption/Copilot Credits plus applicable environment and machine requirements	Configured machine and credentials
-
-The current public pricing page lists Power Automate Premium at USD $15 per user/month for cloud flows and attended desktop flows, Power Automate Process at USD $150 per bot/month for unattended RPA, and Hosted Process at USD $215 per bot/month with a Microsoft-hosted VM. Pricing excludes tax and is subject to commercial agreements.
-
-Power Automate Premium includes attended RPA, cloud integration, premium connectors, centralized monitoring and credential features. Unattended runs require Process capacity.
-
-Cheapest practical path
-
-For a pilot involving a small number of employees:
-
-Power Automate Premium for each pilot user
-Company-managed Windows computer
-Edge work profile
-Power Automate browser extension
-SharePoint standard connector
-No unattended bot
-No hosted VM
-No Copilot Studio Computer Use initially
-
-If the employee can run the extraction manually and upload to SharePoint directly, the organization avoids the $150 or $215 monthly bot capacity.
-
-5. Compliance controls required
-
-“Everything goes to SharePoint” helps, but it does not by itself make the process compliant. Data is visible in the browser, processed in memory, potentially written to temporary storage, and represented in automation logs before it reaches SharePoint.
-
-Minimum recommended controls
-Managed endpoint
-Intune-enrolled Windows device
-BitLocker enabled
-Microsoft Defender for Endpoint
-Approved Edge work profile
-Power Automate extension deployed through enterprise policy
-No personal browser profile during automation
-Dedicated browser profile
-
-Use a separate organizational Edge profile for these automations. This reduces the chance that the flow attaches to personal tabs or exposes unrelated browsing data.
-
-Domain allowlist
-
-Permit the flow to visit only:
-
-The approved external website
-The company SharePoint tenant
-Required Microsoft sign-in endpoints
-
-Copilot Studio Computer Use has a tool-level website and application allowlist, although Microsoft notes that it prevents interaction rather than fully preventing navigation. For Power Automate desktop, endpoint filtering, browser policies, firewall controls and DLP should be combined.
-
-DLP policy
-
-Put these in the Business data group:
-
-SharePoint
-Microsoft 365 Users, if needed
-Office 365 Outlook, if needed
-Dataverse, if used
-Desktop-flow actions required by the solution
-
-Block or separate:
-
-Personal cloud storage
-Consumer email
-Social media connectors
-Unapproved HTTP endpoints
-Clipboard or scripting actions if not needed
-
-Power Platform DLP policies can classify connectors and desktop-flow action groups as Business, Non-business or Blocked. A desktop flow that violates the policy can be suspended and prevented from running.
-
-No transferred website credentials
-
-Do not:
-
-Save passwords inside the flow.
-Export browser cookies.
-Copy session tokens to SharePoint.
-Pass session headers into a cloud flow.
-Reuse a personal automation account among employees.
-
-If credentials must eventually be automated, use Power Automate credentials backed by Azure Key Vault or CyberArk and mark relevant variables as sensitive so values are not written to run logs.
-
-Minimize local persistence
-
-Prefer:
-
-Extract into variables.
-Serialize directly to JSON or CSV.
-Upload immediately.
-Remove temporary files.
-Record only non-sensitive operational logs.
-
-If local staging is unavoidable, use an encrypted controlled folder and delete files after SharePoint confirms creation.
-
-SharePoint controls
-
-Use a dedicated document library with:
-
-Restricted Microsoft Entra group
-Versioning
-Retention policy
-Sensitivity label
-Audit logging
-No anonymous sharing
-Separate raw and processed folders
-Metadata indicating source, user, time and status
-Human confirmation before consequential actions
-
-Collection can be automated, but updates, submissions, purchases, acknowledgments, or contractual actions should require explicit user review.
-
-Microsoft warns that Computer Use can take unintended actions and that human-supervision prompts are not a guaranteed safety mechanism.
-
-Website authorization
-
-Before scraping a third-party website, verify:
-
-Terms of service
-Account agreement
-Permitted use of the information
-Rate limits
-Restrictions on automated access
-Data ownership
-Relevant privacy obligations
-
-Using a valid human account does not automatically authorize automation.
-
-6. Suggested workflow implementation
-Desktop flow
-1. Display instructions:
-   "Open the approved website and sign in. Then select Continue."
-
-2. Attach to running Edge instance:
-   Match by URL: https://approved-site.example/*
-
-3. Verify:
-   - Expected hostname
-   - Logged-in indicator is present
-   - Correct account/organization is shown
-
-4. Navigate to required section.
-
-5. Extract required table or data fields.
-
-6. Validate:
-   - Required columns present
-   - Record count is within expected range
-   - No password/token fields
-   - No unexpected page or error message
-
-7. Construct structured output:
-   {
-     "schemaVersion": "1.0",
-     "sourceSystem": "...",
-     "sourceUrl": "...",
-     "extractedAtUtc": "...",
-     "extractedBy": "...",
-     "recordCount": 25,
-     "records": [...]
-   }
-
-8. Upload to:
-   SharePoint/AutomationIntake/<source>/<year>/<month>/
-
-9. Write a small manifest:
-   - Run ID
-   - File hash
-   - Status
-   - Validation result
-
-10. Close only the tabs opened by the automation.
-    Do not close the user's original authenticated tab.
-
-SharePoint-triggered cloud flow
-Trigger:
-When a file is created in AutomationIntake/Raw
-
-Steps:
-1. Reject unsupported file types.
-2. Validate JSON schema or CSV columns.
-3. Check duplicate Run ID/file hash.
-4. Move invalid files to Quarantine.
-5. Apply metadata and sensitivity classification.
-6. Copy normalized data to Processed or a SharePoint List.
-7. Invoke the downstream Copilot/agent workflow.
-8. Store the agent result in SharePoint.
-9. Notify the submitting user.
-
-
-This creates a clean security boundary:
-
-Local attended automation owns the authenticated session; SharePoint owns persisted data; the cloud/Copilot workflow starts only after the approved artifact reaches SharePoint.
-
-7. Final recommendation
-Phase 1: inexpensive proof of concept
-
-Build one attended Power Automate desktop flow for a single approved website:
-
-User authenticates manually.
-Flow attaches to Edge.
-Flow makes no external-site changes.
-Flow extracts only a predefined set of fields.
-Output is JSON.
-Output goes directly to a restricted SharePoint library.
-SharePoint triggers the downstream cloud flow.
-No screenshots unless required.
-No credentials or cookies leave the computer.
-Phase 2: production hardening
-
-Add:
-
-Power Platform solution packaging
-Environment-specific connections
-DLP and endpoint filtering
-Edge profile and extension deployment through Intune
-JSON schema validation
-SharePoint retention and sensitivity labels
-Run monitoring and failure alerts
-Formal approval of the target website and fields
-Test cases for session expiration, MFA, CAPTCHA and layout changes
-Phase 3: selective Computer Use
-
-Evaluate Copilot Studio Computer Use only for target sites that cannot be automated reliably through standard browser elements. Run it on an isolated machine with restricted domains and least-privilege access, rather than giving a general-purpose agent control over each employee’s normal desktop.
-
-Bottom line: your assumption is directionally correct, but the cheapest and safest version is not “share the session with Copilot.” It is“run attended Power Automate locally inside the user’s existing authenticated Windows/browser context, publish sanitized output to SharePoint, and let the Copilot workflow continue from SharePoint.”
+# TR Collect Browser: design options
+
+- **Status:** options narrowed (2026-11-03). No plan yet. A plan comes when a customer names the sites.
+- **Origin:** [brainstorm/TR Process Browser.md](../../../../brainstorm/TR%20Process%20Browser.md) (the original discussion, kept as written) and the browser-use sample in [microsoft/ai-agents-for-beginners, lesson 15](https://github.com/microsoft/ai-agents-for-beginners/blob/main/15-browser-use/15-browser-user.ipynb).
+
+## Why
+
+Some sources a customer cares about have no RSS feed and no API. They sit behind a login: paid research portals, industry associations, partner extranets. Today the only way in is a person copying text into `SourceUploads` by hand.
+
+We want those pages in the same pipeline as everything else: Evidence, then SourceItems, then TR Classify Items. Everything that is kept lands in the customer's SharePoint.
+
+## The constraint that decides it: MFA
+
+Most of these sites require MFA, and some use company SSO. So:
+
+- **A person must complete the sign-in.** No option may store a password and replay it.
+- **A person must sign in again when the session expires.** Sessions last from hours to a few weeks, depending on the site. The design must notice the expiry and ask for a new sign-in instead of failing silently.
+
+That rules out every option that needs no human at sign-in time.
+
+## Options considered
+
+| # | Option | Who signs in | Runs without a person present? | Verdict |
+|---|---|---|---|---|
+| A | **Local attended:** Power Automate for desktop, or Copilot Studio Computer Use, on the user's PC, driving the browser the user signed into | The user, in their own browser | No. The PC must be on and unlocked, and the user starts the run (or is at least signed in). | **Kept** |
+| B | **Azure cloud browser add-on:** a browser in the customer's Azure. A person signs in once through a live view; scheduled runs reuse the saved profile | A named person, through the live view | Yes, until the session expires | **Kept** |
+| C | Copy the user's cookies or session tokens from their PC into a cloud service | Nobody, after the copy | Yes | **Rejected.** Exports session tokens off the managed device. Device- or IP-bound sessions break anyway. |
+| D | Service account with a stored password (Key Vault) | The automation | Yes | **Rejected.** MFA and CAPTCHA block it. Only fits sites with no MFA, which we don't expect. |
+| E | The browser-use notebook as written: fresh temporary profile, no sign-in | Nobody | Yes | **Rejected** for logged-in sites. It closes login prompts instead of handling them. Its agent idea is reused in option B. |
+| F | A browser-use Python script on each user's PC, attached to their Chrome over CDP | The user | No | **Rejected.** Same human-present limit as A, plus Python, a debug port and an unmanaged script on every PC. A covers it with Microsoft-managed tools. |
+
+## Shared output contract
+
+Both kept options write the same thing to the same place, so neither needs a change to the Trend Researcher solution.
+
+```mermaid
+flowchart LR
+    rss[RSS feeds] --> crss[TR Collect RSS]
+    up[Manual uploads] --> lib
+    a[Option A<br/>local attended] --> lib
+    b[Option B<br/>Azure cloud browser] --> lib
+    lib["SourceUploads/PublicData/&lt;source&gt;/<br/>one .md file per item"] --> pd[TR Process Documents]
+    crss --> ev[Evidence + SourceItems]
+    pd --> ev
+    ev --> cl[TR Classify Items] --> sig[Signals]
+```
+
+- **One `.md` file per extracted item** (article, report, post), not one file per run. The classifier works per item.
+- **File name from a stable key**, for example a short hash of the item's canonical URL: `<hash>.md`. The adapter skips an item whose file already exists. TR Process Documents dedupes on the file's list item ID, so the adapter must never upload the same item under a new name.
+- **File content:** a small header (title, source URL, published date if shown, extracted at, extracted by), then the text as Markdown. Under `tr_MaxUploadBytes` (default 1 MB), or the file becomes `MetadataOnly`.
+- **Sources row:** one `Upload` row per site, with `SourcePath` set to its folder, as for any upload source.
+- **Public or private:** content behind a login is usually licensed third-party text, not personal or customer-confidential data. It goes to `PublicData`. If a site's pages can contain personal data, that site waits for the [Document Sanitizer](../../../../docs/addons/document-sanitizer-design.md) and writes to `PrivateData` instead.
+- **Never written:** passwords, cookies, tokens, screenshots of signed-in pages, or anything outside the approved fields.
+
+## Option A: local attended (Power Automate for desktop or Computer Use)
+
+The user signs into the site in their normal Edge work profile, with MFA. An attended automation on the same Windows session drives that browser, extracts the items, and uploads the `.md` files to SharePoint. The session never leaves the PC.
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant E as Edge (work profile)
+    participant PAD as Desktop flow (attended)
+    participant SP as SharePoint
+    participant PD as TR Process Documents
+    U->>E: Open the site, sign in, complete MFA
+    U->>PAD: Start "Collect <site>"
+    PAD->>E: Attach to running instance (browser extension), match tab by URL
+    PAD->>E: Check the signed-in marker
+    alt signed out
+        PAD-->>U: "Sign in again, then Continue"
+    end
+    loop each new item
+        PAD->>E: Open item, extract approved fields
+        PAD->>SP: Upload <hash>.md if it does not exist
+    end
+    SP-->>PD: File created trigger
+```
+
+**Two ways to build it:**
+
+| | Power Automate for desktop | Copilot Studio Computer Use |
+|---|---|---|
+| How it reads the page | DOM selectors and web actions, built per site | A vision model reads screenshots and decides what to click |
+| Predictable | Yes, until the site's layout changes | Varies by task; can get stuck or repeat steps |
+| Effort per new site | A desktop flow per site | Written instructions per site |
+| Session | Attaches to the user's running Edge through the Power Automate browser extension (not WebDriver mode, which only attaches to browsers it launched) | Runs on a registered machine; using the user's own signed-in browser needs that machine to be the user's PC |
+| Cost | Power Automate Premium, USD 15 per user per month (list price, annual) | Billed per step as agent actions in Copilot Credits (USD 0.01 per credit pay-as-you-go). Not included in the Microsoft 365 Copilot licence. |
+| Screens leave the PC | No | Screenshots go to the model and appear in the activity log |
+
+Our call: start with **Power Automate for desktop**. It is cheaper per run, deterministic, and keeps signed-in screens on the PC. Use Computer Use only for a site where selectors don't work (canvas rendering, constantly changing layout).
+
+**Limits:** collection happens only when the user runs it. Holidays and sick days mean gaps. Each user who collects needs the Premium licence and the extension deployed through Intune.
+
+## Option B: Azure cloud browser add-on
+
+A customer-hosted add-on, shipped like the Document Sanitizer ([ADR-001](../../../../docs/addons/adr-001-document-sanitizer-distribution.md), option A): the customer deploys it into their own Azure subscription. Unlike the sanitizer, it needs **no custom connector and no change to the solution**: it writes files into `SourceUploads`, and the existing flow does the rest.
+
+### Components
+
+```mermaid
+flowchart LR
+    subgraph tenant["Customer Microsoft 365 tenant"]
+        entra["Entra ID<br/>sign-in to the live view"]
+        sp["SharePoint site<br/>Sources, SourceUploads"]
+        pd["TR Process Documents"]
+    end
+    subgraph azure["Customer Azure subscription"]
+        subgraph cae["Container Apps environment<br/>(NAT gateway, one static outbound IP)"]
+            live["Sign-in app<br/>Chromium + live view<br/>scales to zero"]
+            job["Collector job<br/>Chromium + agent<br/>scheduled"]
+        end
+        blob["Blob storage (private endpoint)<br/>one browser profile per site"]
+        cfg["Site config<br/>start URL, signed-in check, instructions"]
+        aoai["Azure OpenAI<br/>extraction model"]
+        mi["Managed identity<br/>Graph Sites.Selected: write, one site"]
+        ai["Application Insights<br/>(metadata only)"]
+    end
+    person((Named person)) -->|"browser, Entra auth"| live
+    entra -.-> live
+    live <-->|"load / save profile"| blob
+    job <-->|"load / save profile"| blob
+    cfg -.-> job
+    job --> aoai
+    mi -.-> job
+    job -->|".md files, LastError, LastSuccessfulCollection"| sp
+    job --> ai
+    sp -->|file created| pd
+```
+
+### Sign-in (once, and again after each expiry)
+
+```mermaid
+sequenceDiagram
+    actor P as Named person
+    participant L as Sign-in app (live view)
+    participant B as Blob (profile)
+    participant S as Target site
+    P->>L: Open the live-view URL (Entra sign-in, allowed group only)
+    L->>B: Take the site's profile lease, load the profile
+    L->>S: Open the site's start URL in Chromium
+    P->>S: Type credentials, complete MFA through the live view
+    P->>L: "Done"
+    L->>L: Close Chromium cleanly
+    L->>B: Save the profile, release the lease
+```
+
+### Scheduled run
+
+```mermaid
+sequenceDiagram
+    participant J as Collector job
+    participant B as Blob (profile)
+    participant S as Target site
+    participant O as Azure OpenAI
+    participant SP as SharePoint
+    J->>B: Take the site's profile lease, load the profile
+    J->>S: Open the start URL
+    J->>J: Signed-in check (URL or page marker from the site config)
+    alt signed out
+        J->>SP: Sources row: LastError = "Sign-in expired, open <live-view URL>"
+        J->>B: Release the lease
+    else signed in
+        loop each listed item not yet in the folder
+            J->>S: Open the item
+            J->>O: Extract title, date, text (structured output)
+            J->>SP: Upload <hash>.md
+        end
+        J->>SP: Sources row: LastSuccessfulCollection = now, LastError = empty
+        J->>B: Save the refreshed profile, release the lease
+    end
+```
+
+### Design points
+
+- **The human step is explicit.** The add-on never types a password. A named person owns each site's sign-in and is the one asked to renew it.
+- **Expiry is visible in SharePoint.** The job writes `LastError` on the site's Sources row. A SharePoint alert on the Sources list ("when items change") tells the owner by email, with no extra connector or Graph mail permission.
+- **One browser at a time per profile.** A blob lease stops the sign-in app and the job from opening the same profile together, which would corrupt it.
+- **Same outbound IP for sign-in and runs.** Both run in one Container Apps environment behind a NAT gateway. Many sites end a session that suddenly comes from a different IP. A fixed IP also lets a site allowlist it.
+- **The profile is a credential.** It holds live session cookies. Chrome on Linux has no OS keyring in a container, so its cookie encryption protects nothing; the protection is the storage account: private endpoint, no shared keys, RBAC for the two managed identities only.
+- **Least privilege to SharePoint.** The job's managed identity gets Microsoft Graph `Sites.Selected` with write on the Trend Researcher site only. It writes files into `SourceUploads/PublicData/<source>/` and two fields on Sources rows.
+- **Agent or script.** The browser-use agent (vision plus an LLM deciding clicks) needs only written instructions per site and survives layout changes better, but costs model tokens per page and is less predictable. A Playwright script per site is cheap and predictable but breaks on redesigns. Our call: Playwright navigation to the list of items, and the model only for extracting each item's text into the structured output. The builder may use the browser-use agent for a site whose navigation can't be scripted.
+- **Why Container Apps, not Functions:** Chromium needs a custom container image, a live view needs WebSockets, and a run can take many minutes. A Container Apps job covers the schedule, and the sign-in app scales to zero between sign-ins.
+
+### Cost (estimate, to confirm per customer)
+
+- Container Apps: a short daily job plus an idle-at-zero sign-in app. Small.
+- NAT gateway and its static IP: a fixed monthly charge, the largest fixed item.
+- Azure OpenAI: per extracted page. A mini model keeps it to cents per run for a few dozen items.
+- Storage, Application Insights: negligible.
+- No Power Platform licence beyond what Trend Researcher already needs.
+
+## Comparison of the kept options
+
+| | A: local attended (PAD) | B: Azure cloud browser |
+|---|---|---|
+| Collects on a schedule with nobody at a PC | No | Yes |
+| Human work | Sign in and start each run | Sign in once per session lifetime |
+| Session lives | On the user's PC | In the customer's Azure storage |
+| Install | Premium licence and Edge extension per collecting user | One Azure deployment per customer |
+| Per-site work | A desktop flow | A site config, maybe a navigation script |
+| Changes to the Trend Researcher solution | None | None |
+| Main risk | Gaps when the user doesn't run it | Site blocks datacenter IPs or shows CAPTCHAs to automation |
+
+## Controls for both options
+
+- **Site authorization first.** Check each site's terms of service and account agreement for automated access, rate limits and permitted use. A valid human account does not by itself authorize automation. This is the customer's legal call, recorded per site.
+- **A dedicated account per site where the site allows it,** owned by a named person, rather than a personal account shared across people.
+- **Only approved fields** leave the page. No screenshots of signed-in pages are stored.
+- **Read only.** No automation submits forms, accepts terms, buys or posts anything on the site.
+- **Option A:** managed Windows device, Edge work profile, extension deployed by Intune, Power Platform DLP with SharePoint in the Business group.
+- **Option B:** live view behind Entra ID with a restricted group, private storage, metadata-only logging, domain allowlist on the job's outbound traffic where the network allows it.
+
+## Recommendation
+
+1. **Pilot one site with option A** (Power Automate for desktop). It needs no Azure, proves the output contract end to end, and shows how long the site's session lasts.
+2. **Build option B as an add-on** when a customer wants daily unattended collection and accepts a person renewing the sign-in when asked. It reuses the pilot's output contract and site config.
+
+Copilot Studio Computer Use stays a fallback for a site that neither selectors nor scripted navigation can handle.
+
+## Open questions (for the customer)
+
+1. Which sites, and how people sign in to each today (MFA type, SSO)?
+2. How long each site's session lasts before it asks for MFA again.
+3. Whether each site's terms allow automated access, and whether its pages can contain personal data (which decides `PublicData` or `PrivateData`).
+4. Who owns the sign-in for each site.
+
+## Left to the builder
+
+- The live-view technology (for example Xvfb with noVNC, or a DevTools screencast page).
+- Profile format: a full persistent profile archive or Playwright `storage_state`, as long as sign-in survives between runs.
+- The site config format and where it lives in the add-on.
+- The header fields in each `.md` file, within the contract above.
