@@ -1,0 +1,27 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "DeleteFile",
+  "source": "connector-docs",
+  "verified": false,
+  "notes": [
+    "Deletes a file by its Identifier (the id GetFileMetadata or GetFileMetadataByPath returns as body/Id).",
+    "The file goes to the site recycle bin."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "id": "@outputs('Get_file_metadata_using_path')?['body/Id']"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "DeleteFile"
+      }
+    },
+    "metadata": {
+      "description": "Delete file"
+    }
+  }
+}

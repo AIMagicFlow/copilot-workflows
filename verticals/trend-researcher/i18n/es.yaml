@@ -23,6 +23,9 @@ flows:
   businessCase:
     name: VT Caso de Negocio
     description: Cada 5 minutos. Toma las solicitudes de caso de negocio en estado Submitted, valida la solicitud y sus 1 a 5 resúmenes de entrada, y la reserva para su generación.
+  cleanupSignals:
+    name: VT Limpiar Señales
+    description: Mensual. Elimina las señales Rejected y Monitor más antiguas que tr_RetentionDays y el archivo de evidencia de un elemento fuente cuando ya no le queda ninguna señal. Las filas de SourceItems se conservan y se marcan como Purged.
 
 connections:
   sharepoint:

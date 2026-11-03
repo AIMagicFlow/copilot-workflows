@@ -1,0 +1,28 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "DeleteItem",
+  "source": "connector-docs",
+  "verified": false,
+  "notes": [
+    "Deletes one list item. table is the list parameter, id the item's ID.",
+    "The item goes to the site recycle bin."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "table": "<list-or-library-parameter>",
+        "id": "@items('Loop')?['ID']"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "DeleteItem"
+      }
+    },
+    "metadata": {
+      "description": "Delete item"
+    }
+  }
+}

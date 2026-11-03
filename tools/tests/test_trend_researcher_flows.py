@@ -4,7 +4,7 @@ import re
 import unittest
 import xml.etree.ElementTree as ET
 
-from flowtest import built_text, find_action, load_built, params, path_to
+from flowtest import _children as flowtest_children, built_text, find_action, load_built, params, path_to, run_after as run_after_
 from build import flow_actions  # noqa: E402  (flowtest puts tools/ on sys.path)
 import build  # noqa: E402
 
@@ -1308,3 +1308,89 @@ class DeploymentSettingsExampleTests(unittest.TestCase):
         self.assertIn("tr_sharedapprovals", conns)
         self.assertEqual("/providers/Microsoft.PowerApps/apis/shared_approvals", conns["tr_sharedapprovals"]["ConnectorId"])
         self.assertNotIn("sharepoint.com", json.dumps(data).replace("<tenant>.sharepoint.com", ""))
+
+
+CLEANUP = "Workflows/TRCleanupSignals-07C37191-9C6E-4A13-B193-49594DB1A239.json"
+SIGNALS = "@parameters('Signals list (tr_SignalsList)')"
+RETENTION = "@parameters('Signal retention (days) (tr_RetentionDays)')"
+
+
+class CleanupSignalsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load_built("en", CLEANUP)
+
+    def test_monthly_schedule(self):
+        trigger = self.doc["properties"]["definition"]["triggers"]["Recurrence"]
+        self.assertEqual({"frequency": "Month", "interval": 1,
+                          "schedule": {"monthDays": [1], "hours": [3], "minutes": [0]}}, trigger["recurrence"])
+        self.assertNotIn("timeZone", trigger["recurrence"])
+
+    def test_retention_zero_turns_off(self):
+        doc = self.doc
+        self.assertEqual({"and": [{"greater": [RETENTION, 0]}]}, find_action(doc, "If_Retention_Enabled")["expression"])
+        self.assertEqual(["If_Retention_Enabled"], path_to(doc, "Loop_Statuses"))
+        self.assertEqual({"If_Retention_Enabled"}, set(doc["properties"]["definition"]["actions"]))
+
+    def test_only_rejected_and_monitor(self):
+        doc = self.doc
+        self.assertEqual("@createArray('Rejected', 'Monitor')", find_action(doc, "Loop_Statuses")["foreach"])
+        p = params(doc, "Get_Old_Signals")
+        self.assertEqual("field_11 eq '@{items('Loop_Statuses')}' and Created lt '@{outputs('Cutoff')}'", p["$filter"])
+        self.assertEqual(500, p["$top"])
+        self.assertEqual(SIGNALS, p["table"])
+        text = json.dumps(doc)
+        self.assertNotIn("Digest", text)
+        self.assertNotIn("NeedsReview", text)
+
+    def test_cutoff_uses_retention_days(self):
+        cutoff = find_action(self.doc, "Cutoff")["inputs"]
+        self.assertIn("addDays(utcNow(), mul(-1, parameters('Signal retention (days) (tr_RetentionDays)')))", cutoff)
+
+    def test_loops_sequential(self):
+        for name in ("Loop_Statuses", "Loop_Signals"):
+            action = find_action(self.doc, name)
+            self.assertEqual("Foreach", action["type"])
+            self.assertEqual(1, action["runtimeConfiguration"]["concurrency"]["repetitions"])
+
+    def test_evidence_only_when_no_signal_left(self):
+        doc = self.doc
+        self.assertEqual({"Delete_Signal": ["Succeeded"]}, run_after_(doc, "Get_Remaining_Signals"))
+        p = params(doc, "Get_Remaining_Signals")
+        self.assertEqual("field_1 eq @{items('Loop_Signals')?['field_1']}", p["$filter"])
+        self.assertEqual(1, p["$top"])
+        self.assertEqual(["If_No_Signals_Left", "If_Has_Evidence"], path_to(doc, "Delete_Evidence_File")[-2:])
+
+    def test_missing_source_item_or_evidence_is_skipped(self):
+        doc = self.doc
+        self.assertEqual({"and": [{"not": {"empty": [
+            "@first(outputs('Get_Source_Item')?['body/value'])?['field_7']"]}}]},
+            find_action(doc, "If_Has_Evidence")["expression"])
+        self.assertIn("ID eq", params(doc, "Get_Source_Item")["$filter"])
+
+    def test_source_item_kept_as_tombstone(self):
+        doc = self.doc
+        deletes = []
+
+        def walk(actions):
+            for name, action in actions.items():
+                inputs = action.get("inputs")
+                if isinstance(inputs, dict) and inputs.get("host", {}).get("operationId") == "DeleteItem":
+                    deletes.append(name)
+                for _, inner in flowtest_children(action):
+                    walk(inner)
+        walk(doc["properties"]["definition"]["actions"])
+        self.assertTrue(deletes)
+        for name in deletes:
+            self.assertEqual(SIGNALS, params(doc, name)["table"])
+        p = params(doc, "Mark_Source_Item_Purged")
+        self.assertEqual("", p["item/field_7"])
+        self.assertEqual("Purged", p["item/field_8"])
+        self.assertEqual({"Delete_Evidence_File": ["Succeeded"]}, run_after_(doc, "Mark_Source_Item_Purged"))
+
+    def test_cleanup_localized(self):
+        for locale, name in (("en", "TR Clean Up Signals"), ("es", "VT Limpiar Señales")):
+            root = ET.fromstring(build.render_solution(build.Vertical(build.ROOT, "trend-researcher"), locale)
+                                 ["customizations.xml"])
+            names = [w.get("Name") for w in root.iter("Workflow")]
+            self.assertIn(name, names)

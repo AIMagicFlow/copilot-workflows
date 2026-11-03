@@ -1,0 +1,335 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_63e80a5a"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "Site URL (tr_SiteURL)": {
+          "defaultValue": "",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SiteURL"
+          }
+        },
+        "Signals list (tr_SignalsList)": {
+          "defaultValue": "{{list:Signals}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SignalsList"
+          }
+        },
+        "Source Items list (tr_SourceItemsList)": {
+          "defaultValue": "{{list:SourceItems}}",
+          "type": "String",
+          "metadata": {
+            "schemaName": "tr_SourceItemsList"
+          }
+        },
+        "Signal retention (days) (tr_RetentionDays)": {
+          "defaultValue": 90,
+          "type": "Int",
+          "metadata": {
+            "schemaName": "tr_RetentionDays"
+          }
+        }
+      },
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Month",
+            "interval": 1,
+            "schedule": {
+              "monthDays": [
+                1
+              ],
+              "hours": [
+                3
+              ],
+              "minutes": [
+                0
+              ]
+            }
+          },
+          "metadata": {}
+        }
+      },
+      "actions": {
+        "If_Retention_Enabled": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@parameters('Signal retention (days) (tr_RetentionDays)')",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Cutoff": {
+              "type": "Compose",
+              "inputs": "@formatDateTime(addDays(utcNow(), mul(-1, parameters('Signal retention (days) (tr_RetentionDays)'))), 'yyyy-MM-ddTHH:mm:ssZ')",
+              "metadata": {
+                "description": "Signals created before this moment have expired"
+              }
+            },
+            "Loop_Statuses": {
+              "type": "Foreach",
+              "foreach": "@createArray('Rejected', 'Monitor')",
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "actions": {
+                "Get_Old_Signals": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                      "table": "@parameters('Signals list (tr_SignalsList)')",
+                      "$filter": "field_11 eq '@{items('Loop_Statuses')}' and Created lt '@{outputs('Cutoff')}'",
+                      "$top": 500
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    }
+                  },
+                  "metadata": {
+                    "description": "Find expired signals of this status, up to 500 per run"
+                  }
+                },
+                "Loop_Signals": {
+                  "type": "Foreach",
+                  "foreach": "@outputs('Get_Old_Signals')?['body/value']",
+                  "runtimeConfiguration": {
+                    "concurrency": {
+                      "repetitions": 1
+                    }
+                  },
+                  "actions": {
+                    "Delete_Signal": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Signals list (tr_SignalsList)')",
+                          "id": "@items('Loop_Signals')?['ID']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "DeleteItem"
+                        }
+                      },
+                      "metadata": {
+                        "description": "Delete one expired signal"
+                      }
+                    },
+                    "Get_Remaining_Signals": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                          "table": "@parameters('Signals list (tr_SignalsList)')",
+                          "$filter": "field_1 eq @{items('Loop_Signals')?['field_1']}",
+                          "$top": 1
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetItems"
+                        }
+                      },
+                      "runAfter": {
+                        "Delete_Signal": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Another brief's signal still uses this evidence"
+                      }
+                    },
+                    "If_No_Signals_Left": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "empty": [
+                              "@outputs('Get_Remaining_Signals')?['body/value']"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Get_Source_Item": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                              "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                              "$filter": "ID eq @{items('Loop_Signals')?['field_1']}",
+                              "$top": 1
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "GetItems"
+                            }
+                          },
+                          "metadata": {
+                            "description": "Find the source item that owns the evidence"
+                          }
+                        },
+                        "If_Has_Evidence": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "not": {
+                                  "empty": [
+                                    "@first(outputs('Get_Source_Item')?['body/value'])?['field_7']"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "Get_Evidence_File": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                  "path": "@first(outputs('Get_Source_Item')?['body/value'])?['field_7']"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "GetFileMetadataByPath"
+                                }
+                              },
+                              "metadata": {
+                                "description": "Look up the evidence file by its stored path"
+                              }
+                            },
+                            "Delete_Evidence_File": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                  "id": "@outputs('Get_Evidence_File')?['body/Id']"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "DeleteFile"
+                                }
+                              },
+                              "runAfter": {
+                                "Get_Evidence_File": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "description": "Remove the evidence file nothing refers to anymore"
+                              }
+                            },
+                            "Mark_Source_Item_Purged": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "@parameters('Site URL (tr_SiteURL)')",
+                                  "table": "@parameters('Source Items list (tr_SourceItemsList)')",
+                                  "id": "@first(outputs('Get_Source_Item')?['body/value'])?['ID']",
+                                  "item/field_7": "",
+                                  "item/field_8": "Purged"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "PatchItem"
+                                }
+                              },
+                              "runAfter": {
+                                "Delete_Evidence_File": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "metadata": {
+                                "description": "Keep the SourceItems row as a tombstone so the item is not collected again"
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Get_Source_Item": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "description": "Skip source items that have no evidence file to delete"
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Get_Remaining_Signals": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Only delete evidence when no signal of any brief still uses it"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Get_Old_Signals": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "description": "Delete each expired signal one at a time so the leftover check is accurate"
+                  }
+                }
+              },
+              "runAfter": {
+                "Cutoff": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "description": "Only Rejected and Monitor signals are ever cleaned up"
+              }
+            }
+          },
+          "metadata": {
+            "description": "A retention of 0 turns the cleanup off"
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -40,13 +40,13 @@ class SolutionTests(unittest.TestCase):
             self.assertIn("[Content_Types].xml", files)
             self.assertIn("solution.xml", files)
             self.assertIn("customizations.xml", files)
-            self.assertEqual(5, len([n for n in files if n.startswith("Workflows/")]))
+            self.assertEqual(6, len([n for n in files if n.startswith("Workflows/")]))
             self.assertIn("environmentvariabledefinitions/tr_SiteURL/environmentvariabledefinition.xml", files)
 
     def test_workflow_files_get_export_names(self):
         source = sorted(p.name for p in (ROOT / "verticals" / TR / "solution" / "Workflows").iterdir())
-        self.assertEqual(["TRBusinessCase.json", "TRClassifyItems.json", "TRCollectRSS.json", "TRProcessDocuments.json",
-                          "TRWeeklyDigest.json"], source)
+        self.assertEqual(["TRBusinessCase.json", "TRClassifyItems.json", "TRCleanupSignals.json",
+                          "TRCollectRSS.json", "TRProcessDocuments.json", "TRWeeklyDigest.json"], source)
         for files in (self.en, self.es):
             self.assertIn(CLASSIFY, files)
             xml = ET.fromstring(files["customizations.xml"])
@@ -65,8 +65,8 @@ class SolutionTests(unittest.TestCase):
     def test_flow_names_localized(self):
         es = ET.fromstring(self.es["customizations.xml"])
         names = sorted(w.get("Name") for w in es.iter("Workflow"))
-        self.assertEqual(["VT Caso de Negocio", "VT Clasificar Elementos", "VT Procesar Documentos", "VT Recolectar RSS",
-                          "VT Resumen Semanal"], names)
+        self.assertEqual(["VT Caso de Negocio", "VT Clasificar Elementos", "VT Limpiar Señales",
+                          "VT Procesar Documentos", "VT Recolectar RSS", "VT Resumen Semanal"], names)
         self.assertEqual("3082", es.findtext("Languages/Language"))
 
     def test_only_used_connection_references_ship(self):
@@ -298,8 +298,9 @@ class SnippetTests(unittest.TestCase):
     def test_memory_written_snippets_are_unverified(self):
         unverified = sorted(p.name for p in (ROOT / "shared" / "flow-snippets").rglob("*.json")
                             if not json.loads(p.read_text(encoding="utf-8"))["verified"])
-        self.assertEqual(["copy-file.json", "post-message.json", "send-http-request.json",
-                          "start-and-wait.json", "trigger-item-created-or-modified.json"], unverified)
+        self.assertEqual(["copy-file.json", "delete-file.json", "delete-item.json", "get-file-metadata-by-path.json",
+                          "post-message.json", "send-http-request.json", "start-and-wait.json",
+                          "trigger-item-created-or-modified.json"], unverified)
 
 
 class SharePointKitTests(unittest.TestCase):

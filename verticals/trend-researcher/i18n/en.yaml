@@ -22,6 +22,9 @@ flows:
   businessCase:
     name: TR Business Case
     description: Every 5 minutes. Picks up BusinessCaseRequests set to Submitted, validates the request and its 1-5 input digests, and claims it for generation.
+  cleanupSignals:
+    name: TR Clean Up Signals
+    description: Monthly. Deletes Rejected and Monitor signals older than tr_RetentionDays, and the evidence file of a source item once none of its signals is left. SourceItems rows are kept and marked Purged.
 
 connections:
   sharepoint:

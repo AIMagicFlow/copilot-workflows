@@ -1,0 +1,27 @@
+{
+  "connector": "shared_sharepointonline",
+  "operationId": "GetFileMetadataByPath",
+  "source": "connector-docs",
+  "verified": false,
+  "notes": [
+    "path is the server-relative file path, such as the EvidenceUrl stored on a SourceItem.",
+    "Output body/Id feeds DeleteFile and GetFileContent; it fails when the file no longer exists."
+  ],
+  "action": {
+    "type": "OpenApiConnection",
+    "inputs": {
+      "parameters": {
+        "dataset": "@parameters('Site URL (tr_SiteURL)')",
+        "path": "@items('Loop')?['field_7']"
+      },
+      "host": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+        "connectionName": "shared_sharepointonline",
+        "operationId": "GetFileMetadataByPath"
+      }
+    },
+    "metadata": {
+      "description": "Get file metadata using path"
+    }
+  }
+}
