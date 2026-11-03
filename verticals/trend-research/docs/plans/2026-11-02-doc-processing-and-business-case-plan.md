@@ -581,11 +581,9 @@ These don't block Part A. B1–B3 use the defaults shown until they're decided.
 2. **Objective grouping.** This plan has the classifier tag objectives (cheap and deterministic in the digest). The spec's alternative is to "start with report sections" and fill them with an extra AI summarization step. That costs more and is less traceable.
 3. **Business-case report template and financial inputs.** The spec requires customer agreement before B5's section list is final.
 4. **Delivery audience for business cases.** A Teams channel (`teamId|channelId` in `tr_NotificationAudience`) or email. B6 assumes a Teams channel with a self-post fallback.
-5. **Redaction and document-conversion add-on (separate plan, when a customer asks).** It enables private uploads, with case-insensitive and regex redaction (names, emails, phones, amounts, IDs), and PDF/DOCX/PPTX → text. The two candidates:
-   - **Dataverse actions:** a Dataverse custom API or low-code plug-in, shipped in the solution itself.
-   - **An Azure Function** in the customer's Azure subscription, called through the HTTP or Azure Functions connector. Its URL and key come from env vars, and the key never goes into source.
+5. **Redaction and document-conversion add-on: decided, not scheduled.** The design is in [docs/addons/document-sanitizer-design.md](../../../../docs/addons/document-sanitizer-design.md) and the decision in [ADR-001](../../../../docs/addons/adr-001-document-sanitizer-distribution.md):
+   - a customer-hosted Azure Function, released separately;
+   - the solution carries the custom connector, the env vars and the flow branches;
+   - a Dataverse plug-in is kept as a possible "no Azure" tier.
 
-   It plugs into `TR Process Documents` in two places: at the else branch of `If_Text_File`, and as a private branch beside `If_Public_Path`. To decide:
-   - which of the two;
-   - premium-connector and Dataverse-capacity licensing for agent flows;
-   - whether private originals may leave SharePoint at all.
+   It plugs into `TR Process Documents` at the else branch of `If_Text_File`, and as a private branch beside `If_Public_Path`. It gets its own implementation plan when a customer needs it. Nothing in this plan depends on it.
