@@ -135,6 +135,7 @@ With option B, lists live at stable English URLs (`/Lists/Sources`). The flows u
    | Approved audiences (`tr_ApprovedAudiences`) | Required. The values allowed as *AudienceKey*, separated by semicolons, for example `Leadership;Product`. If it is empty, every request is rejected. |
    | Notification Audience (`tr_NotificationAudience`) | Optional. The Teams channel that receives approved business cases, written `teamId|channelId`. If it is empty, the message goes to the flow owner instead. |
    | Business case maximum input (characters) | `60000` (default). The most digest text one request can send to the AI. A larger request goes to `Failed` before any AI call. |
+   | Signal retention (days) (`tr_RetentionDays`) | `90`. `0` turns the cleanup off. |
 
    The other variables are reserved for future versions. Leave them empty.
 

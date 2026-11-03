@@ -4,9 +4,9 @@
 
 ### Added
 
-- **Retention cleanup: new flow `TR Clean Up Signals`** (es `VT Limpiar Señales`). It runs on the 1st of each month at 03:00 UTC and deletes `Rejected` and `Monitor` signals older than `tr_RetentionDays`. Signals with `Digest` or `NeedsReview` are kept at any age. When a deleted signal was the last one for its source item, the flow also deletes that item's evidence file and marks the SourceItems row `ContentStatus=Purged` with an empty `EvidenceUrl`. The row is kept so collectors do not collect the item again. Uploaded originals in `SourceUploads`, publications and business-case drafts are never touched. Each run handles up to 500 signals per status; a large backlog is cleared over several months. The loops run one item at a time.
+- **Retention cleanup: new flow `TR Clean Up Signals`** (es `VT Limpiar Señales`). It runs on the 1st of each month at 03:00 UTC and deletes `Rejected` and `Monitor` signals older than `tr_RetentionDays`. Signals with `Digest` or `NeedsReview` are kept at any age. When a deleted signal was the last one for its source item, the flow also deletes that item's evidence file and marks the SourceItems row `ContentStatus=Purged` with an empty `EvidenceUrl`. The row is kept so collectors do not collect the item again. Uploaded originals in `SourceUploads`, publications and business-case drafts are never touched. Each run handles up to 500 signals per status, so a larger backlog needs several monthly runs, as long as the query for that status can run (see the 5,000-item point under Known open points). The loops run one item at a time.
 - **Environment variable.** `tr_RetentionDays` (Number, default `90`). `0` turns the cleanup off.
-- **Indexes.** Signals `SourceItemId` and `Status` are indexed, so the cleanup queries keep working past the 5,000-item threshold.
+- **Indexes.** Signals `SourceItemId` and `Status` are indexed, so the cleanup queries can filter on them in a large list. The monthly query filters by `Status` only (`Created` is not indexed), so it does not run for a status that has more than 5,000 signals. That status fails every month and nothing is deleted for it.
 - **`ContentStatus` value `Purged`** on SourceItems: the item's evidence file was deleted by the cleanup.
 
 ### Upgrade notes
@@ -22,6 +22,13 @@ The four acceptance items from the design spec (`docs/design/2026-11-02-tr-clean
 2. The shapes of `DeleteItem`, `DeleteFile` and `GetFileMetadataByPath` match a real export. The new snippets stay `verified: false` until this check.
 3. `GetFileMetadataByPath` accepts the `EvidenceUrl` value as written by `CreateFile` (`body/Path`).
 4. A run with `tr_RetentionDays` set to `1` deletes only the old `Rejected` and `Monitor` signals, and a source item that still has a `Digest` signal keeps its evidence file. This is the dev-tenant run and has not been done.
+
+Also check, from the final review:
+
+5. A site with more than 5,000 signals of one status cannot run the query until those are cleared by hand; check on a large site.
+6. `item/field_7` with `""` may not clear `EvidenceUrl` on the SharePoint connector; check in the tenant run that the field is empty, and use `null` if not.
+7. The first Month recurrence in this repo: check that the trigger fires on the 1st at 03:00 UTC.
+8. A manually deleted evidence file fails only its own iteration (plan Task 4 step 4.4).
 
 ### Fixed
 

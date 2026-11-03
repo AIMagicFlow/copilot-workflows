@@ -1313,6 +1313,7 @@ class DeploymentSettingsExampleTests(unittest.TestCase):
 CLEANUP = "Workflows/TRCleanupSignals-07C37191-9C6E-4A13-B193-49594DB1A239.json"
 SIGNALS = "@parameters('Signals list (tr_SignalsList)')"
 RETENTION = "@parameters('Signal retention (days) (tr_RetentionDays)')"
+SOURCE_ITEMS = "@parameters('Source Items list (tr_SourceItemsList)')"
 
 
 class CleanupSignalsTests(unittest.TestCase):
@@ -1360,6 +1361,16 @@ class CleanupSignalsTests(unittest.TestCase):
         self.assertEqual("field_1 eq @{items('Loop_Signals')?['field_1']}", p["$filter"])
         self.assertEqual(1, p["$top"])
         self.assertEqual(["If_No_Signals_Left", "If_Has_Evidence"], path_to(doc, "Delete_Evidence_File")[-2:])
+        self.assertEqual(SIGNALS, p["table"])
+        self.assertEqual({"and": [{"empty": ["@outputs('Get_Remaining_Signals')?['body/value']"]}]},
+                         find_action(doc, "If_No_Signals_Left")["expression"])
+        self.assertEqual({"Get_Remaining_Signals": ["Succeeded"]}, run_after_(doc, "If_No_Signals_Left"))
+        self.assertEqual({"Get_Source_Item": ["Succeeded"]}, run_after_(doc, "If_Has_Evidence"))
+        self.assertEqual({"Get_Evidence_File": ["Succeeded"]}, run_after_(doc, "Delete_Evidence_File"))
+        self.assertEqual(SOURCE_ITEMS, params(doc, "Get_Source_Item")["table"])
+        self.assertEqual(SOURCE_ITEMS, params(doc, "Mark_Source_Item_Purged")["table"])
+        for name in ("If_Retention_Enabled", "If_No_Signals_Left"):
+            self.assertNotIn("else", find_action(doc, name))
 
     def test_missing_source_item_or_evidence_is_skipped(self):
         doc = self.doc

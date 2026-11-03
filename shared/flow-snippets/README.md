@@ -5,7 +5,7 @@ Connector shapes for new flows. Copy the `trigger` or `action` block from a snip
 Each file has `connector`, `operationId`, `source`, `verified`, `notes` and a `trigger` or `action` block.
 
 - `source` is `tenant-export`, `coe-starter-kit`, `pnp-samples` or `connector-docs`.
-- `verified: false` means the shape has not been checked against a real export. `sharepoint/copy-file.json`, `sharepoint/delete-item.json`, `sharepoint/delete-file.json` and `sharepoint/get-file-metadata-by-path.json` are in that state, until the 1.4.0.0 acceptance run.
+- `verified: false` means the shape has not been checked against a real export. Each file's `verified` field is the authority; this README does not keep a list. The snippets added for 1.4.0.0 (`sharepoint/delete-item.json`, `sharepoint/delete-file.json` and `sharepoint/get-file-metadata-by-path.json`) stay `false` until the 1.4.0.0 acceptance run.
 
 Tenant values never go into a snippet:
 

@@ -145,6 +145,7 @@ Con la opción B las listas quedan en URL estables en inglés (`/Lists/Sources`)
    | Audiencias aprobadas (`tr_ApprovedAudiences`) | Obligatoria. Los valores permitidos como *AudienceKey*, separados por punto y coma, por ejemplo `Direccion;Producto`. Si está vacía, se rechaza toda solicitud. |
    | Audiencia de notificación (`tr_NotificationAudience`) | Opcional. El canal de Teams que recibe los casos de negocio aprobados, escrito `teamId|channelId`. Si está vacía, el mensaje va al propietario del flujo. |
    | Entrada máxima del caso de negocio (caracteres) | `60000` (valor por defecto). El máximo de texto de resúmenes que una solicitud puede enviar a la IA. Una solicitud mayor pasa a `Failed` antes de llamar a la IA. |
+   | Retención de señales (días) (`tr_RetentionDays`) | `90`. `0` desactiva la limpieza. |
 
    El resto de variables están reservadas para versiones futuras. Déjelas vacías.
 
